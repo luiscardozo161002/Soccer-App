@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Equipo {
+  id           String   @id @default(uuid())
+  nombre       String
+  fechaIngreso DateTime @default(now()) @map("fecha_ingreso")
+  foto         String?
+
+  jugadores      Jugador[]
+  partidosLocal  Partido[]      @relation("PartidoLocal")
+  partidosVisita Partido[]      @relation("PartidoVisitante")
+  ajustesPuntos  AjustePuntos[]
+
+  @@map("equipos")
+}
+
+model Jugador {
+  id              String    @id @default(uuid())
+  equipoId        String    @map("id_equipo")
+  nombre          String
+  foto            String?
+  fechaNacimiento DateTime? @map("fecha_nacimiento")
+  folio           String    @unique
+
+  equipo   Equipo    @relation(fields: [equipoId], references: [id])
+  tarjetas Tarjeta[]
+
+  @@map("jugadores")
+}
+
+model Cancha {
+  id        String  @id @default(uuid())
+  nombre    String
+  ubicacion String?
+
+  partidos Partido[]
+
+  @@map("canchas")
+}
+
+enum EstadoPartido {
+  programado
+  jugado
+  pospuesto
+  cancelado
+}
+
+model Partido {
+  id                String        @id @default(uuid())
+  equipoLocalId     String        @map("id_equipo_local")
+  equipoVisitanteId String        @map("id_equipo_visitante")
+  canchaId          String        @map("id_cancha")
+  jornada           Int
+  fecha             DateTime
+  hora              String
+  golesLocal        Int?          @map("goles_local")
+  golesVisitante    Int?          @map("goles_visitante")
+  estado            EstadoPartido @default(programado)
+
+  equipoLocal     Equipo    @relation("PartidoLocal", fields: [equipoLocalId], references: [id])
+  equipoVisitante Equipo    @relation("PartidoVisitante", fields: [equipoVisitanteId], references: [id])
+  cancha          Cancha    @relation(fields: [canchaId], references: [id])
+  tarjetas        Tarjeta[]
+
+  @@map("partidos")
+}
+
+enum TipoTarjeta {
+  amarilla
+  roja
+}
+
+model Tarjeta {
+  id                String      @id @default(uuid())
+  jugadorId         String      @map("id_jugador")
+  partidoId         String      @map("id_partido")
+  tipo              TipoTarjeta
+  fechaModificacion DateTime    @default(now()) @map("fecha_modificacion")
+  monto             Decimal?    @db.Decimal(10, 2)
+  detalle           String?
+
+  jugador   Jugador   @relation(fields: [jugadorId], references: [id])
+  partido   Partido   @relation(fields: [partidoId], references: [id])
+  sanciones Sancion[]
+
+  @@map("tarjetas")
+}
+
+model Sancion {
+  id              String  @id @default(uuid())
+  tarjetaId       String  @map("id_tarjeta")
+  jornadaInicio   Int     @map("jornada_inicio")
+  jornadaFin      Int     @map("jornada_fin")
+  partidosSancion Int     @map("partidos_sancion")
+  cumplida        Boolean @default(false)
+
+  tarjeta Tarjeta @relation(fields: [tarjetaId], references: [id])
+
+  @@map("sanciones")
+}
+
+model AjustePuntos {
+  id       String   @id @default(uuid())
+  equipoId String   @map("id_equipo")
+  puntos   Int
+  motivo   String
+  fecha    DateTime @default(now())
+
+  equipo Equipo @relation(fields: [equipoId], references: [id])
+
+  @@map("ajustes_puntos")
+}
