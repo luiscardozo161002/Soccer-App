@@ -1,0 +1,52 @@
+import { ApiError } from "@/lib/errors";
+import { optimizeImageFromDataUrl } from "@/lib/images";
+import { teamRepository } from "@/lib/repositories/team.repository";
+import type { Prisma } from "@/app/generated/prisma/client";
+import type { CreateTeamDto, UpdateTeamDto } from "@/lib/validation/team.schema";
+
+async function toWriteData(dto: CreateTeamDto | UpdateTeamDto): Promise<Prisma.TeamUncheckedUpdateInput> {
+  const data: Prisma.TeamUncheckedUpdateInput = { name: dto.name, registeredAt: dto.registeredAt };
+  if (dto.photo) {
+    const { buffer, type } = await optimizeImageFromDataUrl(dto.photo);
+    data.photo = new Uint8Array(buffer);
+    data.photoType = type;
+  }
+  return data;
+}
+
+export const teamService = {
+  async list(page: number, pageSize: number) {
+    const [items, totalItems] = await Promise.all([
+      teamRepository.findMany({ page, pageSize }),
+      teamRepository.count(),
+    ]);
+    return { items, totalItems, totalPages: Math.ceil(totalItems / pageSize) };
+  },
+
+  async getById(id: string) {
+    const team = await teamRepository.findById(id);
+    if (!team) {
+      throw new ApiError(404, "TEAM_NOT_FOUND", `No team exists with id ${id}`);
+    }
+    return team;
+  },
+
+  async create(dto: CreateTeamDto) {
+    const existing = await teamRepository.findByName(dto.name);
+    if (existing) {
+      throw new ApiError(409, "TEAM_NAME_DUPLICATED", `A team named "${dto.name}" already exists`);
+    }
+    const data = await toWriteData(dto);
+    return teamRepository.create({ ...data, name: dto.name } as Prisma.TeamUncheckedCreateInput);
+  },
+
+  async update(id: string, dto: UpdateTeamDto) {
+    await this.getById(id);
+    return teamRepository.update(id, await toWriteData(dto));
+  },
+
+  async remove(id: string) {
+    await this.getById(id);
+    await teamRepository.delete(id);
+  },
+};

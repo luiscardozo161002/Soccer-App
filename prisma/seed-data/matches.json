@@ -1,0 +1,62 @@
+[
+  {
+    "homeTeam": "Tigres FC",
+    "awayTeam": "Águilas Doradas",
+    "field": "Cancha Municipal 1",
+    "matchday": 1,
+    "date": "2026-08-15",
+    "time": "10:00",
+    "status": "played",
+    "homeGoals": 2,
+    "awayGoals": 1
+  },
+  {
+    "homeTeam": "Lobos United",
+    "awayTeam": "Halcones FC",
+    "field": "Cancha Municipal 2",
+    "matchday": 1,
+    "date": "2026-08-15",
+    "time": "12:00",
+    "status": "played",
+    "homeGoals": 0,
+    "awayGoals": 0
+  },
+  {
+    "homeTeam": "Águilas Doradas",
+    "awayTeam": "Lobos United",
+    "field": "Estadio Independencia",
+    "matchday": 2,
+    "date": "2026-08-22",
+    "time": "10:00",
+    "status": "played",
+    "homeGoals": 3,
+    "awayGoals": 2
+  },
+  {
+    "homeTeam": "Halcones FC",
+    "awayTeam": "Tigres FC",
+    "field": "Unidad Deportiva Norte",
+    "matchday": 2,
+    "date": "2026-08-22",
+    "time": "12:00",
+    "status": "scheduled"
+  },
+  {
+    "homeTeam": "Tigres FC",
+    "awayTeam": "Lobos United",
+    "field": "Cancha Municipal 1",
+    "matchday": 3,
+    "date": "2026-08-29",
+    "time": "10:00",
+    "status": "scheduled"
+  },
+  {
+    "homeTeam": "Águilas Doradas",
+    "awayTeam": "Halcones FC",
+    "field": "Cancha Municipal 2",
+    "matchday": 3,
+    "date": "2026-08-29",
+    "time": "12:00",
+    "status": "scheduled"
+  }
+]

@@ -1,0 +1,14 @@
+[
+  { "team": "Tigres FC", "name": "Carlos Ramírez", "registrationNumber": "TIG-001", "birthDate": "1998-03-14" },
+  { "team": "Tigres FC", "name": "Luis Hernández", "registrationNumber": "TIG-002", "birthDate": "1999-07-22" },
+  { "team": "Tigres FC", "name": "Miguel Torres", "registrationNumber": "TIG-003", "birthDate": "1997-11-05" },
+  { "team": "Águilas Doradas", "name": "Jorge Salazar", "registrationNumber": "AGU-001", "birthDate": "2000-01-30" },
+  { "team": "Águilas Doradas", "name": "Roberto Díaz", "registrationNumber": "AGU-002", "birthDate": "1996-09-18" },
+  { "team": "Águilas Doradas", "name": "Fernando Cruz", "registrationNumber": "AGU-003", "birthDate": "1998-05-27" },
+  { "team": "Lobos United", "name": "Andrés Morales", "registrationNumber": "LOB-001", "birthDate": "1999-12-02" },
+  { "team": "Lobos United", "name": "Pedro Jiménez", "registrationNumber": "LOB-002", "birthDate": "1997-04-19" },
+  { "team": "Lobos United", "name": "Diego Vargas", "registrationNumber": "LOB-003", "birthDate": "2001-02-08" },
+  { "team": "Halcones FC", "name": "Ricardo Mendoza", "registrationNumber": "HAL-001", "birthDate": "1998-08-11" },
+  { "team": "Halcones FC", "name": "Alejandro Reyes", "registrationNumber": "HAL-002", "birthDate": "2000-06-25" },
+  { "team": "Halcones FC", "name": "Sergio Castillo", "registrationNumber": "HAL-003", "birthDate": "1996-10-30" }
+]

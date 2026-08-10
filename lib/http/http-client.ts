@@ -5,7 +5,7 @@ interface RequestOptions extends RequestInit {
 }
 
 interface ErrorEnvelope {
-  error?: { code?: string; details?: unknown };
+  error?: { code?: string; message?: string; details?: unknown };
 }
 
 export async function http<T>(url: string, options: RequestOptions = {}): Promise<T> {
@@ -25,7 +25,7 @@ export async function http<T>(url: string, options: RequestOptions = {}): Promis
       throw new ApiError(
         response.status,
         body?.error?.code ?? "HTTP_ERROR",
-        undefined,
+        body?.error?.message,
         body?.error?.details
       );
     }

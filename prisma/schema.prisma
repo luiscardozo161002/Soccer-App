@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../app/generated/prisma"
@@ -12,113 +10,146 @@ datasource db {
   provider = "postgresql"
 }
 
-model Equipo {
+enum Status {
+  active
+  inactive
+}
+
+enum MatchStatus {
+  scheduled
+  played
+  postponed
+  cancelled
+}
+
+enum CardType {
+  yellow
+  red
+}
+
+model Team {
   id           String   @id @default(uuid())
-  nombre       String
-  fechaIngreso DateTime @default(now()) @map("fecha_ingreso")
-  foto         String?
+  name         String
+  photo        Bytes?
+  photoType    String?  @map("photo_type")
+  registeredAt DateTime @default(now()) @map("registered_at")
+  status       Status   @default(active)
 
-  jugadores      Jugador[]
-  partidosLocal  Partido[]      @relation("PartidoLocal")
-  partidosVisita Partido[]      @relation("PartidoVisitante")
-  ajustesPuntos  AjustePuntos[]
+  players          Player[]
+  homeMatches      Match[]           @relation("HomeTeam")
+  awayMatches      Match[]           @relation("AwayTeam")
+  pointAdjustments PointAdjustment[]
 
-  @@map("equipos")
+  @@map("teams")
 }
 
-model Jugador {
-  id              String    @id @default(uuid())
-  equipoId        String    @map("id_equipo")
-  nombre          String
-  foto            String?
-  fechaNacimiento DateTime? @map("fecha_nacimiento")
-  folio           String    @unique
+model Player {
+  id                 String    @id @default(uuid())
+  teamId             String    @map("team_id")
+  name               String
+  photo              Bytes?
+  photoType          String?   @map("photo_type")
+  birthDate          DateTime? @map("birth_date")
+  registrationNumber String    @unique @map("registration_number")
+  status             Status    @default(active)
 
-  equipo   Equipo    @relation(fields: [equipoId], references: [id])
-  tarjetas Tarjeta[]
+  team  Team   @relation(fields: [teamId], references: [id])
+  cards Card[]
 
-  @@map("jugadores")
+  @@map("players")
 }
 
-model Cancha {
-  id        String  @id @default(uuid())
-  nombre    String
-  ubicacion String?
+model Field {
+  id       String  @id @default(uuid())
+  name     String
+  location String?
+  status   Status  @default(active)
 
-  partidos Partido[]
+  matches Match[]
 
-  @@map("canchas")
+  @@map("fields")
 }
 
-enum EstadoPartido {
-  programado
-  jugado
-  pospuesto
-  cancelado
+model Match {
+  id         String      @id @default(uuid())
+  homeTeamId String      @map("home_team_id")
+  awayTeamId String      @map("away_team_id")
+  fieldId    String      @map("field_id")
+  matchday   Int
+  date       DateTime
+  time       String
+  homeGoals  Int?        @map("home_goals")
+  awayGoals  Int?        @map("away_goals")
+  status     MatchStatus @default(scheduled)
+
+  homeTeam Team   @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam Team   @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  field    Field  @relation(fields: [fieldId], references: [id])
+  cards    Card[]
+
+  @@map("matches")
 }
 
-model Partido {
-  id                String        @id @default(uuid())
-  equipoLocalId     String        @map("id_equipo_local")
-  equipoVisitanteId String        @map("id_equipo_visitante")
-  canchaId          String        @map("id_cancha")
-  jornada           Int
-  fecha             DateTime
-  hora              String
-  golesLocal        Int?          @map("goles_local")
-  golesVisitante    Int?          @map("goles_visitante")
-  estado            EstadoPartido @default(programado)
+// Cada tarjeta pertenece a un jugador en un partido especifico.
+// Los conteos por equipo (amarillas/rojas/totales) y los puntos
+// se calculan en consulta a partir de esta tabla, no se almacenan
+// en Match, para evitar que queden desincronizados.
+model Card {
+  id         String   @id @default(uuid())
+  playerId   String   @map("player_id")
+  matchId    String   @map("match_id")
+  type       CardType
+  amount     Decimal? @db.Decimal(10, 2)
+  detail     String?
+  recordedAt DateTime @default(now()) @map("recorded_at")
+  status     Status   @default(active)
 
-  equipoLocal     Equipo    @relation("PartidoLocal", fields: [equipoLocalId], references: [id])
-  equipoVisitante Equipo    @relation("PartidoVisitante", fields: [equipoVisitanteId], references: [id])
-  cancha          Cancha    @relation(fields: [canchaId], references: [id])
-  tarjetas        Tarjeta[]
+  player    Player     @relation(fields: [playerId], references: [id])
+  match     Match      @relation(fields: [matchId], references: [id])
+  sanctions Sanction[]
 
-  @@map("partidos")
+  @@map("cards")
 }
 
-enum TipoTarjeta {
-  amarilla
-  roja
+// Suspension derivada de una tarjeta (no toda tarjeta genera una).
+model Sanction {
+  id               String  @id @default(uuid())
+  cardId           String  @map("card_id")
+  matchdayStart    Int     @map("matchday_start")
+  matchdayEnd      Int     @map("matchday_end")
+  matchesSuspended Int     @map("matches_suspended")
+  fulfilled        Boolean @default(false)
+  status           Status  @default(active)
+
+  card Card @relation(fields: [cardId], references: [id])
+
+  @@map("sanctions")
 }
 
-model Tarjeta {
-  id                String      @id @default(uuid())
-  jugadorId         String      @map("id_jugador")
-  partidoId         String      @map("id_partido")
-  tipo              TipoTarjeta
-  fechaModificacion DateTime    @default(now()) @map("fecha_modificacion")
-  monto             Decimal?    @db.Decimal(10, 2)
-  detalle           String?
+// Ajustes manuales de puntos (ej. descuentos disciplinarios),
+// separados del calculo automatico de la tabla de posiciones.
+model PointAdjustment {
+  id     String   @id @default(uuid())
+  teamId String   @map("team_id")
+  points Int
+  reason String
+  date   DateTime @default(now())
+  status Status   @default(active)
 
-  jugador   Jugador   @relation(fields: [jugadorId], references: [id])
-  partido   Partido   @relation(fields: [partidoId], references: [id])
-  sanciones Sancion[]
+  team Team @relation(fields: [teamId], references: [id])
 
-  @@map("tarjetas")
+  @@map("point_adjustments")
 }
 
-model Sancion {
-  id              String  @id @default(uuid())
-  tarjetaId       String  @map("id_tarjeta")
-  jornadaInicio   Int     @map("jornada_inicio")
-  jornadaFin      Int     @map("jornada_fin")
-  partidosSancion Int     @map("partidos_sancion")
-  cumplida        Boolean @default(false)
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String   @unique
+  phoneNumber  String?  @map("phone_number")
+  passwordHash String   @map("password_hash")
+  role         String   @default("admin")
+  status       Status   @default(active)
+  createdAt    DateTime @default(now()) @map("created_at")
 
-  tarjeta Tarjeta @relation(fields: [tarjetaId], references: [id])
-
-  @@map("sanciones")
-}
-
-model AjustePuntos {
-  id       String   @id @default(uuid())
-  equipoId String   @map("id_equipo")
-  puntos   Int
-  motivo   String
-  fecha    DateTime @default(now())
-
-  equipo Equipo @relation(fields: [equipoId], references: [id])
-
-  @@map("ajustes_puntos")
+  @@map("users")
 }

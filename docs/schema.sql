@@ -1,136 +1,195 @@
 -- =========================================================
--- Soccer App - Esquema de base de datos (SQL Server)
+-- Soccer App - Database schema (PostgreSQL)
+-- Mirrors prisma/schema.prisma exactly (same tables/columns).
+-- Superseded the earlier SQL Server draft after the project
+-- settled on Next.js + Prisma + PostgreSQL.
 -- =========================================================
 
-CREATE TABLE equipos (
-    id_equipo       INT IDENTITY(1,1) PRIMARY KEY,
-    nombre          NVARCHAR(100) NOT NULL,
-    fecha_ingreso   DATE NOT NULL DEFAULT CAST(GETDATE() AS DATE),
-    foto            NVARCHAR(255) NULL
+CREATE TYPE status AS ENUM ('active', 'inactive');
+-- Estado de los equipos, jugadores, canchas, partidos, tarjetas, sanciones, ajustes de puntos, usuarios
+CREATE TYPE match_status AS ENUM ('scheduled', 'played', 'postponed', 'cancelled');
+-- Estado de los partidos
+CREATE TYPE card_type AS ENUM ('yellow', 'red');
+-- Tipo de tarjeta
+
+CREATE TABLE teams ( -- Equipos
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    name VARCHAR(100) NOT NULL,
+    photo BYTEA, -- optimizada a webp 512x512 antes de guardarse
+    photo_type VARCHAR(50),
+    registered_at TIMESTAMP NOT NULL DEFAULT now(),
+    status status NOT NULL DEFAULT 'active'
 );
 
-CREATE TABLE canchas (
-    id_cancha       INT IDENTITY(1,1) PRIMARY KEY,
-    nombre          NVARCHAR(100) NOT NULL,
-    ubicacion       NVARCHAR(200) NULL
+CREATE TABLE fields ( --Canchas
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    name VARCHAR(100) NOT NULL,
+    location VARCHAR(200),
+    status status NOT NULL DEFAULT 'active'
 );
 
-CREATE TABLE jugadores (
-    id_jugador          INT IDENTITY(1,1) PRIMARY KEY,
-    id_equipo           INT NOT NULL,
-    nombre              NVARCHAR(100) NOT NULL,
-    foto                NVARCHAR(255) NULL,
-    fecha_nacimiento    DATE NULL,
-    folio               NVARCHAR(30) NOT NULL,
-    CONSTRAINT FK_jugadores_equipo FOREIGN KEY (id_equipo) REFERENCES equipos(id_equipo),
-    CONSTRAINT UQ_jugadores_folio UNIQUE (folio)
+CREATE TABLE players ( -- Jugadores
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    team_id UUID NOT NULL REFERENCES teams (id),
+    name VARCHAR(100) NOT NULL,
+    photo BYTEA, -- optimizada a webp 512x512 antes de guardarse
+    photo_type VARCHAR(50),
+    birth_date DATE,
+    registration_number VARCHAR(30) NOT NULL UNIQUE,
+    status status NOT NULL DEFAULT 'active'
 );
 
--- Fusiona "Horario partidos" + "Resultados": son la misma entidad
--- antes y despues de jugarse, no dos tablas separadas.
-CREATE TABLE partidos (
-    id_partido          INT IDENTITY(1,1) PRIMARY KEY,
-    id_equipo_local     INT NOT NULL,
-    id_equipo_visitante INT NOT NULL,
-    id_cancha           INT NOT NULL,
-    jornada             INT NOT NULL,
-    fecha               DATE NOT NULL,
-    hora                TIME NOT NULL,
-    goles_local         INT NULL,
-    goles_visitante     INT NULL,
-    estado              VARCHAR(15) NOT NULL DEFAULT 'programado',
-    CONSTRAINT FK_partidos_local FOREIGN KEY (id_equipo_local) REFERENCES equipos(id_equipo),
-    CONSTRAINT FK_partidos_visitante FOREIGN KEY (id_equipo_visitante) REFERENCES equipos(id_equipo),
-    CONSTRAINT FK_partidos_cancha FOREIGN KEY (id_cancha) REFERENCES canchas(id_cancha),
-    CONSTRAINT CK_partidos_estado CHECK (estado IN ('programado','jugado','pospuesto','cancelado')),
-    CONSTRAINT CK_partidos_equipos_distintos CHECK (id_equipo_local <> id_equipo_visitante)
+-- Home/away como dos FKs explicitas a teams (no un id_equipo generico
+-- ambiguo). Sin columnas de conteo/puntos derivados: eso se calcula
+-- en la vista `standings` a partir de esta tabla y de `cards`.
+CREATE TABLE matches ( -- Partidos
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    home_team_id UUID NOT NULL REFERENCES teams (id),
+    away_team_id UUID NOT NULL REFERENCES teams (id),
+    field_id UUID NOT NULL REFERENCES fields (id),
+    matchday INT NOT NULL,
+    date DATE NOT NULL,
+    time TIME NOT NULL,
+    home_goals INT,
+    away_goals INT,
+    status match_status NOT NULL DEFAULT 'scheduled',
+    CONSTRAINT chk_matches_different_teams CHECK (home_team_id <> away_team_id)
 );
 
-CREATE TABLE tarjetas (
-    id_tarjeta          INT IDENTITY(1,1) PRIMARY KEY,
-    id_jugador          INT NOT NULL,
-    id_partido          INT NOT NULL,
-    tipo                VARCHAR(10) NOT NULL,
-    fecha_modificacion  DATE NOT NULL DEFAULT CAST(GETDATE() AS DATE),
-    monto               DECIMAL(10,2) NULL,
-    detalle             NVARCHAR(255) NULL,
-    CONSTRAINT FK_tarjetas_jugador FOREIGN KEY (id_jugador) REFERENCES jugadores(id_jugador),
-    CONSTRAINT FK_tarjetas_partido FOREIGN KEY (id_partido) REFERENCES partidos(id_partido),
-    CONSTRAINT CK_tarjetas_tipo CHECK (tipo IN ('amarilla','roja'))
+-- Una tarjeta pertenece a un jugador en un partido (la FK vive aqui,
+-- no al reves como en el borrador anterior donde matches apuntaba a
+-- una sola tarjeta).
+CREATE TABLE cards ( -- Tarjetas
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    player_id UUID NOT NULL REFERENCES players (id),
+    match_id UUID NOT NULL REFERENCES matches (id),
+    type card_type NOT NULL,
+    amount DECIMAL(10, 2),
+    detail VARCHAR(255),
+    recorded_at TIMESTAMP NOT NULL DEFAULT now(),
+    status status NOT NULL DEFAULT 'active'
 );
 
--- Castigos tipo "3 partidos expulsado, jornadas 8,9,10"
-CREATE TABLE sanciones (
-    id_sancion          INT IDENTITY(1,1) PRIMARY KEY,
-    id_tarjeta          INT NOT NULL,
-    jornada_inicio      INT NOT NULL,
-    jornada_fin         INT NOT NULL,
-    partidos_sancion    INT NOT NULL,
-    cumplida            BIT NOT NULL DEFAULT 0,
-    CONSTRAINT FK_sanciones_tarjeta FOREIGN KEY (id_tarjeta) REFERENCES tarjetas(id_tarjeta)
+-- Suspension derivada de una tarjeta (no toda tarjeta genera una).
+-- Guarda el rango de jornadas afectadas, no solo un contador suelto,
+-- para poder consultar "esta jugador suspendido en la jornada N".
+CREATE TABLE sanctions ( -- Sanciones
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    card_id UUID NOT NULL REFERENCES cards (id),
+    matchday_start INT NOT NULL,
+    matchday_end INT NOT NULL,
+    matches_suspended INT NOT NULL,
+    fulfilled BOOLEAN NOT NULL DEFAULT false,
+    status status NOT NULL DEFAULT 'active'
 );
 
--- Opcional: descuentos/bonos de puntos por disciplina u otras causas,
--- separado del calculo automatico de la tabla de posiciones.
-CREATE TABLE ajustes_puntos (
-    id_ajuste   INT IDENTITY(1,1) PRIMARY KEY,
-    id_equipo   INT NOT NULL,
-    puntos      INT NOT NULL,
-    motivo      NVARCHAR(255) NOT NULL,
-    fecha       DATE NOT NULL DEFAULT CAST(GETDATE() AS DATE),
-    CONSTRAINT FK_ajustes_equipo FOREIGN KEY (id_equipo) REFERENCES equipos(id_equipo)
+CREATE TABLE point_adjustments ( -- Ajustes de puntos
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    team_id UUID NOT NULL REFERENCES teams (id),
+    points INT NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    date TIMESTAMP NOT NULL DEFAULT now(),
+    status status NOT NULL DEFAULT 'active'
 );
-GO
+
+CREATE TABLE users ( -- Usuarios
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    phone_number VARCHAR(20),
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(30) NOT NULL DEFAULT 'admin',
+    status status NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
 
 -- =========================================================
--- Vista: tabla de posiciones (calculada, no almacenada)
+-- View: standings (calculated, not stored)
 -- =========================================================
-CREATE VIEW vw_tabla_posiciones AS
-WITH resultados AS (
-    SELECT id_equipo_local AS id_equipo,
-           CASE WHEN goles_local > goles_visitante THEN 1 ELSE 0 END AS ganado,
-           CASE WHEN goles_local = goles_visitante THEN 1 ELSE 0 END AS empatado,
-           CASE WHEN goles_local < goles_visitante THEN 1 ELSE 0 END AS perdido,
-           goles_local AS goles_favor,
-           goles_visitante AS goles_contra
-    FROM partidos
-    WHERE estado = 'jugado'
-    UNION ALL
-    SELECT id_equipo_visitante,
-           CASE WHEN goles_visitante > goles_local THEN 1 ELSE 0 END,
-           CASE WHEN goles_visitante = goles_local THEN 1 ELSE 0 END,
-           CASE WHEN goles_visitante < goles_local THEN 1 ELSE 0 END,
-           goles_visitante,
-           goles_local
-    FROM partidos
-    WHERE estado = 'jugado'
-),
-agregado AS (
-    SELECT id_equipo,
-           COUNT(*) AS juegos_jugados,
-           SUM(ganado) AS juegos_ganados,
-           SUM(empatado) AS juegos_empatados,
-           SUM(perdido) AS juegos_perdidos,
-           SUM(goles_favor) AS goles_favor,
-           SUM(goles_contra) AS goles_contra
-    FROM resultados
-    GROUP BY id_equipo
-)
+CREATE VIEW standings AS
+WITH
+    results AS (
+        SELECT
+            home_team_id AS team_id,
+            CASE
+                WHEN home_goals > away_goals THEN 1
+                ELSE 0
+            END AS won,
+            CASE
+                WHEN home_goals = away_goals THEN 1
+                ELSE 0
+            END AS drawn,
+            CASE
+                WHEN home_goals < away_goals THEN 1
+                ELSE 0
+            END AS lost,
+            home_goals AS goals_for,
+            away_goals AS goals_against
+        FROM matches
+        WHERE
+            status = 'played'
+        UNION ALL
+        SELECT
+            away_team_id,
+            CASE
+                WHEN away_goals > home_goals THEN 1
+                ELSE 0
+            END,
+            CASE
+                WHEN away_goals = home_goals THEN 1
+                ELSE 0
+            END,
+            CASE
+                WHEN away_goals < home_goals THEN 1
+                ELSE 0
+            END,
+            away_goals,
+            home_goals
+        FROM matches
+        WHERE
+            status = 'played'
+    ),
+    aggregated AS (
+        SELECT
+            team_id,
+            COUNT(*) AS played,
+            SUM(won) AS won,
+            SUM(drawn) AS drawn,
+            SUM(lost) AS lost,
+            SUM(goals_for) AS goals_for,
+            SUM(goals_against) AS goals_against
+        FROM results
+        GROUP BY
+            team_id
+    )
 SELECT
-    e.id_equipo,
-    e.nombre,
-    ISNULL(a.juegos_jugados, 0) AS juegos_jugados,
-    (SELECT COUNT(*) FROM partidos p
-       WHERE p.estado <> 'jugado'
-         AND (p.id_equipo_local = e.id_equipo OR p.id_equipo_visitante = e.id_equipo)) AS juegos_pendientes,
-    ISNULL(a.juegos_ganados, 0) AS juegos_ganados,
-    ISNULL(a.juegos_empatados, 0) AS juegos_empatados,
-    ISNULL(a.juegos_perdidos, 0) AS juegos_perdidos,
-    ISNULL(a.goles_favor, 0) AS goles_favor,
-    ISNULL(a.goles_contra, 0) AS goles_contra,
-    ISNULL(a.goles_favor, 0) - ISNULL(a.goles_contra, 0) AS diferencia_goles,
-    ISNULL(a.juegos_ganados, 0) * 3 + ISNULL(a.juegos_empatados, 0)
-        + ISNULL((SELECT SUM(puntos) FROM ajustes_puntos ap WHERE ap.id_equipo = e.id_equipo), 0) AS numero_puntos_acumulados
-FROM equipos e
-LEFT JOIN agregado a ON a.id_equipo = e.id_equipo;
-GO
+    t.id AS team_id,
+    t.name,
+    COALESCE(a.played, 0) AS played,
+    (
+        SELECT COUNT(*)
+        FROM matches m
+        WHERE
+            m.status <> 'played'
+            AND (
+                m.home_team_id = t.id
+                OR m.away_team_id = t.id
+            )
+    ) AS pending,
+    COALESCE(a.won, 0) AS won,
+    COALESCE(a.drawn, 0) AS drawn,
+    COALESCE(a.lost, 0) AS lost,
+    COALESCE(a.goals_for, 0) AS goals_for,
+    COALESCE(a.goals_against, 0) AS goals_against,
+    COALESCE(a.goals_for, 0) - COALESCE(a.goals_against, 0) AS goal_difference,
+    COALESCE(a.won, 0) * 3 + COALESCE(a.drawn, 0) + COALESCE(
+        (
+            SELECT SUM(points)
+            FROM point_adjustments p
+            WHERE
+                p.team_id = t.id
+        ),
+        0
+    ) AS points
+FROM teams t
+    LEFT JOIN aggregated a ON a.team_id = t.id;
