@@ -5,11 +5,16 @@ import type { Prisma } from "@/app/generated/prisma/client";
 import type { CreateTeamDto, UpdateTeamDto } from "@/lib/validation/team.schema";
 
 async function toWriteData(dto: CreateTeamDto | UpdateTeamDto): Promise<Prisma.TeamUncheckedUpdateInput> {
-  const data: Prisma.TeamUncheckedUpdateInput = { name: dto.name, registeredAt: dto.registeredAt };
+  const data: Prisma.TeamUncheckedUpdateInput = {
+    name: dto.name,
+    registeredAt: dto.registeredAt,
+    category: dto.category,
+  };
   if (dto.photo) {
     const { buffer, type } = await optimizeImageFromDataUrl(dto.photo);
     data.photo = new Uint8Array(buffer);
     data.photoType = type;
+    data.photoUpdatedAt = new Date();
   }
   return data;
 }

@@ -1,5 +1,6 @@
 import { ApiError } from "@/lib/errors";
 import { fieldRepository } from "@/lib/repositories/field.repository";
+import { matchRepository } from "@/lib/repositories/match.repository";
 import type { CreateFieldDto, UpdateFieldDto } from "@/lib/validation/field.schema";
 
 export const fieldService = {
@@ -30,6 +31,14 @@ export const fieldService = {
 
   async remove(id: string) {
     await this.getById(id);
+    const matchCount = await matchRepository.countByField(id);
+    if (matchCount > 0) {
+      throw new ApiError(
+        409,
+        "FIELD_HAS_MATCHES",
+        "No se puede eliminar una cancha con partidos pendientes o jugados asociados"
+      );
+    }
     await fieldRepository.delete(id);
   },
 };

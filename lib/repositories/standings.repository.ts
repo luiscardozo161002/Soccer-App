@@ -4,6 +4,7 @@ import { Prisma } from "@/app/generated/prisma/client";
 export interface StandingsRow {
   teamId: string;
   name: string;
+  category: string;
   played: number;
   pending: number;
   won: number;
@@ -16,11 +17,12 @@ export interface StandingsRow {
 }
 
 export const standingsRepository = {
-  findAll() {
+  findBySeason(seasonId: string) {
     return prisma.$queryRaw<StandingsRow[]>(Prisma.sql`
       SELECT
         team_id AS "teamId",
         name,
+        category,
         played::int AS played,
         pending::int AS pending,
         won::int AS won,
@@ -31,6 +33,7 @@ export const standingsRepository = {
         goal_difference::int AS "goalDifference",
         points::int AS points
       FROM standings
+      WHERE season_id = ${seasonId}
       ORDER BY points DESC, "goalDifference" DESC, "goalsFor" DESC
     `);
   },

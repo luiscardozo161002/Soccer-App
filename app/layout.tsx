@@ -2,6 +2,21 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { ThemeProvider } from "@/components/theme-provider";
+import { settingsService } from "@/lib/services/settings.service";
+import { shade, hexToRgba } from "@/lib/color";
+
+const themeInitScript = `
+(function () {
+  try {
+    var stored = localStorage.getItem("theme");
+    var theme = stored === "light" || stored === "dark"
+      ? stored
+      : (location.pathname.startsWith("/admin") ? "light" : "dark");
+    document.documentElement.setAttribute("data-theme", theme);
+  } catch (e) {}
+})();
+`;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,14 +33,37 @@ export const metadata: Metadata = {
   description: "Gestión de liga: equipos, jugadores, partidos y posiciones",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const settings = await settingsService.get();
+  const primary = settings?.primaryColor ?? "#0d9488";
+  const background = settings?.backgroundColor ?? "#eef3f1";
+  const themeVarsCss = `
+    :root {
+      --color-primary: ${primary};
+      --color-primary-hover: ${shade(primary, 0.15)};
+      --color-primary-light: ${hexToRgba(primary, 0.12)};
+      --background: ${background};
+    }
+    :root[data-theme="dark"] {
+      --color-primary: ${primary};
+      --color-primary-hover: ${shade(primary, -0.2)};
+      --color-primary-light: ${hexToRgba(primary, 0.16)};
+      --background: ${shade(background, 0.85)};
+    }
+  `;
+
   return (
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full">
-        <Providers>{children}</Providers>
+        <style dangerouslySetInnerHTML={{ __html: themeVarsCss }} />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <ThemeProvider>
+          <Providers>{children}</Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

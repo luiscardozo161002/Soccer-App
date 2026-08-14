@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
   --background: #eef3f1;
@@ -11,6 +12,23 @@
   --color-muted: #64748b;
   --color-border: #e2e8f0;
   --color-surface: #ffffff;
+  --body-bg-image: radial-gradient(circle at 12% 8%, #dff5ee 0%, transparent 42%),
+    radial-gradient(circle at 88% 92%, #eaeefb 0%, transparent 48%);
+}
+
+:root[data-theme="dark"] {
+  --background: #060a09;
+  --foreground: #f1f5f4;
+
+  --color-primary: #059669;
+  --color-primary-hover: #047857;
+  --color-primary-light: rgba(5, 150, 105, 0.16);
+  --color-ink: #f1f5f4;
+  --color-muted: #94a3a0;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-surface: #0d1512;
+  --body-bg-image: radial-gradient(circle at 75% 10%, rgba(16, 185, 129, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
 }
 
 @theme inline {
@@ -28,12 +46,28 @@
 }
 
 body {
-  background:
-    radial-gradient(circle at 12% 8%, #dff5ee 0%, transparent 42%),
-    radial-gradient(circle at 88% 92%, #eaeefb 0%, transparent 48%),
-    var(--background);
+  background: var(--body-bg-image), var(--background);
   background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   min-height: 100%;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.background-card {
+  background-color: #272727;
+  opacity: 0.8;
+  background-image: radial-gradient(circle, #585656 0.50px, transparent 0.20px);
+  background-size: 6px 6px;
 }

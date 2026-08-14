@@ -1,12 +1,16 @@
 import { ReactNode } from "react";
+import { motion } from "framer-motion";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div
-      className={`rounded-2xl border border-slate-200/70 bg-white shadow-[0_16px_40px_-24px_rgba(15,23,42,0.22)] ${className}`}
+    <motion.div
+      className={`rounded-2xl border border-border bg-surface shadow-[0_16px_40px_-24px_rgba(15,23,42,0.22)] dark:shadow-[0_16px_40px_-24px_rgba(0,0,0,0.5)] ${className}`}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
@@ -20,7 +24,7 @@ export function CardHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border px-6 py-5">
       <div>
         <h2 className="text-base font-bold tracking-tight text-ink">{title}</h2>
         {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}

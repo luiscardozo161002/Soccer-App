@@ -25,11 +25,22 @@ export const sanctionService = {
     if (!card) {
       throw new ApiError(404, "CARD_NOT_FOUND", `No card exists with id ${cardId}`);
     }
+    if (card.type !== "red") {
+      throw new ApiError(409, "CARD_NOT_RED", "Solo las tarjetas rojas generan suspensión");
+    }
     return sanctionRepository.create(cardId, dto);
   },
 
   async update(id: string, dto: UpdateSanctionDto) {
     await this.getById(id);
     return sanctionRepository.update(id, dto);
+  },
+
+  async payFine(id: string) {
+    const sanction = await this.getById(id);
+    if (sanction.fulfilled) {
+      throw new ApiError(409, "SANCTION_ALREADY_FULFILLED", "Esta sanción ya está cumplida");
+    }
+    return sanctionRepository.update(id, { fulfilled: true, waivedByPayment: true });
   },
 };

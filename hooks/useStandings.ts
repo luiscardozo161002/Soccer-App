@@ -3,10 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { get } from "@/lib/http/endpoints";
 import type { ItemResponse } from "@/lib/http/types";
+import type { LeagueCategoryValue } from "@/lib/constants/league-categories";
 
 export interface StandingsRow {
   teamId: string;
   name: string;
+  category: LeagueCategoryValue;
   played: number;
   pending: number;
   won: number;
@@ -18,9 +20,12 @@ export interface StandingsRow {
   points: number;
 }
 
-export function useStandings() {
+export function useStandings(seasonId?: string) {
   return useQuery({
-    queryKey: ["standings"],
-    queryFn: () => get<ItemResponse<StandingsRow[]>>("/api/v1/standings"),
+    queryKey: ["standings", seasonId ?? "active"],
+    queryFn: () =>
+      get<ItemResponse<StandingsRow[]>>(
+        seasonId ? `/api/v1/standings?seasonId=${seasonId}` : "/api/v1/standings"
+      ),
   });
 }

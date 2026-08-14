@@ -14,7 +14,7 @@ export function Pagination({
   const to = Math.min(meta.page * meta.pageSize, meta.totalItems);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-6 py-4 text-sm">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-4 text-sm">
       <p className="text-muted">
         Mostrando <span className="font-semibold text-ink">{from}-{to}</span> de{" "}
         <span className="font-semibold text-ink">{meta.totalItems}</span>
@@ -25,7 +25,7 @@ export function Pagination({
           disabled={meta.page <= 1}
           onClick={() => onPageChange(meta.page - 1)}
           aria-label="Página anterior"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-slate-100 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-primary-light hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
         >
           <ChevronLeft size={16} />
         </button>
@@ -37,7 +37,7 @@ export function Pagination({
           disabled={meta.page >= meta.totalPages}
           onClick={() => onPageChange(meta.page + 1)}
           aria-label="Página siguiente"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-slate-100 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-primary-light hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
         >
           <ChevronRight size={16} />
         </button>

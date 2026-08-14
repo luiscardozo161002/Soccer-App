@@ -46,6 +46,14 @@ export const cardService = {
     return cardRepository.update(id, dto);
   },
 
+  async payFine(id: string) {
+    const card = await this.getById(id);
+    if (card.paid) {
+      throw new ApiError(409, "CARD_ALREADY_PAID", "Esta tarjeta ya fue pagada");
+    }
+    return cardRepository.pay(id);
+  },
+
   async remove(id: string) {
     await this.getById(id);
     await cardRepository.delete(id);

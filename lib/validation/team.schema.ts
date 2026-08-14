@@ -4,9 +4,12 @@ const photoDataUrl = z
   .string()
   .startsWith("data:image/", "La foto debe ser una imagen codificada en base64");
 
+const leagueCategoryValues = ["primera_division", "division_ascenso", "segunda_division"] as const;
+
 export const createTeamSchema = z.object({
   name: z.string().trim().min(1).max(100),
   registeredAt: z.coerce.date().optional(),
+  category: z.enum(leagueCategoryValues).optional(),
   photo: photoDataUrl.optional(),
 });
 export type CreateTeamDto = z.infer<typeof createTeamSchema>;

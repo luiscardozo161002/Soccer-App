@@ -18,6 +18,11 @@ async function toWriteData(
     const { buffer, type } = await optimizeImageFromDataUrl(dto.photo);
     data.photo = new Uint8Array(buffer);
     data.photoType = type;
+    data.photoUpdatedAt = new Date();
+  } else if (dto.photo === null) {
+    data.photo = null;
+    data.photoType = null;
+    data.photoUpdatedAt = new Date();
   }
   return data;
 }

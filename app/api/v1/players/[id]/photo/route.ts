@@ -15,7 +15,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   return new NextResponse(new Uint8Array(record.photo), {
     headers: {
       "Content-Type": record.photoType,
-      "Cache-Control": "public, max-age=31536000, immutable",
+      // Not actually immutable: the same URL is reused whenever this
+      // player's photo changes, so it must revalidate instead of being
+      // cached forever, or a new upload silently keeps showing the old one.
+      "Cache-Control": "no-cache",
     },
   });
 }

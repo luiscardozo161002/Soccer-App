@@ -17,6 +17,7 @@ export const updateSanctionSchema = z.object({
   matchdayEnd: z.number().int().min(1).optional(),
   matchesSuspended: z.number().int().min(1).optional(),
   fulfilled: z.boolean().optional(),
+  waivedByPayment: z.boolean().optional(),
 });
 export type UpdateSanctionDto = z.infer<typeof updateSanctionSchema>;
 
@@ -24,6 +25,10 @@ export const listSanctionsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   cardId: z.string().uuid().optional(),
-  fulfilled: z.coerce.boolean().optional(),
+  // z.coerce.boolean() would turn "false" into true (any non-empty string
+  // is truthy), so the raw string is compared explicitly instead.
+  fulfilled: z
+    .preprocess((v) => (typeof v === "string" ? v === "true" : v), z.boolean())
+    .optional(),
 });
 export type ListSanctionsQuery = z.infer<typeof listSanctionsQuerySchema>;

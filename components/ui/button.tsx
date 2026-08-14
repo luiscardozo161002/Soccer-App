@@ -1,14 +1,13 @@
-import { ButtonHTMLAttributes } from "react";
+import { HTMLMotionProps, motion } from "framer-motion";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 type Size = "md" | "icon";
 
 const variantClasses: Record<Variant, string> = {
-  primary:
-    "bg-primary text-white shadow-[0_14px_28px_-10px_rgba(13,148,136,0.55)] hover:bg-primary-hover active:scale-[0.98]",
-  secondary: "bg-slate-100 text-ink hover:bg-slate-200 active:scale-[0.98]",
-  danger: "bg-red-600 text-white shadow-[0_14px_28px_-10px_rgba(220,38,38,0.5)] hover:bg-red-700 active:scale-[0.98]",
-  ghost: "text-muted hover:bg-slate-100 hover:text-ink",
+  primary: "bg-primary text-white hover:bg-primary-hover",
+  secondary: "bg-primary-light text-ink hover:bg-primary/20",
+  danger: "bg-red-600 text-white hover:bg-red-700",
+  ghost: "text-muted hover:bg-primary-light hover:text-ink",
 };
 
 const sizeClasses: Record<Size, string> = {
@@ -22,11 +21,14 @@ export function Button({
   className = "",
   disabled,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size }) {
+}: HTMLMotionProps<"button"> & { variant?: Variant; size?: Size }) {
   return (
-    <button
-      className={`inline-flex items-center justify-center gap-1.5 rounded-xl font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+    <motion.button
+      className={`inline-flex items-center justify-center gap-1.5 rounded-xl font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       disabled={disabled}
+      whileHover={disabled ? undefined : { scale: 1.03 }}
+      whileTap={disabled ? undefined : { scale: 0.96 }}
+      transition={{ duration: 0.12 }}
       {...props}
     />
   );

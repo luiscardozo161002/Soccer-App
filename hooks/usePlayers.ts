@@ -10,6 +10,7 @@ export interface Player {
   teamId: string;
   name: string;
   photoType: string | null;
+  photoUpdatedAt: string | null;
   birthDate: string | null;
   registrationNumber: string;
   status: EntityStatus;
@@ -23,12 +24,17 @@ export interface CreatePlayerInput {
   photo?: string;
 }
 
-export type UpdatePlayerInput = Partial<CreatePlayerInput>;
+export type UpdatePlayerInput = Partial<Omit<CreatePlayerInput, "photo">> & { photo?: string | null };
 
 export const PLAYERS_PAGE_SIZE = 8;
 
-export function playerPhotoUrl(player: Pick<Player, "id" | "photoType">) {
-  return player.photoType ? `/api/v1/players/${player.id}/photo` : null;
+// The `v` param busts the browser's per-URL image cache: without it, an <img>
+// already rendered at this src won't refetch after the photo changes, even
+// though the server data (and React Query cache) is fresh.
+export function playerPhotoUrl(player: Pick<Player, "id" | "photoType" | "photoUpdatedAt">) {
+  if (!player.photoType) return null;
+  const v = player.photoUpdatedAt ? new Date(player.photoUpdatedAt).getTime() : 0;
+  return `/api/v1/players/${player.id}/photo?v=${v}`;
 }
 
 export function usePlayers({

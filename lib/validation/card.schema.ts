@@ -14,6 +14,7 @@ export type CreateCardDto = z.infer<typeof createCardSchema>;
 export const updateCardSchema = z.object({
   amount: z.number().min(0).optional(),
   detail: z.string().trim().max(255).optional(),
+  paid: z.boolean().optional(),
 });
 export type UpdateCardDto = z.infer<typeof updateCardSchema>;
 

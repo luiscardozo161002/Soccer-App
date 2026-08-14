@@ -55,9 +55,12 @@ async function main() {
   await prisma.card.deleteMany();
   await prisma.match.deleteMany();
   await prisma.pointAdjustment.deleteMany();
+  await prisma.season.deleteMany();
   await prisma.player.deleteMany();
   await prisma.field.deleteMany();
   await prisma.team.deleteMany();
+
+  const season = await prisma.season.create({ data: { name: `Liga ${new Date().getFullYear()}` } });
 
   const teamsData = readJson<TeamSeed[]>("teams.json");
   const teamsByName = new Map<string, string>();
@@ -103,6 +106,7 @@ async function main() {
 
     const match = await prisma.match.create({
       data: {
+        seasonId: season.id,
         homeTeamId,
         awayTeamId,
         fieldId,

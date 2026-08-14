@@ -13,7 +13,9 @@ export const createPlayerSchema = z.object({
 });
 export type CreatePlayerDto = z.infer<typeof createPlayerSchema>;
 
-export const updatePlayerSchema = createPlayerSchema.partial();
+export const updatePlayerSchema = createPlayerSchema.partial().extend({
+  photo: photoDataUrl.nullable().optional(),
+});
 export type UpdatePlayerDto = z.infer<typeof updatePlayerSchema>;
 
 export const listPlayersQuerySchema = z.object({

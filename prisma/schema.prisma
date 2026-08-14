@@ -27,13 +27,44 @@ enum CardType {
   red
 }
 
+enum SeasonStatus {
+  active
+  archived
+}
+
+enum LeagueCategory {
+  primera_division
+  division_ascenso
+  segunda_division
+}
+
+// Un torneo/temporada. Los partidos y ajustes de puntos pertenecen a una
+// temporada; al "reiniciar" el torneo se archiva la temporada activa (queda
+// como historial consultable) y se abre una nueva en blanco. Equipos,
+// jugadores y canchas no estan ligados a una temporada: se reutilizan entre
+// torneos.
+model Season {
+  id        String       @id @default(uuid())
+  name      String
+  startDate DateTime     @default(now()) @map("start_date")
+  endDate   DateTime?    @map("end_date")
+  status    SeasonStatus @default(active)
+
+  matches          Match[]
+  pointAdjustments PointAdjustment[]
+
+  @@map("seasons")
+}
+
 model Team {
-  id           String   @id @default(uuid())
-  name         String
-  photo        Bytes?
-  photoType    String?  @map("photo_type")
-  registeredAt DateTime @default(now()) @map("registered_at")
-  status       Status   @default(active)
+  id             String         @id @default(uuid())
+  name           String
+  photo          Bytes?
+  photoType      String?        @map("photo_type")
+  photoUpdatedAt DateTime?      @map("photo_updated_at")
+  registeredAt   DateTime       @default(now()) @map("registered_at")
+  category     LeagueCategory @default(primera_division)
+  status       Status         @default(active)
 
   players          Player[]
   homeMatches      Match[]           @relation("HomeTeam")
@@ -49,6 +80,7 @@ model Player {
   name               String
   photo              Bytes?
   photoType          String?   @map("photo_type")
+  photoUpdatedAt     DateTime? @map("photo_updated_at")
   birthDate          DateTime? @map("birth_date")
   registrationNumber String    @unique @map("registration_number")
   status             Status    @default(active)
@@ -72,16 +104,22 @@ model Field {
 
 model Match {
   id         String      @id @default(uuid())
+  seasonId   String      @map("season_id")
   homeTeamId String      @map("home_team_id")
   awayTeamId String      @map("away_team_id")
   fieldId    String      @map("field_id")
   matchday   Int
   date       DateTime
-  time       String
+  time       String?
   homeGoals  Int?        @map("home_goals")
   awayGoals  Int?        @map("away_goals")
+  forfeit    Boolean     @default(false)
+  forfeitReason String?  @map("forfeit_reason")
+  statusReason String?   @map("status_reason")
+  resultLocked Boolean   @default(false) @map("result_locked")
   status     MatchStatus @default(scheduled)
 
+  season   Season @relation(fields: [seasonId], references: [id])
   homeTeam Team   @relation("HomeTeam", fields: [homeTeamId], references: [id])
   awayTeam Team   @relation("AwayTeam", fields: [awayTeamId], references: [id])
   field    Field  @relation(fields: [fieldId], references: [id])
@@ -102,6 +140,7 @@ model Card {
   amount     Decimal? @db.Decimal(10, 2)
   detail     String?
   recordedAt DateTime @default(now()) @map("recorded_at")
+  paid       Boolean  @default(false)
   status     Status   @default(active)
 
   player    Player     @relation(fields: [playerId], references: [id])
@@ -119,6 +158,7 @@ model Sanction {
   matchdayEnd      Int     @map("matchday_end")
   matchesSuspended Int     @map("matches_suspended")
   fulfilled        Boolean @default(false)
+  waivedByPayment  Boolean @default(false) @map("waived_by_payment")
   status           Status  @default(active)
 
   card Card @relation(fields: [cardId], references: [id])
@@ -129,27 +169,45 @@ model Sanction {
 // Ajustes manuales de puntos (ej. descuentos disciplinarios),
 // separados del calculo automatico de la tabla de posiciones.
 model PointAdjustment {
-  id     String   @id @default(uuid())
-  teamId String   @map("team_id")
-  points Int
-  reason String
-  date   DateTime @default(now())
-  status Status   @default(active)
+  id       String   @id @default(uuid())
+  seasonId String   @map("season_id")
+  teamId   String   @map("team_id")
+  points   Int
+  reason   String
+  date     DateTime @default(now())
+  status   Status   @default(active)
 
-  team Team @relation(fields: [teamId], references: [id])
+  season Season @relation(fields: [seasonId], references: [id])
+  team   Team   @relation(fields: [teamId], references: [id])
 
   @@map("point_adjustments")
 }
 
+// Singleton row (always the same seeded id) holding site branding/theme.
+// Read by both the public landing page and the admin portal.
+model SiteSettings {
+  id              String    @id @default(uuid())
+  name            String    @default("Liga de Futbol")
+  logo            Bytes?
+  logoType        String?   @map("logo_type")
+  logoUpdatedAt   DateTime? @map("logo_updated_at")
+  primaryColor    String    @default("#0d9488") @map("primary_color")
+  backgroundColor String    @default("#eef3f1") @map("background_color")
+
+  @@map("site_settings")
+}
+
 model User {
-  id           String   @id @default(uuid())
-  username     String   @unique
-  email        String   @unique
-  phoneNumber  String?  @map("phone_number")
-  passwordHash String   @map("password_hash")
-  role         String   @default("admin")
-  status       Status   @default(active)
-  createdAt    DateTime @default(now()) @map("created_at")
+  id                   String    @id @default(uuid())
+  username             String    @unique
+  email                String    @unique
+  phoneNumber          String?   @map("phone_number")
+  passwordHash         String    @map("password_hash")
+  role                 String    @default("admin")
+  status               Status    @default(active)
+  resetToken           String?   @unique @map("reset_token")
+  resetTokenExpiresAt  DateTime? @map("reset_token_expires_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
 
   @@map("users")
 }

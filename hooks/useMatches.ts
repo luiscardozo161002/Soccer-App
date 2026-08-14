@@ -13,9 +13,13 @@ export interface Match {
   fieldId: string;
   matchday: number;
   date: string;
-  time: string;
+  time: string | null;
   homeGoals: number | null;
   awayGoals: number | null;
+  forfeit: boolean;
+  forfeitReason: string | null;
+  statusReason: string | null;
+  resultLocked: boolean;
   status: MatchStatus;
 }
 
@@ -25,7 +29,7 @@ export interface CreateMatchInput {
   fieldId: string;
   matchday: number;
   date: string;
-  time: string;
+  time?: string;
 }
 
 export interface UpdateMatchInput {
@@ -33,12 +37,15 @@ export interface UpdateMatchInput {
   matchday?: number;
   date?: string;
   time?: string;
-  status?: MatchStatus;
+  status?: Exclude<MatchStatus, "played">;
+  statusReason?: string;
 }
 
 export interface RegisterResultInput {
   homeGoals: number;
   awayGoals: number;
+  forfeit?: boolean;
+  forfeitReason?: string;
 }
 
 export interface MatchFilters {
