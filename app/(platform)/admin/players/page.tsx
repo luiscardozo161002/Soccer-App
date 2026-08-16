@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   usePlayers,
@@ -18,7 +18,7 @@ import {
 import { useTeams } from "@/hooks/useTeams";
 import { ApiError } from "@/lib/errors";
 import { formatCalendarDate } from "@/lib/date";
-import { Card, CardHeader, CardBody } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
@@ -124,10 +124,10 @@ function EditPlayerModal({
           </Select>
         </Field>
         <Field label="Nombre" error={errors.name?.message}>
-          <Input disabled={!isEditing} {...register("name")} />
+          <Input maxLength={100} disabled={!isEditing} {...register("name")} />
         </Field>
         <Field label="Folio" error={errors.registrationNumber?.message}>
-          <Input disabled={!isEditing} {...register("registrationNumber")} />
+          <Input maxLength={30} disabled={!isEditing} {...register("registrationNumber")} />
         </Field>
         <Field label="Nacimiento (opcional)" error={errors.birthDate?.message}>
           <Input type="date" disabled={!isEditing} {...register("birthDate")} />
@@ -168,6 +168,7 @@ export default function PlayersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const { confirm, dialog } = useConfirm();
 
   const { data: teamsData } = useTeams();
@@ -208,6 +209,7 @@ export default function PlayersPage() {
         onSuccess: () => {
           toast.success(`Jugador "${values.name}" creado`);
           reset();
+          setShowCreate(false);
         },
         onError: (error) =>
           toast.error(error instanceof ApiError ? error.message : "No se pudo crear el jugador"),
@@ -230,10 +232,10 @@ export default function PlayersPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Jugadores</h1>
+          <h1 className="text-xl font-extrabold tracking-tight text-ink">Jugadores</h1>
           <p className="text-sm text-muted">{data?.meta.totalItems ?? 0} jugador(es) registrados.</p>
         </div>
         <div className="w-56">
@@ -263,52 +265,47 @@ export default function PlayersPage() {
             </Select>
           </Field>
         </div>
+        <Button onClick={() => setShowCreate(true)}>
+          <Plus size={16} />
+          Nuevo jugador
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader title="Nuevo jugador" />
-        <CardBody>
-          <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-4">
-            <div className="w-52">
-              <Field label="Equipo" error={errors.teamId?.message}>
-                <Select {...register("teamId")}>
-                  <option value="">Selecciona...</option>
-                  {teams.map((team) => (
-                    <option key={team.id} value={team.id}>
-                      {team.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-            <div className="w-52">
-              <Field label="Nombre" error={errors.name?.message}>
-                <Input placeholder="Carlos Ramírez" {...register("name")} />
-              </Field>
-            </div>
-            <div className="w-36">
-              <Field label="Folio" error={errors.registrationNumber?.message}>
-                <Input placeholder="TIG-004" {...register("registrationNumber")} />
-              </Field>
-            </div>
-            <div className="w-40">
-              <Field label="Nacimiento (opcional)" error={errors.birthDate?.message}>
-                <Input type="date" {...register("birthDate")} />
-              </Field>
-            </div>
-            <Controller
-              control={control}
-              name="photo"
-              render={({ field }) => (
-                <PhotoInput value={field.value} onChange={field.onChange} uploading={createPlayer.isPending} />
-              )}
-            />
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo jugador">
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <Field label="Equipo" error={errors.teamId?.message}>
+            <Select {...register("teamId")}>
+              <option value="">Selecciona...</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Nombre" error={errors.name?.message}>
+            <Input placeholder="Carlos Ramírez" maxLength={100} {...register("name")} />
+          </Field>
+          <Field label="Folio" error={errors.registrationNumber?.message}>
+            <Input placeholder="TIG-004" maxLength={30} {...register("registrationNumber")} />
+          </Field>
+          <Field label="Nacimiento (opcional)" error={errors.birthDate?.message}>
+            <Input type="date" {...register("birthDate")} />
+          </Field>
+          <Controller
+            control={control}
+            name="photo"
+            render={({ field }) => (
+              <PhotoInput value={field.value} onChange={field.onChange} uploading={createPlayer.isPending} />
+            )}
+          />
+          <div className="flex justify-end">
             <Button type="submit" disabled={createPlayer.isPending}>
               {createPlayer.isPending ? "Creando..." : "Crear jugador"}
             </Button>
-          </form>
-        </CardBody>
-      </Card>
+          </div>
+        </form>
+      </Modal>
 
       <Card>
         <Table>

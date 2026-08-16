@@ -13,12 +13,14 @@ export function EditFormFooter({
   submitting,
   onEdit,
   onCancel,
+  submitLabel = "Guardar cambios",
 }: {
   isEditing: boolean;
   isDirty: boolean;
   submitting: boolean;
   onEdit: () => void;
   onCancel: () => void;
+  submitLabel?: string;
 }) {
   if (!isEditing) {
     return (
@@ -37,7 +39,7 @@ export function EditFormFooter({
         Cancelar
       </Button>
       <Button type="submit" disabled={!isDirty || submitting}>
-        {submitting ? "Guardando..." : "Guardar cambios"}
+        {submitting ? "Guardando..." : submitLabel}
       </Button>
     </div>
   );

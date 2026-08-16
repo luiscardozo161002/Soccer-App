@@ -18,7 +18,7 @@ export default function SeasonHistoryPage({ params }: { params: Promise<{ id: st
   const rows = data?.data ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div>
         <Link
           href="/admin/history"
@@ -27,7 +27,7 @@ export default function SeasonHistoryPage({ params }: { params: Promise<{ id: st
           <ArrowLeft size={15} /> Historial de torneos
         </Link>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">
+          <h1 className="text-xl font-extrabold tracking-tight text-ink">
             {seasonLoading ? "Cargando..." : season?.name ?? "Temporada"}
           </h1>
           {season && (

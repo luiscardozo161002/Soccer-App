@@ -9,6 +9,7 @@ import { useCreateSanction } from "@/hooks/useSanctions";
 import { usePlayers } from "@/hooks/usePlayers";
 import { ApiError } from "@/lib/errors";
 import { CARD_REASONS } from "@/lib/constants/card-reasons";
+import { onlyDigits, onlyDecimal } from "@/lib/forms";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Field, Select } from "@/components/ui/field";
@@ -122,10 +123,10 @@ function CardForm({ match, onAdded }: { match: RegisterResultMatch; onAdded: () 
         </Field>
         <Field label="Multa (opcional)">
           <input
-            type="number"
-            min={0}
+            type="text"
+            inputMode="decimal"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => setAmount(onlyDecimal(e.target.value))}
             placeholder="$"
             className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
           />
@@ -146,6 +147,7 @@ function CardForm({ match, onAdded }: { match: RegisterResultMatch; onAdded: () 
           value={customReason}
           onChange={(e) => setCustomReason(e.target.value)}
           placeholder="Describe el motivo"
+          maxLength={255}
           className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
         />
       )}
@@ -153,10 +155,12 @@ function CardForm({ match, onAdded }: { match: RegisterResultMatch; onAdded: () 
       {type === "red" && (
         <Field label="Partidos de suspensión">
           <input
-            type="number"
-            min={1}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={2}
             value={matchesSuspended}
-            onChange={(e) => setMatchesSuspended(e.target.value)}
+            onChange={(e) => setMatchesSuspended(onlyDigits(e.target.value))}
             className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
           />
         </Field>
@@ -167,10 +171,6 @@ function CardForm({ match, onAdded }: { match: RegisterResultMatch; onAdded: () 
       </Button>
     </div>
   );
-}
-
-function onlyDigits(value: string) {
-  return value.replace(/[^0-9]/g, "");
 }
 
 export function RegisterResultForm({ match, onDone }: { match: RegisterResultMatch; onDone: () => void }) {
@@ -268,6 +268,7 @@ export function RegisterResultForm({ match, onDone }: { match: RegisterResultMat
                   value={forfeitReason}
                   onChange={(e) => setForfeitReason(e.target.value)}
                   placeholder="Ej. el equipo visitante no se presentó"
+                  maxLength={300}
                   className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
                 />
               </Field>

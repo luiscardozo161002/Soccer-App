@@ -10,6 +10,8 @@ export interface AdminUser {
   username: string;
   email: string;
   phoneNumber: string | null;
+  photoType: string | null;
+  photoUpdatedAt: string | null;
   role: string;
   status: EntityStatus;
   createdAt: string;
@@ -21,9 +23,20 @@ export interface CreateUserInput {
   phoneNumber?: string;
   password: string;
   role?: string;
+  photo?: string;
 }
 
-export type UpdateUserInput = Partial<Omit<CreateUserInput, "password">> & { status?: EntityStatus };
+export type UpdateUserInput = Partial<Omit<CreateUserInput, "password" | "photo">> & {
+  status?: EntityStatus;
+  photo?: string | null;
+};
+
+// See playerPhotoUrl (usePlayers.ts) for why the `v` cache-busting param is needed.
+export function adminPhotoUrl(user: Pick<AdminUser, "id" | "photoType" | "photoUpdatedAt">) {
+  if (!user.photoType) return null;
+  const v = user.photoUpdatedAt ? new Date(user.photoUpdatedAt).getTime() : 0;
+  return `/api/v1/users/${user.id}/photo?v=${v}`;
+}
 
 export function useUsers() {
   return useQuery({

@@ -1,12 +1,15 @@
 import { prisma } from "@/lib/prisma";
-import type { CreateUserDto, ListUsersQuery, UpdateUserDto } from "@/lib/validation/user.schema";
+import type { ListUsersQuery } from "@/lib/validation/user.schema";
+import type { Prisma } from "@/app/generated/prisma/client";
 
-// Never send the password hash or reset token to the client.
+// Never send the password hash, reset token, or raw photo bytes to the client.
 const publicSelect = {
   id: true,
   username: true,
   email: true,
   phoneNumber: true,
+  photoType: true,
+  photoUpdatedAt: true,
   role: true,
   status: true,
   createdAt: true,
@@ -58,6 +61,10 @@ export const userRepository = {
     return prisma.user.findUnique({ where: { id }, select: publicSelect });
   },
 
+  findPhoto(id: string) {
+    return prisma.user.findUnique({ where: { id }, select: { photo: true, photoType: true } });
+  },
+
   findByUsernameOrEmailPair(username: string, email: string) {
     return prisma.user.findFirst({
       where: { OR: [{ username }, { email }] },
@@ -70,31 +77,12 @@ export const userRepository = {
     });
   },
 
-  create(data: CreateUserDto & { passwordHash: string }) {
-    return prisma.user.create({
-      data: {
-        username: data.username,
-        email: data.email,
-        phoneNumber: data.phoneNumber || undefined,
-        passwordHash: data.passwordHash,
-        role: data.role,
-      },
-      select: publicSelect,
-    });
+  create(data: Prisma.UserUncheckedCreateInput) {
+    return prisma.user.create({ data, select: publicSelect });
   },
 
-  update(id: string, data: UpdateUserDto) {
-    return prisma.user.update({
-      where: { id },
-      data: {
-        username: data.username,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        role: data.role,
-        status: data.status,
-      },
-      select: publicSelect,
-    });
+  update(id: string, data: Prisma.UserUncheckedUpdateInput) {
+    return prisma.user.update({ where: { id }, data, select: publicSelect });
   },
 
   delete(id: string) {

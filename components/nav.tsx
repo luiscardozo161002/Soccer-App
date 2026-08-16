@@ -1,14 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Trophy, Shield, Users, MapPinned, CalendarDays, Globe, History, ShieldAlert, Settings, LogOut } from "lucide-react";
+import { Trophy, Shield, Users, MapPinned, CalendarDays, Globe, History, ShieldAlert, Settings, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useSeasons } from "@/hooks/useSeasons";
 import { useSettings, siteLogoUrl } from "@/hooks/useSettings";
 import { useMe, useLogout } from "@/hooks/useAuth";
+import { adminPhotoUrl } from "@/hooks/useUsers";
 
 
 const links = [
@@ -25,15 +27,29 @@ const links = [
 export function Nav() {
   const pathname = usePathname();
   const router = useRouter();
+  const [collapsed, setCollapsed] = useState(false);
   const { data: seasonsData } = useSeasons();
   const activeSeason = seasonsData?.data.find((s) => s.status === "active");
-  const { data: settingsData } = useSettings();
+  const { data: settingsData, isLoading: isSettingsLoading } = useSettings();
   const settings = settingsData?.data;
   const logoUrl = siteLogoUrl(settings);
   const { data: meData } = useMe();
   const me = meData?.data;
   const logout = useLogout();
   const { confirm, dialog } = useConfirm();
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("sidebarCollapsed");
+    if (stored === "true") setCollapsed(true);
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      window.localStorage.setItem("sidebarCollapsed", String(next));
+      return next;
+    });
+  };
 
   const handleLogout = async () => {
     const ok = await confirm({
@@ -52,85 +68,110 @@ export function Nav() {
   };
 
   return (
-    <aside className="flex h-full w-[76px] shrink-0 flex-col gap-8 overflow-y-auto border-r border-border bg-surface/70 px-3 py-6 md:w-64 md:px-4">
-      <div className="flex items-center gap-2.5 px-1">
-        <span className="shrink-0">
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={logoUrl}
-              alt="Logo"
-              width={60}
-              height={60}
-              className="h-[60px] w-[60px] shrink-0 rounded-full border-2 border-primary bg-white object-cover p-1"
-            />
-          ) : (
-            <span className="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-full border-2 border-primary bg-primary-light text-2xl">
-              ⚽
-            </span>
-          )}
-        </span>
-        <div className="hidden md:block">
-          <p className="text-sm font-extrabold leading-tight tracking-tight text-ink">{settings?.name ?? "Liga de Futbol"}</p>
-          <p className="text-xs text-muted">Gestión de liga</p>
-        </div>
-      </div>
+    <aside
+      className={`relative flex h-full shrink-0 flex-col border-r border-border bg-surface/70 transition-[width] duration-200 ${collapsed ? "w-[68px]" : "w-56"
+        }`}
+    >
+      {/* Sits outside the scrollable div below (as a sibling, not a child)
+          so it isn't clipped by that div's own overflow box and never adds
+          to its scrollable area. */}
+      <button
+        type="button"
+        onClick={toggleCollapsed}
+        title={collapsed ? "Expandir menú" : "Reducir menú"}
+        aria-label={collapsed ? "Expandir menú" : "Reducir menú"}
+        className="absolute -right-5 top-12 z-30 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-md shadow-primary/30 transition-all hover:scale-110 hover:bg-primary-hover hover:shadow-lg hover:shadow-primary/40 active:scale-95"
+      >
+        {collapsed ? <PanelLeftOpen size={18} className="shrink-0" /> : <PanelLeftClose size={18} className="shrink-0" />}
+      </button>
 
-      <nav className="flex flex-col gap-1">
-        {links.map(({ href, label, icon: Icon }) => {
-          const active = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              title={label}
-              className={`group flex items-center justify-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all md:justify-start ${active
-                ? "bg-primary text-white"
-                : "text-muted hover:bg-primary-light hover:text-primary"
-                }`}
-            >
-              <Icon size={18} className="shrink-0" />
-              <span className="hidden md:block">{label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="mt-auto flex flex-col gap-3">
-        <ThemeToggle
-          className="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-muted transition-colors hover:bg-primary-light hover:text-ink md:justify-start"
-          label={<span className="hidden md:block">Tema</span>}
-        />
-        <Link
-          href="/"
-          title="Ver sitio público"
-          className="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-muted transition-colors hover:bg-primary-light hover:text-ink md:justify-start"
-        >
-          <Globe size={18} className="shrink-0" />
-          <span className="hidden md:block">Sitio público</span>
-        </Link>
-        <div className="hidden rounded-xl border border-border bg-primary-light/30 p-3 text-xs text-muted md:block">
-          Temporada activa
-          <p className="mt-0.5 font-semibold text-ink">{activeSeason?.name ?? `Liga ${new Date().getFullYear()}`}</p>
-        </div>
-
-        {me && (
-          <div className="flex items-center gap-2 border-t border-border pt-3">
-            <Avatar src={null} name={me.username} size={32} />
-            <span className="hidden min-w-0 flex-1 md:block">
-              <span className="block truncate text-sm font-semibold text-ink">{me.username}</span>
-            </span>
-            <button
-              type="button"
-              onClick={handleLogout}
-              title="Cerrar sesión"
-              aria-label="Cerrar sesión"
-              className="shrink-0 rounded-lg p-2 text-muted transition-colors hover:bg-primary-light hover:text-red-600"
-            >
-              <LogOut size={16} />
-            </button>
+      <div
+        className={`scrollbar-modern flex h-full flex-col gap-5 overflow-y-auto px-3 py-2 ${collapsed ? "" : "px-3.5"
+          }`}
+      >
+        <div className="flex items-center gap-2 px-1">
+          <span className="shrink-0">
+            {isSettingsLoading ? (
+              // Only a real loading state shows a skeleton — once settings
+              // have actually loaded and there's no logo, this falls
+              // through to the plain fallback icon below, not a spinner
+              // that would suggest it's still loading forever.
+              <span className="block h-11 w-11 shrink-0 animate-pulse rounded-full bg-primary-light" />
+            ) : logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className="h-11 w-11 shrink-0 rounded-full border-2 border-primary bg-white object-cover p-1"
+              />
+            ) : (
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-primary-light text-xl">
+                ⚽
+              </span>
+            )}
+          </span>
+          <div className={collapsed ? "hidden" : "block"}>
+            <p className="text-xs font-extrabold leading-tight tracking-tight text-ink">{settings?.name ?? "Liga de Futbol"}</p>
+            <p className="text-[11px] text-muted">Gestión de liga</p>
           </div>
-        )}
+        </div>
+
+        <nav className="flex flex-col gap-0.5">
+          {links.map(({ href, label, icon: Icon }) => {
+            const active = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                title={label}
+                className={`group flex items-center gap-2.5 rounded-full px-2.5 py-1.5 text-sm font-extralight transition-all ${collapsed ? "justify-center" : "justify-start"} ${active
+                  ? "bg-primary text-white"
+                  : "text-muted hover:bg-primary-light hover:text-primary"
+                  }`}
+              >
+                <Icon size={16} className="shrink-0" />
+                <span className={collapsed ? "hidden" : "block"}>{label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="mt-auto flex flex-col gap-2">
+          <ThemeToggle
+            className={`flex items-center gap-2 rounded-full px-2.5 py-1.5 text-sm font-extralight text-muted transition-colors hover:bg-primary-light hover:text-ink ${collapsed ? "justify-center" : "justify-start"}`}
+            label={<span className={collapsed ? "hidden" : "block"}>Tema</span>}
+          />
+          <Link
+            href="/"
+            title="Ver sitio público"
+            className={`flex items-center gap-2 rounded-full px-2.5 py-1.5 text-sm font-extralight text-muted transition-colors hover:bg-primary-light hover:text-ink ${collapsed ? "justify-center" : "justify-start"}`}
+          >
+            <Globe size={16} className="shrink-0" />
+            <span className={collapsed ? "hidden" : "block"}>Sitio público</span>
+          </Link>
+          <div className={`rounded-lg border border-border bg-primary-light/30 p-2 text-[11px] text-muted ${collapsed ? "hidden" : "block"}`}>
+            Temporada activa
+            <p className="mt-0.5 font-semibold text-ink">{activeSeason?.name ?? `Liga ${new Date().getFullYear()}`}</p>
+          </div>
+
+          {me && (
+            <div className={`flex items-center gap-2 border-t border-border pt-2 ${collapsed ? "justify-center" : ""}`}>
+              {!collapsed && <Avatar src={adminPhotoUrl(me)} name={me.username} size={28} />}
+              <span className={`min-w-0 flex-1 ${collapsed ? "hidden" : "block"}`}>
+                <span className="block truncate text-sm font-semibold text-ink">{me.username}</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                title="Cerrar sesión"
+                aria-label="Cerrar sesión"
+                className="shrink-0 rounded-full p-1.5 text-muted transition-colors hover:bg-primary-light hover:text-red-600"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       {dialog}
     </aside>

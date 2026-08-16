@@ -9,7 +9,7 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { ApiError } from "@/lib/errors";
 import { formatCalendarDate } from "@/lib/date";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
-import { Card } from "@/components/ui/card";
+import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -68,40 +68,44 @@ function SuspensionsView() {
 
   return (
     <>
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="w-56">
-          <Field label="Buscar">
-            <Input
-              placeholder="Jugador, equipo o motivo..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </Field>
-        </div>
-        <div className="w-48">
-          <Field label="Ver">
-            <Select value={filter} onChange={(e) => setFilter(e.target.value as "active" | "resolved")}>
-              <option value="active">Suspensiones activas</option>
-              <option value="resolved">Cumplidas / levantadas</option>
-            </Select>
-          </Field>
-        </div>
-        <div className="w-48">
-          <Field label="Categoría">
-            <Select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value as LeagueCategoryValue | "")}
-            >
-              <option value="">Todas</option>
-              {LEAGUE_CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-      </div>
+      <Card>
+        <CardBody>
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="w-56">
+              <Field label="Buscar">
+                <Input
+                  placeholder="Jugador, equipo o motivo..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </Field>
+            </div>
+            <div className="w-48">
+              <Field label="Ver">
+                <Select value={filter} onChange={(e) => setFilter(e.target.value as "active" | "resolved")}>
+                  <option value="active">Suspensiones activas</option>
+                  <option value="resolved">Cumplidas / levantadas</option>
+                </Select>
+              </Field>
+            </div>
+            <div className="w-48">
+              <Field label="Categoría">
+                <Select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value as LeagueCategoryValue | "")}
+                >
+                  <option value="">Todas</option>
+                  {LEAGUE_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
 
       <Card>
         <Table>
@@ -238,50 +242,54 @@ function CardsView() {
 
   return (
     <>
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="w-56">
-          <Field label="Buscar">
-            <Input
-              placeholder="Jugador, equipo o motivo..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </Field>
-        </div>
-        <div className="w-40">
-          <Field label="Tipo">
-            <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as CardType | "")}>
-              <option value="">Todas</option>
-              <option value="yellow">Amarilla</option>
-              <option value="red">Roja</option>
-            </Select>
-          </Field>
-        </div>
-        <div className="w-40">
-          <Field label="Estatus">
-            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "all" | "pending" | "paid")}>
-              <option value="all">Todas</option>
-              <option value="pending">Pendientes</option>
-              <option value="paid">Pagadas</option>
-            </Select>
-          </Field>
-        </div>
-        <div className="w-48">
-          <Field label="Categoría">
-            <Select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value as LeagueCategoryValue | "")}
-            >
-              <option value="">Todas</option>
-              {LEAGUE_CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-      </div>
+      <Card>
+        <CardBody>
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="w-56">
+              <Field label="Buscar">
+                <Input
+                  placeholder="Jugador, equipo o motivo..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </Field>
+            </div>
+            <div className="w-40">
+              <Field label="Tipo">
+                <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as CardType | "")}>
+                  <option value="">Todas</option>
+                  <option value="yellow">Amarilla</option>
+                  <option value="red">Roja</option>
+                </Select>
+              </Field>
+            </div>
+            <div className="w-40">
+              <Field label="Estatus">
+                <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "all" | "pending" | "paid")}>
+                  <option value="all">Todas</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="paid">Pagadas</option>
+                </Select>
+              </Field>
+            </div>
+            <div className="w-48">
+              <Field label="Categoría">
+                <Select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value as LeagueCategoryValue | "")}
+                >
+                  <option value="">Todas</option>
+                  {LEAGUE_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
 
       <Card>
         <Table>
@@ -359,10 +367,10 @@ export default function SanctionsPage() {
   const [view, setView] = useState<"suspensiones" | "tarjetas">("suspensiones");
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Sanciones</h1>
+          <h1 className="text-xl font-extrabold tracking-tight text-ink">Sanciones</h1>
           <p className="text-sm text-muted">
             {view === "suspensiones"
               ? "Jugadores suspendidos por tarjeta roja."

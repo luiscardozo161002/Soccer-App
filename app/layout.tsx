@@ -4,7 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import { settingsService } from "@/lib/services/settings.service";
-import { shade, hexToRgba } from "@/lib/color";
+import { shade, hexToRgba, ensureDarkModeLegible } from "@/lib/color";
 
 const themeInitScript = `
 (function () {
@@ -37,6 +37,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const settings = await settingsService.get();
   const primary = settings?.primaryColor ?? "#0d9488";
   const background = settings?.backgroundColor ?? "#eef3f1";
+  // A color picked for light backgrounds can be too dark to read as text
+  // against a dark-mode surface, so dark mode gets its own legible variant
+  // instead of reusing the raw admin-picked hex unmodified.
+  const primaryDark = ensureDarkModeLegible(primary);
   const themeVarsCss = `
     :root {
       --color-primary: ${primary};
@@ -45,9 +49,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       --background: ${background};
     }
     :root[data-theme="dark"] {
-      --color-primary: ${primary};
-      --color-primary-hover: ${shade(primary, -0.2)};
-      --color-primary-light: ${hexToRgba(primary, 0.16)};
+      --color-primary: ${primaryDark};
+      --color-primary-hover: ${shade(primaryDark, -0.2)};
+      --color-primary-light: ${hexToRgba(primaryDark, 0.16)};
       --background: ${shade(background, 0.85)};
     }
   `;

@@ -71,3 +71,41 @@ body {
   background-image: radial-gradient(circle, #585656 0.50px, transparent 0.20px);
   background-size: 6px 6px;
 }
+
+/* Overlay-style scrollbar for the main content pane and its tables: fully
+   invisible at rest so it never reads as a stray edge/seam, and only fades
+   in while the pane is actually being interacted with (hovered or mid-
+   scroll) so the scroll affordance is still discoverable. */
+.scrollbar-modern {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.scrollbar-modern:hover,
+.scrollbar-modern:focus-within {
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 20%, transparent) transparent;
+}
+
+.scrollbar-modern::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-modern::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-modern::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 9999px;
+  transition: background-color 0.15s ease;
+}
+
+.scrollbar-modern:hover::-webkit-scrollbar-thumb,
+.scrollbar-modern:focus-within::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--color-ink) 20%, transparent);
+}
+
+.scrollbar-modern::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--color-ink) 36%, transparent) !important;
+}

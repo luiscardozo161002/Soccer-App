@@ -14,7 +14,10 @@ export async function GET() {
   return new NextResponse(new Uint8Array(record.logo), {
     headers: {
       "Content-Type": record.logoType,
-      "Cache-Control": "no-cache",
+      // Safe to cache forever: the URL includes `?v=<logoUpdatedAt>` (see
+      // siteLogoUrl), so a new upload produces a new URL instead of this
+      // one's bytes ever changing.
+      "Cache-Control": "public, max-age=31536000, immutable",
     },
   });
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   useTeams,
@@ -17,7 +17,7 @@ import {
 } from "@/hooks/useTeams";
 import { ApiError } from "@/lib/errors";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
-import { Card, CardHeader, CardBody } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
@@ -90,7 +90,7 @@ function EditTeamModal({ team, onClose }: { team: Team | null; onClose: () => vo
     <Modal open={!!team} onClose={handleClose} title="Editar equipo">
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <Field label="Nombre" error={errors.name?.message}>
-          <Input disabled={!isEditing} {...register("name")} />
+          <Input maxLength={100} disabled={!isEditing} {...register("name")} />
         </Field>
         <Field label="Categoría" error={errors.category?.message}>
           <Select disabled={!isEditing} {...register("category")}>
@@ -129,6 +129,7 @@ export default function TeamsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const { confirm, dialog } = useConfirm();
 
   const isSearching = search.trim().length > 0;
@@ -156,6 +157,7 @@ export default function TeamsPage() {
         onSuccess: () => {
           toast.success(`Equipo "${values.name}" creado`);
           reset();
+          setShowCreate(false);
         },
         onError: (error) =>
           toast.error(error instanceof ApiError ? error.message : "No se pudo crear el equipo"),
@@ -178,10 +180,10 @@ export default function TeamsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Equipos</h1>
+          <h1 className="text-xl font-extrabold tracking-tight text-ink">Equipos</h1>
           <p className="text-sm text-muted">{data?.meta.totalItems ?? 0} equipo(s) registrado(s).</p>
         </div>
         <div className="w-56">
@@ -189,41 +191,40 @@ export default function TeamsPage() {
             <Input placeholder="Nombre del equipo..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </Field>
         </div>
+        <Button onClick={() => setShowCreate(true)}>
+          <Plus size={16} />
+          Nuevo equipo
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader title="Nuevo equipo" />
-        <CardBody>
-          <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-4">
-            <div className="w-56">
-              <Field label="Nombre" error={errors.name?.message}>
-                <Input placeholder="Tigres FC" {...register("name")} />
-              </Field>
-            </div>
-            <div className="w-48">
-              <Field label="Categoría" error={errors.category?.message}>
-                <Select {...register("category")}>
-                  {LEAGUE_CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-            <Controller
-              control={control}
-              name="photo"
-              render={({ field }) => (
-                <PhotoInput value={field.value} onChange={field.onChange} uploading={createTeam.isPending} />
-              )}
-            />
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo equipo">
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <Field label="Nombre" error={errors.name?.message}>
+            <Input placeholder="Tigres FC" maxLength={100} {...register("name")} />
+          </Field>
+          <Field label="Categoría" error={errors.category?.message}>
+            <Select {...register("category")}>
+              {LEAGUE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Controller
+            control={control}
+            name="photo"
+            render={({ field }) => (
+              <PhotoInput value={field.value} onChange={field.onChange} uploading={createTeam.isPending} />
+            )}
+          />
+          <div className="flex justify-end">
             <Button type="submit" disabled={createTeam.isPending}>
               {createTeam.isPending ? "Creando..." : "Crear equipo"}
             </Button>
-          </form>
-        </CardBody>
-      </Card>
+          </div>
+        </form>
+      </Modal>
 
       <Card>
         <Table>

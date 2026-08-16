@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Pencil, Lock } from "lucide-react";
+import { Pencil, Lock, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   useMatches,
@@ -21,7 +21,8 @@ import { ApiError } from "@/lib/errors";
 import { formatCalendarDate, todayLocalISODate } from "@/lib/date";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
 import { matchTimeOptions, isWithinMatchTimeWindow } from "@/lib/constants/match-time";
-import { Card, CardHeader, CardBody } from "@/components/ui/card";
+import { blockNonIntegerKeys } from "@/lib/forms";
+import { Card } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
@@ -237,7 +238,13 @@ function EditMatchModal({
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Jornada" error={errors.matchday?.message}>
-              <Input type="number" min={1} disabled={!isEditing} {...register("matchday")} />
+              <Input
+                type="number"
+                min={1}
+                onKeyDown={blockNonIntegerKeys}
+                disabled={!isEditing}
+                {...register("matchday")}
+              />
             </Field>
             <Field label="Estatus" error={errors.status?.message}>
               <Select disabled={!isEditing} {...register("status")}>
@@ -269,6 +276,7 @@ function EditMatchModal({
             >
               <Input
                 placeholder="Ej. lluvia, agresión entre jugadores, cancha no disponible..."
+                maxLength={300}
                 disabled={!isEditing}
                 {...register("statusReason")}
               />
@@ -298,6 +306,7 @@ export default function MatchesPage() {
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [newMatchCategory, setNewMatchCategory] = useState<LeagueCategoryValue>(LEAGUE_CATEGORIES[0].value);
   const [search, setSearch] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
 
   const { data: teamsData } = useTeams();
   const teams = teamsData?.data ?? [];
@@ -366,6 +375,7 @@ export default function MatchesPage() {
         onSuccess: () => {
           toast.success("Partido creado");
           reset();
+          setShowCreate(false);
         },
         onError: (error) =>
           toast.error(error instanceof ApiError ? error.message : "No se pudo crear el partido"),
@@ -391,10 +401,10 @@ export default function MatchesPage() {
   });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Partidos</h1>
+          <h1 className="text-xl font-extrabold tracking-tight text-ink">Partidos</h1>
           <p className="text-sm text-muted">{data?.meta.totalItems ?? 0} partido(s) registrados.</p>
         </div>
         <div className="flex flex-wrap items-end gap-4">
@@ -425,91 +435,84 @@ export default function MatchesPage() {
               </Select>
             </Field>
           </div>
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus size={16} />
+            Nuevo partido
+          </Button>
         </div>
       </div>
 
-      <Card>
-        <CardHeader title="Nuevo partido" />
-        <CardBody>
-          <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-4">
-            <div className="w-48">
-              <Field label="Categoría">
-                <Select
-                  value={newMatchCategory}
-                  onChange={(e) => handleCategoryChange(e.target.value as LeagueCategoryValue)}
-                >
-                  {LEAGUE_CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-            <div className="w-44">
-              <Field label="Local" error={errors.homeTeamId?.message}>
-                <Select {...register("homeTeamId")}>
-                  <option value="">Selecciona...</option>
-                  {homeTeamOptions.map((team) => (
-                    <option key={team.id} value={team.id}>
-                      {team.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-            <div className="w-44">
-              <Field label="Visitante" error={errors.awayTeamId?.message}>
-                <Select {...register("awayTeamId")}>
-                  <option value="">Selecciona...</option>
-                  {awayTeamOptions.map((team) => (
-                    <option key={team.id} value={team.id}>
-                      {team.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-            <div className="w-44">
-              <Field label="Cancha" error={errors.fieldId?.message}>
-                <Select {...register("fieldId")}>
-                  <option value="">Selecciona...</option>
-                  {fieldOptions.map((field) => (
-                    <option key={field.id} value={field.id}>
-                      {field.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-            <div className="w-24">
-              <Field label="Jornada" error={errors.matchday?.message}>
-                <Input type="number" min={1} {...register("matchday")} />
-              </Field>
-            </div>
-            <div className="w-40">
-              <Field label="Fecha" error={errors.date?.message}>
-                <Input type="date" min={todayLocalISODate()} {...register("date")} />
-              </Field>
-            </div>
-            <div className="w-40">
-              <Field label="Hora (opcional)" error={errors.time?.message}>
-                <Select {...register("time")}>
-                  <option value="">Sin definir</option>
-                  {TIME_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo partido">
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <Field label="Categoría">
+            <Select
+              value={newMatchCategory}
+              onChange={(e) => handleCategoryChange(e.target.value as LeagueCategoryValue)}
+            >
+              {LEAGUE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Local" error={errors.homeTeamId?.message}>
+              <Select {...register("homeTeamId")}>
+                <option value="">Selecciona...</option>
+                {homeTeamOptions.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Visitante" error={errors.awayTeamId?.message}>
+              <Select {...register("awayTeamId")}>
+                <option value="">Selecciona...</option>
+                {awayTeamOptions.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <Field label="Cancha" error={errors.fieldId?.message}>
+            <Select {...register("fieldId")}>
+              <option value="">Selecciona...</option>
+              {fieldOptions.map((field) => (
+                <option key={field.id} value={field.id}>
+                  {field.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <div className="grid grid-cols-3 gap-4">
+            <Field label="Jornada" error={errors.matchday?.message}>
+              <Input type="number" min={1} onKeyDown={blockNonIntegerKeys} {...register("matchday")} />
+            </Field>
+            <Field label="Fecha" error={errors.date?.message}>
+              <Input type="date" min={todayLocalISODate()} {...register("date")} />
+            </Field>
+            <Field label="Hora (opcional)" error={errors.time?.message}>
+              <Select {...register("time")}>
+                <option value="">Sin definir</option>
+                {TIME_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <div className="flex justify-end">
             <Button type="submit" disabled={createMatch.isPending}>
               {createMatch.isPending ? "Creando..." : "Crear partido"}
             </Button>
-          </form>
-        </CardBody>
-      </Card>
+          </div>
+        </form>
+      </Modal>
 
       <Card>
         <Table>

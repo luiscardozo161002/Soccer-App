@@ -45,10 +45,10 @@ export function Modal({
             exit={{ opacity: 0, y: 12, scale: 0.97 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
+            <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-3.5">
               <div>
-                <h2 className="text-base font-bold tracking-tight text-ink">{title}</h2>
-                {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
+                <h2 className="text-sm font-bold tracking-tight text-ink">{title}</h2>
+                {description && <p className="mt-0.5 text-xs text-muted">{description}</p>}
               </div>
               <button
                 type="button"
@@ -59,7 +59,7 @@ export function Modal({
                 <X size={18} />
               </button>
             </div>
-            <div className="p-6">{children}</div>
+            <div className="p-4">{children}</div>
           </motion.div>
         </motion.div>
       )}

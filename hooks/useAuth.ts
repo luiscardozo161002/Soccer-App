@@ -8,6 +8,8 @@ export interface AuthUser {
   id: string;
   username: string;
   role: string;
+  photoType: string | null;
+  photoUpdatedAt: string | null;
 }
 
 export function useMe() {

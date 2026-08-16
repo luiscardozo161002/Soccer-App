@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export function Avatar({ src, name, size = 32 }: { src: string | null; name: string; size?: number }) {
+export function Avatar({ src, name, size = 26 }: { src: string | null; name: string; size?: number }) {
   const [status, setStatus] = useState<"loading" | "loaded" | "error">(src ? "loading" : "error");
 
   // The initializer above only runs on mount, so when a row is re-rendered

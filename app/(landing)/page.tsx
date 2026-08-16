@@ -25,7 +25,6 @@ import { formatCalendarDate } from "@/lib/date";
 import { LEAGUE_CATEGORIES } from "@/lib/constants/league-categories";
 import { Avatar } from "@/components/ui/avatar";
 import { CategoryBadge, CategoryDot } from "@/components/ui/category-badge";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 const navLinks = [
   { href: "#proximos-partidos", label: "Próximos partidos" },
@@ -114,7 +113,7 @@ function FieldLink({ location, name }: { location: string | null | undefined; na
       href={googleMapsUrl(location)}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 underline decoration-dotted underline-offset-2 hover:text-emerald-600 dark:hover:text-emerald-400"
+      className="inline-flex items-center gap-1 underline decoration-dotted underline-offset-2 hover:text-primary "
     >
       {name}
       <ExternalLink size={11} />
@@ -129,13 +128,13 @@ function Header() {
   const logoUrl = siteLogoUrl(settingsData?.data);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-white/10 dark:bg-black/60">
+    <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 py-4 sm:px-6">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? "Cerrar menú" : "Abrir menú"}
-          className="text-slate-900 dark:text-white sm:hidden"
+          className="text-ink dark:text-white sm:hidden"
         >
           {open ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -143,9 +142,9 @@ function Header() {
         <div className="flex items-center gap-2">
           {logoUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+            <img src={logoUrl} alt="" className="h-11 w-11 rounded-full object-cover" />
           )}
-          <span className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">{siteName}</span>
+          <span className="text-lg font-black uppercase tracking-tight text-ink dark:text-white">{siteName}</span>
         </div>
 
         <nav className="ml-10 hidden flex-1 items-center gap-8 text-xs font-bold uppercase tracking-widest sm:flex">
@@ -153,31 +152,29 @@ function Header() {
             <a
               key={link.href}
               href={link.href}
-              className="text-slate-500 transition-colors hover:text-slate-900 dark:text-white/60 dark:hover:text-white"
+              className="text-muted transition-colors hover:text-ink dark:text-white/60 dark:hover:text-white"
             >
               {link.label}
             </a>
           ))}
         </nav>
 
-        <ThemeToggle className="ml-auto shrink-0 rounded-full border border-slate-200 p-2 text-slate-600 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-white/20 dark:text-white/70 dark:hover:border-emerald-400 dark:hover:text-emerald-400 sm:ml-0" />
-
         <Link
           href="/admin"
-          className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-300 px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-700 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-white/30 dark:text-white dark:hover:border-emerald-400 dark:hover:text-emerald-400"
+          className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:border-primary hover:text-primary dark:border-white/30 dark:text-white "
         >
-          Portal de gestión
+          Portal
         </Link>
       </div>
 
       {open && (
-        <nav className="flex flex-col gap-1 border-t border-slate-200 px-4 py-3 dark:border-white/10 sm:hidden">
+        <nav className="flex flex-col gap-1 border-t border-border px-4 py-3 dark:border-white/10 sm:hidden">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
               onClick={() => setOpen(false)}
-              className="rounded-lg px-2 py-2.5 text-sm font-bold uppercase tracking-wide text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-white/70 dark:hover:bg-white/5 dark:hover:text-white"
+              className="rounded-lg px-2 py-2.5 text-sm font-bold uppercase tracking-wide text-muted hover:bg-slate-100 hover:text-ink dark:text-white/70 dark:hover:bg-white/5 dark:hover:text-white"
             >
               {link.label}
             </a>
@@ -193,26 +190,26 @@ function Footer() {
   const siteName = settingsData?.data?.name ?? "Liga de Futbol";
 
   return (
-    <footer className="relative overflow-hidden border-t border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-black">
-      <BallGlyph className="pointer-events-none absolute -bottom-16 -right-16 -z-10 h-56 w-56 text-slate-900/[0.03] dark:text-white/[0.04]" />
+    <footer className="relative overflow-hidden border-t border-border bg-surface">
+      <BallGlyph className="pointer-events-none absolute -bottom-16 -right-16 -z-10 h-56 w-56 text-ink/[0.03] dark:text-white/[0.04]" />
 
       <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-4 px-4 py-10 text-center sm:flex-row sm:justify-between sm:px-6 sm:text-left">
         <div>
-          <p className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
+          <p className="text-sm font-black uppercase tracking-tight text-ink dark:text-white">
             {siteName} · {new Date().getFullYear()}
           </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-white/40">
+          <p className="mt-1 text-xs text-muted dark:text-white/40">
             Resultados, calendario y posiciones actualizados en tiempo real.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-bold uppercase tracking-widest">
-          <a href="#proximos-partidos" className="text-slate-500 hover:text-emerald-600 dark:text-white/50 dark:hover:text-emerald-400">Próximos partidos</a>
-          <a href="#tabla" className="text-slate-500 hover:text-emerald-600 dark:text-white/50 dark:hover:text-emerald-400">Tabla</a>
-          <a href="#equipos" className="text-slate-500 hover:text-emerald-600 dark:text-white/50 dark:hover:text-emerald-400">Equipos</a>
-          <Link href="/admin" className="text-slate-500 hover:text-emerald-600 dark:text-white/50 dark:hover:text-emerald-400">Portal de gestión</Link>
+          <a href="#proximos-partidos" className="text-muted hover:text-primary dark:text-white/50 ">Próximos partidos</a>
+          <a href="#tabla" className="text-muted hover:text-primary dark:text-white/50 ">Tabla</a>
+          <a href="#equipos" className="text-muted hover:text-primary dark:text-white/50 ">Equipos</a>
+          <Link href="/admin" className="text-muted hover:text-primary dark:text-white/50 ">Portal de gestión</Link>
         </div>
       </div>
-      <p className="border-t border-slate-200 py-4 text-center text-[11px] text-slate-400 dark:border-white/5 dark:text-white/30">
+      <p className="border-t border-border py-4 text-center text-[11px] text-muted dark:border-white/5 dark:text-white/30">
         © {new Date().getFullYear()} {siteName}. Todos los derechos reservados.
       </p>
     </footer>
@@ -252,55 +249,65 @@ export default function LandingPage() {
     .slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 dark:bg-[#060a09] dark:text-white">
+    <div className="min-h-screen bg-surface text-ink">
       <Header />
 
       {/* Hero — poster band that follows the site theme */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-slate-50 text-slate-900 dark:from-[#0e2a21] dark:via-[#0a1512] dark:to-black dark:text-white">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(16,185,129,0.08),transparent_55%)] dark:bg-[radial-gradient(circle_at_75%_20%,rgba(16,185,129,0.18),transparent_55%)]" />
-
-        {/* Player 2 */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary-light via-surface to-background text-ink">
         <div
-          className="pointer-events-none absolute bottom-32 right-20 z-10 hidden w-[220px] sm:block sm:w-[260px] md:w-[300px] lg:w-[330px]"
+          className="pointer-events-none absolute inset-0"
           style={{
-            maskImage: "linear-gradient(to left, black 40%, transparent 96%)",
-            WebkitMaskImage: "linear-gradient(to left, black 40%, transparent 96%)",
+            background:
+              "radial-gradient(circle at 75% 20%, color-mix(in srgb, var(--color-primary) 14%, transparent), transparent 55%)",
           }}
-        >
-          <Image
-            src="/images/player-kicking.webp"
-            alt=""
-            width={548}
-            height={858}
-            priority
-            className="h-auto w-full opacity-90"
-          />
-        </div>
+        />
 
-        {/* Player 1 */}
-        <div
-          className="pointer-events-none absolute bottom-40 left-30 z-10 hidden w-[220px] sm:block sm:w-[260px] md:w-[300px] lg:w-[360px]"
-          style={{
-            maskImage: "linear-gradient(to right, black 40%, transparent 96%)",
-            WebkitMaskImage: "linear-gradient(to right, black 40%, transparent 96%)",
-          }}
-        >
-          <Image
-            src="/images/player-heading.webp"
-            alt=""
-            width={548}
-            height={858}
-            priority
-            className="h-auto w-full opacity-90"
-          />
-        </div>
-
+        {/* Both players are positioned relative to this same max-w-7xl column
+            as the text content, so they stay pinned near the content's own
+            edges instead of drifting out toward the viewport edges on very
+            wide screens. */}
         <div className="relative mx-auto flex w-full max-w-7xl flex-col px-4 pb-10 pt-14 sm:px-6 sm:pt-20">
+          {/* Player 2 */}
+          <div
+            className="pointer-events-none absolute bottom-20 right-10 z-10 hidden w-[220px] sm:block sm:w-[260px] md:w-[300px] lg:w-[280px]"
+            style={{
+              maskImage: "linear-gradient(to left, black 40%, transparent 96%)",
+              WebkitMaskImage: "linear-gradient(to left, black 40%, transparent 96%)",
+            }}
+          >
+            <Image
+              src="/images/player-kicking.webp"
+              alt=""
+              width={548}
+              height={858}
+              priority
+              className="h-auto w-full opacity-90"
+            />
+          </div>
+
+          {/* Player 1 */}
+          <div
+            className="pointer-events-none absolute bottom-22 left-20 z-10 hidden w-[220px] sm:block sm:w-[260px] md:w-[300px] lg:w-[300px]"
+            style={{
+              maskImage: "linear-gradient(to right, black 40%, transparent 96%)",
+              WebkitMaskImage: "linear-gradient(to right, black 40%, transparent 96%)",
+            }}
+          >
+            <Image
+              src="/images/player-heading.webp"
+              alt=""
+              width={548}
+              height={858}
+              priority
+              className="h-auto w-full opacity-90"
+            />
+          </div>
+
           {/* Giant ghost number */}
           <span
             key={`ghost-${heroIndex}`}
             aria-hidden
-            className="pointer-events-none absolute -top-6 right-0 z-0 select-none text-[9rem] font-black leading-none text-slate-900/[0.04] [animation:fade-in-up_0.4s_ease] dark:text-white/[0.05] sm:text-[16rem]"
+            className="pointer-events-none absolute -top-6 right-0 z-0 select-none text-[9rem] font-black leading-none text-ink/[0.04] [animation:fade-in-up_0.4s_ease] dark:text-white/[0.05] sm:text-[16rem]"
           >
             {featured ? `J${featured.matchday}` : new Date().getFullYear()}
           </span>
@@ -311,14 +318,14 @@ export default function LandingPage() {
                 type="button"
                 onClick={goPrev}
                 aria-label="Partido anterior"
-                className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-white/15 dark:text-white/60 dark:hover:border-emerald-400 dark:hover:text-emerald-400 sm:flex"
+                className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted transition-colors hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60 sm:flex"
               >
                 <ChevronLeft size={20} />
               </button>
             )}
 
             <div key={heroIndex} className="flex-1 py-8 text-center [animation:fade-in-up_0.4s_ease] sm:py-12">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary-light px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-primary ">
                 <Trophy size={12} /> {featured ? `Próximo partido · Jornada ${featured.matchday}` : `Temporada ${new Date().getFullYear()}`}
               </span>
 
@@ -331,24 +338,24 @@ export default function LandingPage() {
                         name={teamsById[featured.homeTeamId]?.name ?? "?"}
                         size={72}
                       />
-                      <span className="max-w-[13rem] text-balance text-lg font-black leading-tight tracking-tight text-slate-900 dark:text-white sm:max-w-[16rem] sm:text-2xl">
+                      <span className="max-w-[13rem] text-balance text-lg font-black leading-tight tracking-tight text-ink dark:text-white sm:max-w-[16rem] sm:text-2xl">
                         {teamsById[featured.homeTeamId]?.name ?? "—"}
                       </span>
                     </div>
-                    <span className="text-sm font-black uppercase tracking-widest text-slate-400 dark:text-white/30 sm:text-base">vs</span>
+                    <span className="text-sm font-black uppercase tracking-widest text-muted dark:text-white/30 sm:text-base">vs</span>
                     <div className="flex flex-col items-center gap-3 px-2">
                       <Avatar
                         src={teamsById[featured.awayTeamId] ? teamPhotoUrl(teamsById[featured.awayTeamId]) : null}
                         name={teamsById[featured.awayTeamId]?.name ?? "?"}
                         size={72}
                       />
-                      <span className="max-w-[13rem] text-balance text-lg font-black leading-tight tracking-tight text-slate-900 dark:text-white sm:max-w-[16rem] sm:text-2xl">
+                      <span className="max-w-[13rem] text-balance text-lg font-black leading-tight tracking-tight text-ink dark:text-white sm:max-w-[16rem] sm:text-2xl">
                         {teamsById[featured.awayTeamId]?.name ?? "—"}
                       </span>
                     </div>
                   </div>
 
-                  <div className="mt-8 flex flex-col items-center gap-1 text-slate-600 dark:text-white/70">
+                  <div className="mt-8 flex flex-col items-center gap-1 text-muted dark:text-white/70">
                     <span className="text-sm font-semibold">
                       {formatCalendarDate(featured.date, {
                         weekday: "long",
@@ -357,7 +364,7 @@ export default function LandingPage() {
                       })}{" "}
                       · {featured.time ?? "hora por confirmar"}
                     </span>
-                    <span className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-white/40">
+                    <span className="flex items-center gap-1.5 text-xs text-muted dark:text-white/40">
                       <MapPinned size={13} />
                       <FieldLink
                         location={fieldsById[featured.fieldId]?.location}
@@ -369,13 +376,13 @@ export default function LandingPage() {
                   <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                     <a
                       href="#proximos-partidos"
-                      className="rounded-full bg-emerald-400 px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-black transition-colors hover:bg-emerald-300"
+                      className="rounded-full bg-primary px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-primary-hover"
                     >
                       Ver calendario
                     </a>
                     <a
                       href="#tabla"
-                      className="rounded-full border border-slate-300 px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-slate-700 transition-colors hover:border-slate-900 hover:text-slate-900 dark:border-white/25 dark:text-white dark:hover:border-white"
+                      className="rounded-full border border-border px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:border-slate-900 hover:text-ink dark:border-white/25 dark:text-white dark:hover:border-white"
                     >
                       Ver tabla
                     </a>
@@ -383,17 +390,17 @@ export default function LandingPage() {
                 </>
               ) : (
                 <>
-                  <h1 className="mx-auto mt-6 max-w-xl text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-5xl">
+                  <h1 className="mx-auto mt-6 max-w-xl text-3xl font-black tracking-tight text-ink dark:text-white sm:text-5xl">
                     Todo el fútbol de la liga, en un solo lugar
                   </h1>
-                  <p className="mx-auto mt-3 max-w-md text-sm text-slate-500 dark:text-white/50">
+                  <p className="mx-auto mt-3 max-w-md text-sm text-muted dark:text-white/50">
                     No hay partidos programados por el momento. Revisa la tabla de posiciones y los equipos
                     inscritos esta temporada.
                   </p>
                   <div className="mt-8">
                     <a
                       href="#tabla"
-                      className="rounded-full bg-emerald-400 px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-black transition-colors hover:bg-emerald-300"
+                      className="rounded-full bg-primary px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-primary-hover"
                     >
                       Ver tabla de posiciones
                     </a>
@@ -407,7 +414,7 @@ export default function LandingPage() {
                 type="button"
                 onClick={goNext}
                 aria-label="Siguiente partido"
-                className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-white/15 dark:text-white/60 dark:hover:border-emerald-400 dark:hover:text-emerald-400 sm:flex"
+                className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted transition-colors hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60 sm:flex"
               >
                 <ChevronRight size={20} />
               </button>
@@ -415,26 +422,26 @@ export default function LandingPage() {
           </div>
 
           {/* Quick links */}
-          <div className="relative z-10 mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 border-t border-slate-200 pt-6 text-[11px] font-bold uppercase tracking-widest dark:border-white/10 sm:justify-start">
+          <div className="relative z-10 mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 border-t border-border pt-6 text-[11px] font-bold uppercase tracking-widest dark:border-white/10 sm:justify-start">
             <a
               href="#proximos-partidos"
-              className="flex items-center gap-1.5 text-slate-500 transition-colors hover:text-emerald-600 dark:text-white/50 dark:hover:text-emerald-400"
+              className="flex items-center gap-1.5 text-muted transition-colors hover:text-primary dark:text-white/50 "
             >
               <CornerFlagGlyph className="h-3 w-3" /> Calendario
             </a>
             <a
               href="#tabla"
-              className="flex items-center gap-1.5 text-slate-500 transition-colors hover:text-emerald-600 dark:text-white/50 dark:hover:text-emerald-400"
+              className="flex items-center gap-1.5 text-muted transition-colors hover:text-primary dark:text-white/50 "
             >
               <CornerFlagGlyph className="h-3 w-3" /> Tabla
             </a>
             <a
               href="#equipos"
-              className="flex items-center gap-1.5 text-slate-500 transition-colors hover:text-emerald-600 dark:text-white/50 dark:hover:text-emerald-400"
+              className="flex items-center gap-1.5 text-muted transition-colors hover:text-primary dark:text-white/50 "
             >
               <CornerFlagGlyph className="h-3 w-3" /> Equipos
             </a>
-            <span className="flex items-center gap-1.5 text-slate-500 dark:text-white/50">
+            <span className="flex items-center gap-1.5 text-muted dark:text-white/50">
               <CornerFlagGlyph className="h-3 w-3" /> {playedCount} partidos jugados
             </span>
           </div>
@@ -442,12 +449,12 @@ export default function LandingPage() {
 
         {/* Bottom carousel strip */}
         {upcoming.length > 1 && (
-          <div className="relative z-10 border-t border-slate-200 bg-slate-100/70 dark:border-white/10 dark:bg-black/30">
+          <div className="relative z-10 border-t border-border bg-slate-100/70 dark:border-white/10 dark:bg-black/30">
             <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 text-xs font-bold uppercase tracking-widest sm:px-6">
               <button
                 type="button"
                 onClick={goPrev}
-                className="flex items-center gap-1.5 text-slate-500 transition-colors hover:text-emerald-600 dark:text-white/50 dark:hover:text-emerald-400"
+                className="flex items-center gap-1.5 text-muted transition-colors hover:text-primary dark:text-white/50 "
               >
                 <ChevronLeft size={14} />
                 <span className="hidden sm:inline">
@@ -461,7 +468,7 @@ export default function LandingPage() {
                     type="button"
                     onClick={() => setHeroIndex(i)}
                     aria-label={`Ver partido ${i + 1}`}
-                    className={`h-1.5 w-1.5 rounded-full transition-colors ${i === heroIndex % dotCount ? "bg-emerald-500 dark:bg-emerald-400" : "bg-slate-300 dark:bg-white/20"
+                    className={`h-1.5 w-1.5 rounded-full transition-colors ${i === heroIndex % dotCount ? "bg-primary " : "bg-slate-300 dark:bg-white/20"
                       }`}
                   />
                 ))}
@@ -469,7 +476,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={goNext}
-                className="flex items-center gap-1.5 text-slate-500 transition-colors hover:text-emerald-600 dark:text-white/50 dark:hover:text-emerald-400"
+                className="flex items-center gap-1.5 text-muted transition-colors hover:text-primary dark:text-white/50 "
               >
                 <span className="hidden sm:inline">
                   {teamsById[upcoming[(heroIndex + 1) % upcoming.length].homeTeamId]?.name ?? "—"}
@@ -484,25 +491,19 @@ export default function LandingPage() {
       <main className="mx-auto w-full max-w-7xl px-4 pb-4 sm:px-6">
         {/* Próximos partidos */}
         <motion.section id="proximos-partidos" className="relative mt-20 scroll-mt-24 overflow-hidden" {...sectionReveal}>
-          <GoalGlyph className="pointer-events-none absolute -top-6 right-0 -z-10 h-40 w-64 text-slate-900/[0.035] dark:text-white/[0.04] sm:h-56 sm:w-96" />
-          <Image
-            src="/images/players-motion.webp"
-            alt=""
-            width={1200}
-            height={1200}
-            className="pointer-events-none absolute -left-16 -top-24 -z-10 hidden w-64 opacity-0 mix-blend-screen dark:opacity-60 sm:block md:w-80"
-          />
+          <GoalGlyph className="pointer-events-none absolute -top-6 right-0 -z-10 h-40 w-64 text-ink/[0.035] dark:text-white/[0.04] sm:h-56 sm:w-96" />
+
 
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Próximos partidos</h2>
-              <p className="text-sm text-slate-500 dark:text-white/40">Calendario de la liga ordenado por fecha.</p>
+              <h2 className="text-xl font-black uppercase tracking-tight text-ink dark:text-white">Próximos partidos</h2>
+              <p className="text-sm text-muted dark:text-white/40">Calendario de la liga ordenado por fecha.</p>
             </div>
-            <CalendarDays className="hidden text-emerald-600 dark:text-emerald-400 sm:block" size={22} />
+            <CalendarDays className="hidden text-primary sm:block" size={22} />
           </div>
 
           {upcoming.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400 dark:border-white/10 dark:bg-white/[0.03] dark:text-white/40">
+            <div className="rounded-2xl p-8 text-center text-sm text-muted dark:text-white/40">
               No hay partidos programados por el momento.
             </div>
           ) : (
@@ -510,22 +511,22 @@ export default function LandingPage() {
               {upcoming.slice(0, 6).map((match) => (
                 <motion.div
                   key={match.id}
-                  className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.3)] transition-colors hover:border-emerald-400/60 dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none dark:hover:border-emerald-400/40"
+                  className="flex flex-col gap-3 rounded-2xl border border-border p-5 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.3)] transition-colors hover:border-primary/60 dark:border-white/10 dark:shadow-none "
                   whileHover={{ y: -4 }}
                   transition={{ duration: 0.15 }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600 dark:bg-white/5 dark:text-white/60">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-muted dark:bg-white/5 dark:text-white/60">
                       Jornada {match.matchday}
                     </span>
-                    <span className="text-xs font-semibold text-slate-400 dark:text-white/40">
+                    <span className="text-xs font-semibold text-muted dark:text-white/40">
                       {formatCalendarDate(match.date, { day: "2-digit", month: "short" })} ·{" "}
                       {match.time ?? "hora por confirmar"}
                     </span>
                   </div>
                   <div className="flex items-center justify-center gap-2 py-2 text-center">
                     <div className="flex flex-1 items-center justify-end gap-2">
-                      <span className="text-balance text-sm font-bold leading-tight text-slate-900 dark:text-white">
+                      <span className="text-balance text-sm font-bold leading-tight text-ink dark:text-white">
                         {teamsById[match.homeTeamId]?.name ?? "—"}
                       </span>
                       {teamsById[match.homeTeamId] && <CategoryDot category={teamsById[match.homeTeamId].category} />}
@@ -535,7 +536,7 @@ export default function LandingPage() {
                         size={26}
                       />
                     </div>
-                    <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-300">
+                    <span className="shrink-0 rounded-full bg-primary-light px-2 py-0.5 text-xs font-bold text-primary ">
                       vs
                     </span>
                     <div className="flex flex-1 items-center justify-start gap-2">
@@ -545,12 +546,12 @@ export default function LandingPage() {
                         size={26}
                       />
                       {teamsById[match.awayTeamId] && <CategoryDot category={teamsById[match.awayTeamId].category} />}
-                      <span className="text-balance text-sm font-bold leading-tight text-slate-900 dark:text-white">
+                      <span className="text-balance text-sm font-bold leading-tight text-ink dark:text-white">
                         {teamsById[match.awayTeamId]?.name ?? "—"}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-white/40">
+                  <div className="flex items-center gap-1.5 text-xs text-muted dark:text-white/40">
                     <MapPinned size={13} />
                     <FieldLink
                       location={fieldsById[match.fieldId]?.location}
@@ -569,8 +570,8 @@ export default function LandingPage() {
         <motion.section id="tabla" className="relative mt-12 scroll-mt-24" {...sectionReveal}>
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Tabla de posiciones</h2>
-              <p className="text-sm text-slate-500 dark:text-white/40">
+              <h2 className="text-xl font-black uppercase tracking-tight text-ink dark:text-white">Tabla de posiciones</h2>
+              <p className="text-sm text-muted dark:text-white/40">
                 Los 5 primeros lugares · {activeCategory.label}
               </p>
             </div>
@@ -603,13 +604,13 @@ export default function LandingPage() {
               type="button"
               onClick={prevCategory}
               aria-label="Categoría anterior"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-white/15 dark:text-white/60 dark:hover:border-emerald-400 dark:hover:text-emerald-400"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-muted transition-colors hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60 "
             >
               <ChevronLeft size={18} />
             </button>
 
             <div key={categoryIndex} className="flex w-44 flex-col items-center gap-1.5 [animation:fade-in-up_0.25s_ease]">
-              <span className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">
+              <span className="text-sm font-black uppercase tracking-widest text-ink dark:text-white">
                 {activeCategory.label}
               </span>
               <div className="flex items-center gap-1.5">
@@ -620,9 +621,8 @@ export default function LandingPage() {
                     onClick={() => setCategoryIndex(i)}
                     aria-label={`Ver ${c.label}`}
                     aria-current={i === categoryIndex}
-                    className={`h-1.5 rounded-full transition-all ${
-                      i === categoryIndex ? "w-5 bg-emerald-500 dark:bg-emerald-400" : "w-1.5 bg-slate-300 dark:bg-white/20"
-                    }`}
+                    className={`h-1.5 rounded-full transition-all ${i === categoryIndex ? "w-5 bg-primary " : "w-1.5 bg-slate-300 dark:bg-white/20"
+                      }`}
                   />
                 ))}
               </div>
@@ -632,20 +632,20 @@ export default function LandingPage() {
               type="button"
               onClick={nextCategory}
               aria-label="Siguiente categoría"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-white/15 dark:text-white/60 dark:hover:border-emerald-400 dark:hover:text-emerald-400"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-muted transition-colors hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60 "
             >
               <ChevronRight size={18} />
             </button>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_40px_-28px_rgba(15,23,42,0.3)] dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none">
+          <div className="overflow-hidden rounded-2xl border border-border shadow-[0_16px_40px_-28px_rgba(15,23,42,0.3)] dark:border-white/10 dark:shadow-none">
             {topTeams.length === 0 ? (
-              <p className="p-8 text-center text-sm text-slate-400 dark:text-white/40">
+              <p className="p-8 text-center text-sm text-muted dark:text-white/40">
                 Todavía no hay partidos jugados en {activeCategory.label}.
               </p>
             ) : (
               <table className="w-full text-sm">
-                <thead className="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-widest text-slate-400 dark:border-white/10 dark:text-white/30">
+                <thead className="border-b border-border text-left text-xs font-bold uppercase tracking-widest text-muted dark:border-white/10 dark:text-white/30">
                   <tr>
                     <th className="px-5 py-3">#</th>
                     <th className="px-5 py-3">Equipo</th>
@@ -660,18 +660,18 @@ export default function LandingPage() {
                       <td className="px-5 py-3">
                         <span
                           className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${index === 0
-                            ? "bg-emerald-500 text-white dark:bg-emerald-400 dark:text-black"
-                            : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/50"
+                            ? "bg-primary text-white"
+                            : "bg-slate-100 text-muted dark:bg-white/10 dark:text-white/50"
                             }`}
                         >
                           {index + 1}
                         </span>
                       </td>
-                      <td className="px-5 py-3 font-bold text-slate-900 dark:text-white">{row.name}</td>
-                      <td className="px-5 py-3 text-center text-slate-500 dark:text-white/50">{row.played}</td>
-                      <td className="px-5 py-3 text-center text-slate-500 dark:text-white/50">{row.goalDifference}</td>
+                      <td className="px-5 py-3 font-bold text-ink dark:text-white">{row.name}</td>
+                      <td className="px-5 py-3 text-center text-muted dark:text-white/50">{row.played}</td>
+                      <td className="px-5 py-3 text-center text-muted dark:text-white/50">{row.goalDifference}</td>
                       <td className="px-5 py-3 text-center">
-                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-50 px-2 text-sm font-bold text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-300">
+                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary-light px-2 text-sm font-bold text-primary ">
                           {row.points}
                         </span>
                       </td>
@@ -680,10 +680,10 @@ export default function LandingPage() {
                 </tbody>
               </table>
             )}
-            <div className="border-t border-slate-200 px-5 py-3 text-right dark:border-white/10">
+            <div className="border-t border-border px-5 py-3 text-right dark:border-white/10">
               <Link
                 href="/admin"
-                className="inline-flex items-center gap-1 text-sm font-bold text-emerald-600 hover:underline dark:text-emerald-400"
+                className="inline-flex items-center gap-1 text-sm font-bold text-primary hover:underline "
               >
                 Ver tabla completa <ArrowRight size={14} />
               </Link>
@@ -695,18 +695,18 @@ export default function LandingPage() {
 
         {/* Equipos */}
         <motion.section id="equipos" className="relative mt-12 scroll-mt-24 overflow-hidden" {...sectionReveal}>
-          <JerseyGlyph className="pointer-events-none absolute -right-6 -top-8 -z-10 h-44 w-44 text-slate-900/[0.035] dark:text-white/[0.04] sm:h-60 sm:w-60" />
+          <JerseyGlyph className="pointer-events-none absolute -right-6 -top-8 -z-10 h-44 w-44 text-ink/[0.035] dark:text-white/[0.04] sm:h-60 sm:w-60" />
 
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Equipos participantes</h2>
-              <p className="text-sm text-slate-500 dark:text-white/40">{teams.length} equipo(s) inscritos esta temporada.</p>
+              <h2 className="text-xl font-black uppercase tracking-tight text-ink dark:text-white">Equipos participantes</h2>
+              <p className="text-sm text-muted dark:text-white/40">{teams.length} equipo(s) inscritos esta temporada.</p>
             </div>
-            <ShieldCheck className="hidden text-emerald-600 dark:text-emerald-400 sm:block" size={22} />
+            <ShieldCheck className="hidden text-primary sm:block" size={22} />
           </div>
 
           {teams.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400 dark:border-white/10 dark:bg-white/[0.03] dark:text-white/40">
+            <div className="rounded-2xl border border-border p-8 text-center text-sm text-muted dark:border-white/10 dark:text-white/40">
               Todavía no hay equipos registrados.
             </div>
           ) : (
@@ -714,13 +714,13 @@ export default function LandingPage() {
               {teams.map((team) => (
                 <motion.div
                   key={team.id}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.3)] transition-colors hover:border-emerald-400/60 dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none dark:hover:border-emerald-400/40"
+                  className="flex items-center gap-3 rounded-2xl border border-border p-4 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.3)] transition-colors hover:border-primary/60 dark:border-white/10 dark:shadow-none "
                   whileHover={{ y: -4 }}
                   transition={{ duration: 0.15 }}
                 >
                   <Avatar src={teamPhotoUrl(team)} name={team.name} size={40} />
                   <div className="min-w-0">
-                    <span className="block truncate text-sm font-bold text-slate-900 dark:text-white">{team.name}</span>
+                    <span className="block truncate text-sm font-bold text-ink dark:text-white">{team.name}</span>
                     <CategoryBadge category={team.category} className="mt-1" />
                   </div>
                 </motion.div>
@@ -732,15 +732,21 @@ export default function LandingPage() {
 
       {/* Cinematic band — pairs with the hero, follows the site theme */}
       <motion.section
-        className="relative mt-20 h-56 overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-slate-50 dark:from-[#0e2a21] dark:via-[#0a1512] dark:to-black sm:h-72"
+        className="relative mt-20 h-56 overflow-hidden bg-gradient-to-br from-primary-light via-surface to-background sm:h-72"
         {...sectionReveal}
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(16,185,129,0.10),transparent_60%)] dark:bg-[radial-gradient(circle_at_50%_30%,rgba(16,185,129,0.22),transparent_60%)]" />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--color-primary) 16%, transparent), transparent 60%)",
+          }}
+        />
         <div className="relative flex h-full flex-col items-center justify-end gap-1 pb-8 text-center">
-          <span className="text-[11px] font-bold uppercase tracking-[0.3em] text-emerald-700 dark:text-emerald-300">
+          <span className="text-[11px] font-bold uppercase tracking-[0.3em] text-primary ">
             Temporada {new Date().getFullYear()}
           </span>
-          <p className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white sm:text-xl">
+          <p className="text-lg font-black uppercase tracking-tight text-ink dark:text-white sm:text-xl">
             Cada jornada, en la mejor cancha
           </p>
         </div>

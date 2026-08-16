@@ -11,9 +11,9 @@ export default function HistoryPage() {
   const seasons = data?.data ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-ink">Historial de torneos</h1>
+        <h1 className="text-xl font-extrabold tracking-tight text-ink">Historial de torneos</h1>
         <p className="text-sm text-muted">Temporadas activas y archivadas de la liga.</p>
       </div>
 

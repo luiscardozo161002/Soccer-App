@@ -202,6 +202,9 @@ model User {
   username             String    @unique
   email                String    @unique
   phoneNumber          String?   @map("phone_number")
+  photo                Bytes?
+  photoType            String?   @map("photo_type")
+  photoUpdatedAt       DateTime? @map("photo_updated_at")
   passwordHash         String    @map("password_hash")
   role                 String    @default("admin")
   status               Status    @default(active)

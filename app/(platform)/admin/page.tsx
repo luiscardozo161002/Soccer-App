@@ -35,14 +35,14 @@ function StatTile({
 }) {
   const { bg, text } = tileTones[tone];
   return (
-    <Card className="flex items-center gap-4 p-5">
-      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${bg} ${text}`}>
-        <Icon size={20} />
+    <Card className="flex items-center gap-3 p-3.5">
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${bg} ${text}`}>
+        <Icon size={16} />
       </span>
       <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
-        <p className="truncate text-xl font-extrabold tracking-tight text-ink">{value}</p>
-        <p className="truncate text-xs text-muted">{hint}</p>
+        <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted">{label}</p>
+        <p className="truncate text-base font-extrabold tracking-tight text-ink">{value}</p>
+        <p className="truncate text-[11px] text-muted">{hint}</p>
       </div>
     </Card>
   );
@@ -67,10 +67,10 @@ export default function StandingsPage() {
   const leader = filteredRows[0];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Tabla de posiciones</h1>
+          <h1 className="text-xl font-extrabold tracking-tight text-ink">Tabla de posiciones</h1>
           <p className="text-sm text-muted">Calculada en tiempo real a partir de los partidos jugados.</p>
         </div>
         <div className="w-56">

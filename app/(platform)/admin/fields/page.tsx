@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Trash2, MapPinned, Pencil, ExternalLink } from "lucide-react";
+import { Trash2, MapPinned, Pencil, ExternalLink, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   useFields,
@@ -16,7 +16,7 @@ import {
   type Field as FieldType,
 } from "@/hooks/useFields";
 import { ApiError } from "@/lib/errors";
-import { Card, CardHeader, CardBody } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
@@ -79,10 +79,10 @@ function EditFieldModal({ field, onClose }: { field: FieldType | null; onClose: 
     <Modal open={!!field} onClose={handleClose} title="Editar cancha">
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormField label="Nombre" error={errors.name?.message}>
-          <Input disabled={!isEditing} {...register("name")} />
+          <Input maxLength={100} disabled={!isEditing} {...register("name")} />
         </FormField>
         <FormField label="Ubicación (opcional)" error={errors.location?.message}>
-          <Input disabled={!isEditing} placeholder="Av. Reforma 123" {...register("location")} />
+          <Input maxLength={200} disabled={!isEditing} placeholder="Av. Reforma 123" {...register("location")} />
         </FormField>
         <EditFormFooter
           isEditing={isEditing}
@@ -100,6 +100,7 @@ export default function FieldsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [editingField, setEditingField] = useState<FieldType | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const { confirm, dialog } = useConfirm();
 
   const isSearching = search.trim().length > 0;
@@ -125,6 +126,7 @@ export default function FieldsPage() {
         onSuccess: () => {
           toast.success(`Cancha "${values.name}" creada`);
           reset();
+          setShowCreate(false);
         },
         onError: (error) =>
           toast.error(error instanceof ApiError ? error.message : "No se pudo crear la cancha"),
@@ -147,43 +149,44 @@ export default function FieldsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Canchas</h1>
+          <h1 className="text-xl font-extrabold tracking-tight text-ink">Canchas</h1>
           <p className="text-sm text-muted">{data?.meta.totalItems ?? 0} cancha(s) registrada(s).</p>
         </div>
-        <div className="w-56">
-          <FormField label="Buscar">
-            <Input placeholder="Nombre o ubicación..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </FormField>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="w-56">
+            <FormField label="Buscar">
+              <Input placeholder="Nombre o ubicación..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </FormField>
+          </div>
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus size={16} />
+            Nueva cancha
+          </Button>
         </div>
       </div>
 
-      <Card>
-        <CardHeader title="Nueva cancha" />
-        <CardBody>
-          <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-4">
-            <div className="w-56">
-              <FormField label="Nombre" error={errors.name?.message}>
-                <Input placeholder="Cancha Municipal 1" {...register("name")} />
-              </FormField>
-            </div>
-            <div className="w-64">
-              <FormField label="Ubicación (opcional)" error={errors.location?.message}>
-                <Input placeholder="Av. Reforma 123" {...register("location")} />
-              </FormField>
-            </div>
-            <Button type="submit" disabled={createField.isPending}>
-              {createField.isPending ? "Creando..." : "Crear cancha"}
-            </Button>
-          </form>
-          <p className="mt-3 text-xs text-muted">
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nueva cancha">
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <FormField label="Nombre" error={errors.name?.message}>
+            <Input placeholder="Cancha Municipal 1" maxLength={100} {...register("name")} />
+          </FormField>
+          <FormField label="Ubicación (opcional)" error={errors.location?.message}>
+            <Input placeholder="Av. Reforma 123" maxLength={200} {...register("location")} />
+          </FormField>
+          <p className="text-xs text-muted">
             Tip: escribe la dirección tal como la buscarías en Google Maps — cada cancha tendrá un enlace
             directo para verla en el mapa.
           </p>
-        </CardBody>
-      </Card>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={createField.isPending}>
+              {createField.isPending ? "Creando..." : "Crear cancha"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       <Card>
         <Table>

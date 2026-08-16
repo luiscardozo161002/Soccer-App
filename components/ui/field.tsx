@@ -1,7 +1,7 @@
 import { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
 
 const controlClasses =
-  "w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:opacity-60";
+  "w-full rounded-xl border border-border bg-surface px-3 py-1.5 text-sm text-ink outline-none transition-colors focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:opacity-60";
 
 export function Field({
   label,
@@ -13,8 +13,8 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-semibold text-ink/90">{label}</span>
+    <label className="flex flex-col gap-1">
+      <span className="text-xs font-semibold text-ink/90">{label}</span>
       {children}
       {error && <span className="text-xs font-medium text-red-500">{error}</span>}
     </label>

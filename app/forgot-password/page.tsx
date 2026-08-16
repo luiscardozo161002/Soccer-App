@@ -73,7 +73,8 @@ export default function ForgotPasswordPage() {
             </div>
           ) : (
             <p className="mt-6 rounded-xl border border-border bg-primary-light/30 p-4 text-sm text-ink">
-              Si esa cuenta existe, se generó un enlace de restablecimiento.
+              Si esa cuenta existe, te enviamos un enlace de restablecimiento a su correo. Revisa tu bandeja de
+              entrada (y spam).
             </p>
           )}
         </CardBody>
