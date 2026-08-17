@@ -161,7 +161,7 @@ function Header() {
 
         <Link
           href="/admin"
-          className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:border-primary hover:text-primary dark:border-white/30 dark:text-white "
+          className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:border-primary hover:text-primary dark:border-white/30 dark:text-white hover:scale-105 transition-all duration-300 "
         >
           Portal
         </Link>
@@ -206,7 +206,6 @@ function Footer() {
           <a href="#proximos-partidos" className="text-muted hover:text-primary dark:text-white/50 ">Próximos partidos</a>
           <a href="#tabla" className="text-muted hover:text-primary dark:text-white/50 ">Tabla</a>
           <a href="#equipos" className="text-muted hover:text-primary dark:text-white/50 ">Equipos</a>
-          <Link href="/admin" className="text-muted hover:text-primary dark:text-white/50 ">Portal de gestión</Link>
         </div>
       </div>
       <p className="border-t border-border py-4 text-center text-[11px] text-muted dark:border-white/5 dark:text-white/30">
@@ -266,7 +265,7 @@ export default function LandingPage() {
             as the text content, so they stay pinned near the content's own
             edges instead of drifting out toward the viewport edges on very
             wide screens. */}
-        <div className="relative mx-auto flex w-full max-w-7xl flex-col px-4 pb-10 pt-14 sm:px-6 sm:pt-20">
+        <div className="relative mx-auto flex w-full max-w-7xl flex-col px-4 pb-8 pt-5 sm:px-6 sm:pt-20">
           {/* Player 2 */}
           <div
             className="pointer-events-none absolute bottom-20 right-10 z-10 hidden w-[220px] sm:block sm:w-[260px] md:w-[300px] lg:w-[280px]"
@@ -318,13 +317,13 @@ export default function LandingPage() {
                 type="button"
                 onClick={goPrev}
                 aria-label="Partido anterior"
-                className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted transition-colors hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60 sm:flex"
+                className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full  border-2 border-gray-400 text-muted transition-colors hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60 sm:flex hover:scale-110 transition-transform duration-200"
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={20} className="text-gray-400 dark:text-white hover:text-primary" />
               </button>
             )}
 
-            <div key={heroIndex} className="flex-1 py-8 text-center [animation:fade-in-up_0.4s_ease] sm:py-12">
+            <div key={heroIndex} className="flex-1 py-3 text-center [animation:fade-in-up_0.4s_ease] sm:py-12">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary-light px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-primary ">
                 <Trophy size={12} /> {featured ? `Próximo partido · Jornada ${featured.matchday}` : `Temporada ${new Date().getFullYear()}`}
               </span>
@@ -332,7 +331,7 @@ export default function LandingPage() {
               {featured ? (
                 <>
                   <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-8">
-                    <div className="flex flex-col items-center gap-3 px-2">
+                    <div className="flex flex-col items-center gap-3 px-2 hover:scale-110 transition-transform duration-200">
                       <Avatar
                         src={teamsById[featured.homeTeamId] ? teamPhotoUrl(teamsById[featured.homeTeamId]) : null}
                         name={teamsById[featured.homeTeamId]?.name ?? "?"}
@@ -343,7 +342,7 @@ export default function LandingPage() {
                       </span>
                     </div>
                     <span className="text-sm font-black uppercase tracking-widest text-muted dark:text-white/30 sm:text-base">vs</span>
-                    <div className="flex flex-col items-center gap-3 px-2">
+                    <div className="flex flex-col items-center gap-3 px-2 hover:scale-110 transition-transform duration-200">
                       <Avatar
                         src={teamsById[featured.awayTeamId] ? teamPhotoUrl(teamsById[featured.awayTeamId]) : null}
                         name={teamsById[featured.awayTeamId]?.name ?? "?"}
@@ -371,6 +370,7 @@ export default function LandingPage() {
                         name={fieldsById[featured.fieldId]?.name ?? "Cancha por confirmar"}
                       />
                     </span>
+                    <CategoryBadge category={featured.category} />
                   </div>
 
                   <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -414,9 +414,9 @@ export default function LandingPage() {
                 type="button"
                 onClick={goNext}
                 aria-label="Siguiente partido"
-                className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted transition-colors hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60 sm:flex"
+                className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-gray-400 text-muted transition-colors hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60 sm:flex hover:scale-110 transition-transform duration-200"
               >
-                <ChevronRight size={20} />
+                <ChevronRight size={20} className="text-gray-400 dark:text-white hover:text-primary" />
               </button>
             )}
           </div>
@@ -680,14 +680,7 @@ export default function LandingPage() {
                 </tbody>
               </table>
             )}
-            <div className="border-t border-border px-5 py-3 text-right dark:border-white/10">
-              <Link
-                href="/admin"
-                className="inline-flex items-center gap-1 text-sm font-bold text-primary hover:underline "
-              >
-                Ver tabla completa <ArrowRight size={14} />
-              </Link>
-            </div>
+
           </div>
         </motion.section>
 

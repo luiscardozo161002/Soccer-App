@@ -7,8 +7,24 @@ import type {
   UpdateMatchDto,
 } from "@/lib/validation/match.schema";
 
+const includeCategory = {
+  homeTeam: {
+    select: {
+      category: true,
+    },
+  },
+} as const;
+
+function mapMatch<T extends { homeTeam: { category: any } }>(match: T) {
+  const { homeTeam, ...rest } = match;
+  return {
+    ...rest,
+    category: homeTeam.category,
+  };
+}
+
 export const matchRepository = {
-  findMany({ page, pageSize, matchday, teamId, status, seasonId }: ListMatchesQuery) {
+  async findMany({ page, pageSize, matchday, teamId, status, seasonId }: ListMatchesQuery) {
     const where: Prisma.MatchWhereInput = {
       matchday,
       status,
@@ -16,16 +32,15 @@ export const matchRepository = {
       ...(teamId ? { OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }] } : {}),
     };
 
-    return prisma.match.findMany({
+    const matches = await prisma.match.findMany({
       where,
       skip: (page - 1) * pageSize,
       take: pageSize,
-      // Postgres orders enum columns by declaration order, and MatchStatus
-      // is declared scheduled/played/postponed/cancelled — which happens to
-      // be the display priority we want, so sorting by status groups the
-      // list into those categories with no extra logic.
       orderBy: [{ status: "asc" }, { matchday: "asc" }, { date: "asc" }],
+      include: includeCategory,
     });
+
+    return matches.map(mapMatch);
   },
 
   count({ matchday, teamId, status, seasonId }: Omit<ListMatchesQuery, "page" | "pageSize">) {
@@ -38,8 +53,13 @@ export const matchRepository = {
     return prisma.match.count({ where });
   },
 
-  findById(id: string) {
-    return prisma.match.findUnique({ where: { id } });
+  async findById(id: string) {
+    const match = await prisma.match.findUnique({
+      where: { id },
+      include: includeCategory,
+    });
+    if (!match) return null;
+    return mapMatch(match);
   },
 
   countByField(fieldId: string) {
@@ -55,16 +75,25 @@ export const matchRepository = {
     });
   },
 
-  create(data: CreateMatchDto & { seasonId: string }) {
-    return prisma.match.create({ data });
+  async create(data: CreateMatchDto & { seasonId: string }) {
+    const match = await prisma.match.create({
+      data,
+      include: includeCategory,
+    });
+    return mapMatch(match);
   },
 
-  update(id: string, data: UpdateMatchDto) {
-    return prisma.match.update({ where: { id }, data });
+  async update(id: string, data: UpdateMatchDto) {
+    const match = await prisma.match.update({
+      where: { id },
+      data,
+      include: includeCategory,
+    });
+    return mapMatch(match);
   },
 
-  registerResult(id: string, data: RegisterResultDto) {
-    return prisma.match.update({
+  async registerResult(id: string, data: RegisterResultDto) {
+    const match = await prisma.match.update({
       where: { id },
       data: {
         homeGoals: data.homeGoals,
@@ -74,7 +103,9 @@ export const matchRepository = {
         status: "played",
         resultLocked: true,
       },
+      include: includeCategory,
     });
+    return mapMatch(match);
   },
 
   delete(id: string) {

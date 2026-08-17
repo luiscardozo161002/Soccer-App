@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, patch, post } from "@/lib/http/endpoints";
 import type { ItemResponse, ListResponse } from "@/lib/http/types";
+import type { LeagueCategoryValue } from "@/lib/constants/league-categories";
+
 
 export type MatchStatus = "scheduled" | "played" | "postponed" | "cancelled";
 
@@ -21,6 +23,7 @@ export interface Match {
   statusReason: string | null;
   resultLocked: boolean;
   status: MatchStatus;
+  category: LeagueCategoryValue;
 }
 
 export interface CreateMatchInput {

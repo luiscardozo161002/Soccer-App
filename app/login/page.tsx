@@ -15,6 +15,7 @@ import { ApiError } from "@/lib/errors";
 import { Field, Input } from "@/components/ui/field";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, LoaderCircle } from "lucide-react";
 
 const loginSchema = z.object({
   username: z.string().trim().min(1, "Ingresa tu usuario o correo"),
@@ -34,7 +35,7 @@ function BrandLogo({ logoUrl, siteName }: { logoUrl: string | null; siteName: st
         />
       ) : (
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-white/40 bg-white/10 text-2xl">
-          ⚽
+          <LoaderCircle className="animate-spin text-white" size={24} />
         </span>
       )}
       <span className="text-lg font-black uppercase tracking-tight text-white">{siteName}</span>
@@ -152,12 +153,15 @@ function LoginFormCard() {
                 />
               ) : (
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-primary-light text-xl">
-                  ⚽
+                  <LoaderCircle className="animate-spin" size={24} />
                 </span>
               )}
               <span className="text-lg font-black uppercase tracking-tight text-ink">{siteName}</span>
             </div>
 
+            <Link href="/" className="fixed top-5 right-5 hover:scale-105 transition-all duration-300">
+              <span className="flex items-center gap-2"><ChevronLeft />Volver al sitio público</span>
+            </Link>
             <h1 className="text-2xl font-extrabold tracking-tight text-ink">Iniciar sesión</h1>
             <p className="mt-1 text-sm text-muted">Ingresa tus datos para continuar.</p>
 
