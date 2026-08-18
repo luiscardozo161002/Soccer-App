@@ -104,6 +104,57 @@ CREATE TABLE users ( -- Usuarios
 );
 
 -- =========================================================
+-- Torneo de Copa (eliminación directa) — separado por completo de
+-- matches/standings. Mezcla equipos de cualquier categoría; los cruces
+-- se arman a mano por el admin (sin sorteo automático).
+-- =========================================================
+CREATE TYPE cup_status AS ENUM ('active', 'archived');
+CREATE TYPE cup_entry_status AS ENUM ('active', 'eliminated', 'withdrawn');
+CREATE TYPE cup_match_status AS ENUM ('scheduled', 'played', 'postponed', 'cancelled');
+
+CREATE TABLE cups ( -- Copas
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    name VARCHAR(100) NOT NULL,
+    status cup_status NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+-- Un equipo inscrito en una copa. eliminated/withdrawn son estados del
+-- bracket, independientes de teams.status (ese es global/de la liga).
+CREATE TABLE cup_entries ( -- Equipos inscritos en una copa
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    cup_id UUID NOT NULL REFERENCES cups (id),
+    team_id UUID NOT NULL REFERENCES teams (id),
+    status cup_entry_status NOT NULL DEFAULT 'active',
+    eliminated_reason VARCHAR(300),
+    eliminated_at TIMESTAMP,
+    CONSTRAINT uq_cup_entries_cup_team UNIQUE (cup_id, team_id)
+);
+
+-- Un cruce del bracket. field_id es opcional a proposito: un equipo
+-- puede retirarse antes de que se le asigne cancha real (gane "default"
+-- sin jugarse). created_at se usa para saber si un resultado ya se
+-- puede reabrir (nadie avanzo todavia usando ese resultado).
+CREATE TABLE cup_matches ( -- Partidos de copa
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    cup_id UUID NOT NULL REFERENCES cups (id),
+    round VARCHAR(80) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    home_team_id UUID NOT NULL REFERENCES teams (id),
+    away_team_id UUID NOT NULL REFERENCES teams (id),
+    field_id UUID REFERENCES fields (id),
+    date DATE NOT NULL,
+    time TIME,
+    home_goals INT,
+    away_goals INT,
+    forfeit BOOLEAN NOT NULL DEFAULT false,
+    forfeit_reason VARCHAR(300),
+    result_locked BOOLEAN NOT NULL DEFAULT false,
+    status cup_match_status NOT NULL DEFAULT 'scheduled',
+    CONSTRAINT chk_cup_matches_different_teams CHECK (home_team_id <> away_team_id)
+);
+
+-- =========================================================
 -- View: standings (calculated, not stored)
 -- =========================================================
 CREATE VIEW standings AS

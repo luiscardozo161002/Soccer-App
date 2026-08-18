@@ -4,6 +4,7 @@ const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Debe ser un color hexade
 
 export const updateSettingsSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
+  slogan: z.string().trim().max(200).optional().or(z.literal("")),
   primaryColor: hexColor.optional(),
   backgroundColor: hexColor.optional(),
   logo: z

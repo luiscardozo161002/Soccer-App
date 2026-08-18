@@ -4,6 +4,10 @@ import { userRepository } from "@/lib/repositories/user.repository";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSessionToken } from "@/lib/auth/session";
 import { emailDeliveryEnabled, sendPasswordResetEmail } from "@/lib/email/resend";
+import { settingsService } from "@/lib/services/settings.service";
+
+const DEFAULT_PRIMARY_COLOR = "#0d9488"; // prisma/schema.prisma SiteSettings.primaryColor default
+const DEFAULT_SITE_NAME = "Liga de Futbol";
 
 const RESET_TOKEN_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -32,7 +36,12 @@ export const authService = {
     if (emailDeliveryEnabled) {
       const appUrl = process.env.APP_URL;
       if (!appUrl) throw new Error("APP_URL is not set");
-      await sendPasswordResetEmail(user.email, `${appUrl}/reset-password?token=${token}`);
+      const [settings, logo] = await Promise.all([settingsService.get(), settingsService.getLogoAttachment()]);
+      await sendPasswordResetEmail(user.email, `${appUrl}/reset-password?token=${token}`, {
+        siteName: settings?.name || DEFAULT_SITE_NAME,
+        primaryColor: settings?.primaryColor || DEFAULT_PRIMARY_COLOR,
+        logo,
+      });
       return null;
     }
     return token;

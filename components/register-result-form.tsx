@@ -9,7 +9,7 @@ import { useCreateSanction } from "@/hooks/useSanctions";
 import { usePlayers } from "@/hooks/usePlayers";
 import { ApiError } from "@/lib/errors";
 import { CARD_REASONS } from "@/lib/constants/card-reasons";
-import { onlyDigits, onlyDecimal } from "@/lib/forms";
+import { onlyDigits, onlyDecimal } from "@/lib/utils/forms";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Field, Select } from "@/components/ui/field";

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Trophy, Shield, Users, MapPinned, CalendarDays, Globe, History, ShieldAlert, Settings, LogOut, PanelLeftClose, PanelLeftOpen, LoaderCircle } from "lucide-react";
+import { Trophy, Shield, Users, MapPinned, CalendarDays, Globe, History, ShieldAlert, Settings, LogOut, PanelLeftClose, PanelLeftOpen, LoaderCircle, Award } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -18,6 +18,7 @@ const links = [
   { href: "/admin/teams", label: "Equipos", icon: Shield },
   { href: "/admin/players", label: "Jugadores", icon: Users },
   { href: "/admin/matches", label: "Partidos", icon: CalendarDays },
+  { href: "/admin/cup", label: "Copa", icon: Award },
   { href: "/admin/fields", label: "Canchas", icon: MapPinned },
   { href: "/admin/sanctions", label: "Sanciones", icon: ShieldAlert },
   { href: "/admin/history", label: "Historial", icon: History },

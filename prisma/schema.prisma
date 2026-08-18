@@ -38,6 +38,24 @@ enum LeagueCategory {
   segunda_division
 }
 
+enum CupStatus {
+  active
+  archived
+}
+
+enum CupEntryStatus {
+  active
+  eliminated
+  withdrawn
+}
+
+enum CupMatchStatus {
+  scheduled
+  played
+  postponed
+  cancelled
+}
+
 // Un torneo/temporada. Los partidos y ajustes de puntos pertenecen a una
 // temporada; al "reiniciar" el torneo se archiva la temporada activa (queda
 // como historial consultable) y se abre una nueva en blanco. Equipos,
@@ -70,6 +88,9 @@ model Team {
   homeMatches      Match[]           @relation("HomeTeam")
   awayMatches      Match[]           @relation("AwayTeam")
   pointAdjustments PointAdjustment[]
+  cupEntries       CupEntry[]
+  cupHomeMatches   CupMatch[]        @relation("CupHomeTeam")
+  cupAwayMatches   CupMatch[]        @relation("CupAwayTeam")
 
   @@map("teams")
 }
@@ -97,7 +118,8 @@ model Field {
   location String?
   status   Status  @default(active)
 
-  matches Match[]
+  matches    Match[]
+  cupMatches CupMatch[]
 
   @@map("fields")
 }
@@ -183,11 +205,71 @@ model PointAdjustment {
   @@map("point_adjustments")
 }
 
+// Torneo de Copa por eliminación directa — separado por completo de Season/
+// Match/la vista de posiciones. Mezcla equipos de cualquier categoría y los
+// cruces se arman a mano por el admin (sin sorteo automático).
+model Cup {
+  id        String    @id @default(uuid())
+  name      String
+  status    CupStatus @default(active)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  entries CupEntry[]
+  matches CupMatch[]
+
+  @@map("cups")
+}
+
+// Un equipo inscrito en una Copa. Independiente de Team.status (ese es
+// global/de la Liga); eliminated/withdrawn son estados propios del bracket.
+model CupEntry {
+  id               String         @id @default(uuid())
+  cupId            String         @map("cup_id")
+  teamId           String         @map("team_id")
+  status           CupEntryStatus @default(active)
+  eliminatedReason String?        @map("eliminated_reason")
+  eliminatedAt     DateTime?      @map("eliminated_at")
+
+  cup  Cup  @relation(fields: [cupId], references: [id])
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@unique([cupId, teamId])
+  @@map("cup_entries")
+}
+
+// Un cruce del bracket. fieldId es opcional a propósito: un equipo puede
+// retirarse antes de que se le asigne cancha real ("default" sin jugarse).
+model CupMatch {
+  id            String         @id @default(uuid())
+  cupId         String         @map("cup_id")
+  round         String
+  createdAt     DateTime       @default(now()) @map("created_at")
+  homeTeamId    String         @map("home_team_id")
+  awayTeamId    String         @map("away_team_id")
+  fieldId       String?        @map("field_id")
+  date          DateTime
+  time          String?
+  homeGoals     Int?           @map("home_goals")
+  awayGoals     Int?           @map("away_goals")
+  forfeit       Boolean        @default(false)
+  forfeitReason String?        @map("forfeit_reason")
+  resultLocked  Boolean        @default(false) @map("result_locked")
+  status        CupMatchStatus @default(scheduled)
+
+  cup      Cup    @relation(fields: [cupId], references: [id])
+  homeTeam Team   @relation("CupHomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam Team   @relation("CupAwayTeam", fields: [awayTeamId], references: [id])
+  field    Field? @relation(fields: [fieldId], references: [id])
+
+  @@map("cup_matches")
+}
+
 // Singleton row (always the same seeded id) holding site branding/theme.
 // Read by both the public landing page and the admin portal.
 model SiteSettings {
   id              String    @id @default(uuid())
   name            String    @default("Liga de Futbol")
+  slogan          String?
   logo            Bytes?
   logoType        String?   @map("logo_type")
   logoUpdatedAt   DateTime? @map("logo_updated_at")

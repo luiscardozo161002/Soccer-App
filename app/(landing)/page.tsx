@@ -21,7 +21,7 @@ import { useTeams, teamPhotoUrl } from "@/hooks/useTeams";
 import { useMatches } from "@/hooks/useMatches";
 import { useFields, googleMapsUrl } from "@/hooks/useFields";
 import { useSettings, siteLogoUrl } from "@/hooks/useSettings";
-import { formatCalendarDate } from "@/lib/date";
+import { formatCalendarDate } from "@/lib/utils/date";
 import { LEAGUE_CATEGORIES } from "@/lib/constants/league-categories";
 import { Avatar } from "@/components/ui/avatar";
 import { CategoryBadge, CategoryDot } from "@/components/ui/category-badge";
@@ -188,6 +188,7 @@ function Header() {
 function Footer() {
   const { data: settingsData } = useSettings();
   const siteName = settingsData?.data?.name ?? "Liga de Futbol";
+  const slogan = settingsData?.data?.slogan;
 
   return (
     <footer className="relative overflow-hidden border-t border-border bg-surface">
@@ -199,7 +200,7 @@ function Footer() {
             {siteName} · {new Date().getFullYear()}
           </p>
           <p className="mt-1 text-xs text-muted dark:text-white/40">
-            Resultados, calendario y posiciones actualizados en tiempo real.
+            {slogan || "Resultados, calendario y posiciones actualizados en tiempo real."}
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-bold uppercase tracking-widest">

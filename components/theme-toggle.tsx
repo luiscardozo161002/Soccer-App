@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Moon, Sun } from "lucide-react";
-import { useTheme } from "@/components/theme-provider";
+import { useTheme } from "@/context/theme-context";
 
 export function ThemeToggle({ className = "", label }: { className?: string; label?: ReactNode }) {
   const { theme, toggle } = useTheme();

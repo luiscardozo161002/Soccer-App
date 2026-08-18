@@ -1,6 +1,194 @@
 [
-  { "name": "Tigres FC" },
-  { "name": "Águilas Doradas" },
-  { "name": "Lobos United" },
-  { "name": "Halcones FC" }
+  {
+    "name": "CHIVAS TULA",
+    "category": "primera_division"
+  },
+  {
+    "name": "REAL FAMILIAR EL CANAL",
+    "category": "primera_division"
+  },
+  {
+    "name": "ATLÉTICO BOMINTZHÁ",
+    "category": "primera_division"
+  },
+  {
+    "name": "SAN PABLO FC",
+    "category": "primera_division"
+  },
+  {
+    "name": "ATLANTES SAN MARCOS",
+    "category": "primera_division"
+  },
+  {
+    "name": "DEP. VAQUERO",
+    "category": "primera_division"
+  },
+  {
+    "name": "PUMAS SAN LUCAS",
+    "category": "primera_division"
+  },
+  {
+    "name": "REAL ZARAGOZA",
+    "category": "primera_division"
+  },
+  {
+    "name": "DEP. SAN ISIDRO",
+    "category": "primera_division"
+  },
+  {
+    "name": "DEP. MONTECILLO",
+    "category": "primera_division"
+  },
+  {
+    "name": "ATLÉTICO DADRID",
+    "category": "primera_division"
+  },
+  {
+    "name": "CLUB SAN PABLO",
+    "category": "primera_division"
+  },
+  {
+    "name": "DEP. BOMINTZHÁ",
+    "category": "primera_division"
+  },
+  {
+    "name": "LOGÍSTICA FALCON",
+    "category": "primera_division"
+  },
+  {
+    "name": "TOLTECA",
+    "category": "primera_division"
+  },
+  {
+    "name": "DEP. ALPUYECA",
+    "category": "primera_division"
+  },
+  {
+    "name": "JUV. MONTECILLO",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "DEP. RAYOS",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "UNIÓN TULA",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "DIGAMMA FC",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "OLIMPIA DENGUÍ",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "COMBINADO SAN IDELFONSO",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "DEP. COYOTES",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "DEP. UNIVERSAL",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "DEP. JUÁREZ",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "DEP. CELTA",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "DEP. LA RAZA",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "DEP. EL CALVARIO",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "JUVENIL SAN MIGUEL",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "BARBERÍA FC",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "ATM. SAN MARCOS",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "MAGDALENA FC",
+    "category": "division_ascenso"
+  },
+  {
+    "name": "LAS BICHOTAS",
+    "category": "segunda_division"
+  },
+  {
+    "name": "DEP. LITGAR",
+    "category": "segunda_division"
+  },
+  {
+    "name": "DEP. ARROYO",
+    "category": "segunda_division"
+  },
+  {
+    "name": "DUBLÁN FC",
+    "category": "segunda_division"
+  },
+  {
+    "name": "LA ROMA FC",
+    "category": "segunda_division"
+  },
+  {
+    "name": "PUMAS JR",
+    "category": "segunda_division"
+  },
+  {
+    "name": "UNIÓN 2 PEÑAS",
+    "category": "segunda_division"
+  },
+  {
+    "name": "TLAUTLA F.C.",
+    "category": "segunda_division"
+  },
+  {
+    "name": "JUV. SAN LUCAS",
+    "category": "segunda_division"
+  },
+  {
+    "name": "XOLOS LA LOMA",
+    "category": "segunda_division"
+  },
+  {
+    "name": "DEP. EL 61",
+    "category": "segunda_division"
+  },
+  {
+    "name": "GALLOS BLANCOS",
+    "category": "segunda_division"
+  },
+  {
+    "name": "DEP. LAS NUECES",
+    "category": "segunda_division"
+  },
+  {
+    "name": "ZORROS TULA",
+    "category": "segunda_division"
+  },
+  {
+    "name": "DEP. SAN MARTÍN",
+    "category": "segunda_division"
+  },
+  {
+    "name": "JUVENTUS MAGDALENA",
+    "category": "segunda_division"
+  }
 ]

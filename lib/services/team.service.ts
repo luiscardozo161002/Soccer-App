@@ -1,5 +1,5 @@
 import { ApiError } from "@/lib/errors";
-import { optimizeImageFromDataUrl } from "@/lib/images";
+import { optimizeImageFromDataUrl } from "@/lib/utils/images";
 import { teamRepository } from "@/lib/repositories/team.repository";
 import type { Prisma } from "@/app/generated/prisma/client";
 import type { CreateTeamDto, UpdateTeamDto } from "@/lib/validation/team.schema";

@@ -10,10 +10,10 @@ import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
 import { useResetPassword } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/errors";
-import { Card, CardBody } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
+import { AuthShell } from "@/components/auth/auth-shell";
 
 const schema = z
   .object({
@@ -51,60 +51,52 @@ function ResetPasswordFormCard() {
 
   if (!token) {
     return (
-      <Card className="w-full max-w-sm">
-        <CardBody>
-          <p className="text-sm text-ink">
-            Este enlace no es válido. Solicita uno nuevo desde{" "}
-            <Link href="/forgot-password" className="font-semibold text-primary hover:underline">
-              recuperar contraseña
-            </Link>
-            .
-          </p>
-        </CardBody>
-      </Card>
+      <p className="text-sm text-ink">
+        Este enlace no es válido. Solicita uno nuevo desde{" "}
+        <Link href="/forgot-password" className="font-semibold text-primary hover:underline">
+          recuperar contraseña
+        </Link>
+        .
+      </p>
     );
   }
 
   if (done) {
     return (
-      <Card className="w-full max-w-sm">
-        <CardBody className="flex flex-col items-center gap-3 text-center">
-          <CheckCircle2 className="text-primary" size={32} />
-          <p className="text-sm text-ink">Tu contraseña se actualizó correctamente.</p>
-          <Button onClick={() => router.push("/login")}>Iniciar sesión</Button>
-        </CardBody>
-      </Card>
+      <div className="flex flex-col items-center gap-3 text-center">
+        <CheckCircle2 className="text-primary" size={32} />
+        <p className="text-sm text-ink">Tu contraseña se actualizó correctamente.</p>
+        <Button onClick={() => router.push("/login")}>Iniciar sesión</Button>
+      </div>
     );
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardBody>
-        <h1 className="text-xl font-extrabold tracking-tight text-ink">Nueva contraseña</h1>
-        <p className="mt-1 text-sm text-muted">Elige una nueva contraseña para tu cuenta.</p>
+    <>
+      <h1 className="text-2xl font-extrabold tracking-tight text-ink">Nueva contraseña</h1>
+      <p className="mt-1 text-sm text-muted">Elige una nueva contraseña para tu cuenta.</p>
 
-        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
-          <Field label="Nueva contraseña" error={errors.password?.message}>
-            <PasswordInput autoFocus {...register("password")} />
-          </Field>
-          <Field label="Confirmar contraseña" error={errors.confirmPassword?.message}>
-            <PasswordInput {...register("confirmPassword")} />
-          </Field>
-          <Button type="submit" disabled={resetPassword.isPending} className="mt-2">
-            {resetPassword.isPending ? "Guardando..." : "Guardar contraseña"}
-          </Button>
-        </form>
-      </CardBody>
-    </Card>
+      <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-4">
+        <Field label="Nueva contraseña" error={errors.password?.message}>
+          <PasswordInput autoFocus {...register("password")} />
+        </Field>
+        <Field label="Confirmar contraseña" error={errors.confirmPassword?.message}>
+          <PasswordInput {...register("confirmPassword")} />
+        </Field>
+        <Button type="submit" disabled={resetPassword.isPending} className="mt-2">
+          {resetPassword.isPending ? "Guardando..." : "Guardar contraseña"}
+        </Button>
+      </form>
+    </>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <AuthShell backLink={{ href: "/login", label: "Volver a iniciar sesión" }}>
       <Suspense fallback={null}>
         <ResetPasswordFormCard />
       </Suspense>
-    </div>
+    </AuthShell>
   );
 }

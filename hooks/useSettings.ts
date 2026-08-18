@@ -7,6 +7,7 @@ import type { ItemResponse } from "@/lib/http/types";
 export interface SiteSettings {
   id: string;
   name: string;
+  slogan: string | null;
   logoType: string | null;
   logoUpdatedAt: string | null;
   primaryColor: string;
@@ -15,6 +16,7 @@ export interface SiteSettings {
 
 export interface UpdateSettingsInput {
   name?: string;
+  slogan?: string;
   primaryColor?: string;
   backgroundColor?: string;
   logo?: string;

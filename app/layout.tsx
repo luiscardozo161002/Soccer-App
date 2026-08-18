@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/context/theme-context";
 import { settingsService } from "@/lib/services/settings.service";
-import { shade, hexToRgba, ensureDarkModeLegible } from "@/lib/color";
+import { shade, hexToRgba, ensureDarkModeLegible } from "@/lib/utils/color";
 
 const themeInitScript = `
 (function () {

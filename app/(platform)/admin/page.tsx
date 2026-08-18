@@ -5,7 +5,7 @@ import { Trophy, Shield, CalendarDays, Clock3 } from "lucide-react";
 import { useStandings } from "@/hooks/useStandings";
 import { useTeams } from "@/hooks/useTeams";
 import { useMatches } from "@/hooks/useMatches";
-import { formatCalendarDate } from "@/lib/date";
+import { formatCalendarDate } from "@/lib/utils/date";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
 import { Card, CardBody } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";

@@ -1,7 +1,7 @@
 import { ApiError } from "@/lib/errors";
 import { userRepository } from "@/lib/repositories/user.repository";
 import { hashPassword } from "@/lib/auth/password";
-import { optimizeImageFromDataUrl } from "@/lib/images";
+import { optimizeImageFromDataUrl } from "@/lib/utils/images";
 import type { CreateUserDto, ListUsersQuery, UpdateUserDto } from "@/lib/validation/user.schema";
 import type { Prisma } from "@/app/generated/prisma/client";
 
