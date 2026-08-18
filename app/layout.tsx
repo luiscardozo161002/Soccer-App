@@ -33,6 +33,11 @@ export const metadata: Metadata = {
   description: "Gestión de liga: equipos, jugadores, partidos y posiciones",
 };
 
+// Branding (primaryColor/background) is admin-editable at runtime and read
+// from the DB on every render — prerendering this layout would both fail at
+// build time (no DB access there) and bake in stale colors permanently.
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const settings = await settingsService.get();
   const primary = settings?.primaryColor ?? "#0d9488";
