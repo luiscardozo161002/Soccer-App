@@ -87,6 +87,33 @@ function CornerFlagGlyph({ className }: { className?: string }) {
   );
 }
 
+function CategoryTabs({
+  activeIndex,
+  onChange,
+}: {
+  activeIndex: number;
+  onChange: (index: number) => void;
+}) {
+  return (
+    <div className="mb-6 flex flex-wrap items-center gap-2">
+      {LEAGUE_CATEGORIES.map((c, i) => (
+        <button
+          key={c.value}
+          type="button"
+          onClick={() => onChange(i)}
+          aria-current={i === activeIndex}
+          className={`rounded-full border px-4 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors ${i === activeIndex
+            ? "border-primary bg-primary text-white"
+            : "border-border text-muted hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60"
+            }`}
+        >
+          {c.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function PitchDivider() {
   return (
     <div className="relative mt-20 flex items-center gap-4" aria-hidden>
@@ -242,11 +269,8 @@ export default function LandingPage() {
   const { data: standingsData } = useStandings();
   const [categoryIndex, setCategoryIndex] = useState(0);
   const activeCategory = LEAGUE_CATEGORIES[categoryIndex];
-  const prevCategory = () => setCategoryIndex((i) => (i - 1 + LEAGUE_CATEGORIES.length) % LEAGUE_CATEGORIES.length);
-  const nextCategory = () => setCategoryIndex((i) => (i + 1) % LEAGUE_CATEGORIES.length);
-  const topTeams = (standingsData?.data ?? [])
-    .filter((row) => row.category === activeCategory.value)
-    .slice(0, 5);
+  const categoryTeams = (standingsData?.data ?? []).filter((row) => row.category === activeCategory.value);
+  const categoryRoster = teams.filter((team) => team.category === activeCategory.value);
 
   return (
     <div className="min-h-screen bg-surface text-ink">
@@ -573,7 +597,7 @@ export default function LandingPage() {
             <div>
               <h2 className="text-xl font-black uppercase tracking-tight text-ink dark:text-white">Tabla de posiciones</h2>
               <p className="text-sm text-muted dark:text-white/40">
-                Los 5 primeros lugares · {activeCategory.label}
+                Tabla completa · {activeCategory.label}
               </p>
             </div>
             <Image
@@ -585,62 +609,12 @@ export default function LandingPage() {
             />
           </div>
 
-          {/* Category slider */}
-          <div
-            role="group"
-            aria-label="Categoría de la tabla de posiciones"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowLeft") {
-                e.preventDefault();
-                prevCategory();
-              } else if (e.key === "ArrowRight") {
-                e.preventDefault();
-                nextCategory();
-              }
-            }}
-            className="mb-4 flex items-center justify-center gap-3 outline-none sm:justify-start"
-          >
-            <button
-              type="button"
-              onClick={prevCategory}
-              aria-label="Categoría anterior"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-muted transition-colors hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60 "
-            >
-              <ChevronLeft size={18} />
-            </button>
-
-            <div key={categoryIndex} className="flex w-44 flex-col items-center gap-1.5 [animation:fade-in-up_0.25s_ease]">
-              <span className="text-sm font-black uppercase tracking-widest text-ink dark:text-white">
-                {activeCategory.label}
-              </span>
-              <div className="flex items-center gap-1.5">
-                {LEAGUE_CATEGORIES.map((c, i) => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    onClick={() => setCategoryIndex(i)}
-                    aria-label={`Ver ${c.label}`}
-                    aria-current={i === categoryIndex}
-                    className={`h-1.5 rounded-full transition-all ${i === categoryIndex ? "w-5 bg-primary " : "w-1.5 bg-slate-300 dark:bg-white/20"
-                      }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={nextCategory}
-              aria-label="Siguiente categoría"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-muted transition-colors hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60 "
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
+          {/* Shares state with the Equipos section below, so both stay in
+              sync as the visitor switches categories. */}
+          <CategoryTabs activeIndex={categoryIndex} onChange={setCategoryIndex} />
 
           <div className="overflow-hidden rounded-2xl border border-border shadow-[0_16px_40px_-28px_rgba(15,23,42,0.3)] dark:border-white/10 dark:shadow-none">
-            {topTeams.length === 0 ? (
+            {categoryTeams.length === 0 ? (
               <p className="p-8 text-center text-sm text-muted dark:text-white/40">
                 Todavía no hay partidos jugados en {activeCategory.label}.
               </p>
@@ -656,7 +630,7 @@ export default function LandingPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                  {topTeams.map((row, index) => (
+                  {categoryTeams.map((row, index) => (
                     <tr key={row.teamId}>
                       <td className="px-5 py-3">
                         <span
@@ -694,18 +668,24 @@ export default function LandingPage() {
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <h2 className="text-xl font-black uppercase tracking-tight text-ink dark:text-white">Equipos participantes</h2>
-              <p className="text-sm text-muted dark:text-white/40">{teams.length} equipo(s) inscritos esta temporada.</p>
+              <p className="text-sm text-muted dark:text-white/40">
+                {categoryRoster.length} equipo(s) inscritos · {activeCategory.label}
+              </p>
             </div>
             <ShieldCheck className="hidden text-primary sm:block" size={22} />
           </div>
 
-          {teams.length === 0 ? (
+          {/* Shares state with the standings section above, so both stay in
+              sync as the visitor switches categories. */}
+          <CategoryTabs activeIndex={categoryIndex} onChange={setCategoryIndex} />
+
+          {categoryRoster.length === 0 ? (
             <div className="rounded-2xl border border-border p-8 text-center text-sm text-muted dark:border-white/10 dark:text-white/40">
-              Todavía no hay equipos registrados.
+              Todavía no hay equipos registrados en {activeCategory.label}.
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {teams.map((team) => (
+              {categoryRoster.map((team) => (
                 <motion.div
                   key={team.id}
                   className="flex items-center gap-3 rounded-2xl border border-border p-4 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.3)] transition-colors hover:border-primary/60 dark:border-white/10 dark:shadow-none "

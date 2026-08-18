@@ -2,7 +2,7 @@ import { ApiError } from "@/lib/errors";
 import { optimizeImageFromDataUrl } from "@/lib/utils/images";
 import { playerRepository } from "@/lib/repositories/player.repository";
 import { teamRepository } from "@/lib/repositories/team.repository";
-import type { Prisma } from "@/app/generated/prisma/client";
+import type { Prisma, LeagueCategory } from "@/app/generated/prisma/client";
 import type { CreatePlayerDto, UpdatePlayerDto } from "@/lib/validation/player.schema";
 
 async function toWriteData(
@@ -28,10 +28,10 @@ async function toWriteData(
 }
 
 export const playerService = {
-  async list(page: number, pageSize: number, teamId?: string) {
+  async list(page: number, pageSize: number, teamId?: string, category?: LeagueCategory) {
     const [items, totalItems] = await Promise.all([
-      playerRepository.findMany({ page, pageSize, teamId }),
-      playerRepository.count(teamId),
+      playerRepository.findMany({ page, pageSize, teamId, category }),
+      playerRepository.count(teamId, category),
     ]);
     return { items, totalItems, totalPages: Math.ceil(totalItems / pageSize) };
   },

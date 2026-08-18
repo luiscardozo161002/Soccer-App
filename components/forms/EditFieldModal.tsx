@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useUpdateField, type Field as FieldType } from "@/hooks/useFields";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { Field as FormField, Input } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
@@ -26,6 +27,8 @@ export function EditFieldModal({ field, onClose }: { field: FieldType | null; on
     reset,
     formState: { errors, isDirty },
   } = useForm<FieldForm>({ resolver: zodResolver(fieldSchema) });
+
+  useUnsavedChangesWarning(isEditing && isDirty);
 
   useEffect(() => {
     if (field) {

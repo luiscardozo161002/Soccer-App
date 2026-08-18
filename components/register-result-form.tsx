@@ -7,12 +7,14 @@ import { useRegisterResult } from "@/hooks/useMatches";
 import { useCards, useCreateCard, useDeleteCard, type CardType } from "@/hooks/useCards";
 import { useCreateSanction } from "@/hooks/useSanctions";
 import { usePlayers } from "@/hooks/usePlayers";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { CARD_REASONS } from "@/lib/constants/card-reasons";
 import { onlyDigits, onlyDecimal } from "@/lib/utils/forms";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Field, Select } from "@/components/ui/field";
+import { EmptyOptionsHint } from "@/components/ui/empty-options-hint";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export interface RegisterResultMatch {
@@ -103,14 +105,22 @@ function CardForm({ match, onAdded }: { match: RegisterResultMatch; onAdded: () 
           </Select>
         </Field>
         <Field label="Jugador">
-          <Select value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
-            <option value="">Selecciona...</option>
-            {players.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </Select>
+          {players.length === 0 ? (
+            <EmptyOptionsHint
+              message="Este equipo no tiene jugadores registrados."
+              href="/admin/players"
+              linkLabel="Crea uno primero"
+            />
+          ) : (
+            <Select value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
+              <option value="">Selecciona...</option>
+              {players.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+          )}
         </Field>
       </div>
 
@@ -189,6 +199,8 @@ export function RegisterResultForm({ match, onDone }: { match: RegisterResultMat
 
   const { data: playersData } = usePlayers();
   const playersById = Object.fromEntries((playersData?.data ?? []).map((p) => [p.id, p.name]));
+
+  useUnsavedChangesWarning(homeGoals !== "0" || awayGoals !== "0" || forfeit || forfeitReason.trim().length > 0);
 
   const applyForfeitScore = (winner: "home" | "away") => {
     setHomeGoals(winner === "home" ? "3" : "0");

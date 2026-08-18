@@ -1,13 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
+import type { LeagueCategory } from "@/app/generated/prisma/client";
 
 export const teamRepository = {
   // Postgres orders enum columns by declaration order, and LeagueCategory is
   // declared Primera / Ascenso / Segunda — so this sorts teams by division
   // in that order (then alphabetically within each division) everywhere the
   // list is consumed, with no client-side re-sorting needed.
-  findMany({ page, pageSize }: { page: number; pageSize: number }) {
+  findMany({ page, pageSize, category }: { page: number; pageSize: number; category?: LeagueCategory }) {
     return prisma.team.findMany({
+      where: category ? { category } : undefined,
       skip: (page - 1) * pageSize,
       take: pageSize,
       orderBy: [{ category: "asc" }, { name: "asc" }],
@@ -15,8 +17,8 @@ export const teamRepository = {
     });
   },
 
-  count() {
-    return prisma.team.count();
+  count(category?: LeagueCategory) {
+    return prisma.team.count({ where: category ? { category } : undefined });
   },
 
   findById(id: string) {

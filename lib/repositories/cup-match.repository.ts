@@ -9,13 +9,20 @@ const withTeams = {
 } as const;
 
 export const cupMatchRepository = {
-  findMany({ cupId, round }: ListCupMatchesQuery) {
+  findMany({ cupId, round, page, pageSize }: ListCupMatchesQuery) {
     const where: Prisma.CupMatchWhereInput = { cupId, round };
     return prisma.cupMatch.findMany({
       where,
       orderBy: [{ date: "asc" }],
       include: withTeams,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     });
+  },
+
+  count({ cupId, round }: Omit<ListCupMatchesQuery, "page" | "pageSize">) {
+    const where: Prisma.CupMatchWhereInput = { cupId, round };
+    return prisma.cupMatch.count({ where });
   },
 
   findById(id: string) {

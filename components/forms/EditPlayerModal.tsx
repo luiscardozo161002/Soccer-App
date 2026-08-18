@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useUpdatePlayer, playerPhotoUrl, type Player } from "@/hooks/usePlayers";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { Field, Input, Select } from "@/components/ui/field";
 import { PhotoInput } from "@/components/ui/photo-input";
@@ -40,6 +41,8 @@ export function EditPlayerModal({
     reset,
     formState: { errors, isDirty },
   } = useForm<PlayerForm>({ resolver: zodResolver(playerSchema) });
+
+  useUnsavedChangesWarning(isEditing && (isDirty || photoRemoved));
 
   const originalValues = player
     ? {

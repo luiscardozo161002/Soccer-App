@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { passwordSchema } from "@/lib/validation/password";
 
 export const loginSchema = z.object({
   username: z.string().trim().min(1, "Ingresa tu usuario o correo"),
@@ -13,6 +14,6 @@ export type ForgotPasswordDto = z.infer<typeof forgotPasswordSchema>;
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(1),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  password: passwordSchema,
 });
 export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;

@@ -6,8 +6,8 @@ import { createCupMatchSchema, listCupMatchesQuerySchema } from "@/lib/validatio
 
 export const GET = withErrorHandling(async (req) => {
   const query = listCupMatchesQuerySchema.parse(Object.fromEntries(req.nextUrl.searchParams));
-  const matches = await cupMatchService.list(query);
-  return ok(matches);
+  const { items, totalItems, totalPages } = await cupMatchService.list(query);
+  return ok(items, { meta: { page: query.page, pageSize: query.pageSize, totalItems, totalPages } });
 });
 
 export const POST = withErrorHandling(async (req: NextRequest) => {

@@ -10,13 +10,13 @@ import {
   useCreateField,
   useDeleteField,
   googleMapsUrl,
-  FIELDS_PAGE_SIZE,
   type Field as FieldType,
 } from "@/hooks/useFields";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { Card } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
-import { Pagination } from "@/components/ui/pagination";
+import { Pagination, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { Field as FormField, Input } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
@@ -26,13 +26,14 @@ import { EditFieldModal, fieldSchema, type FieldForm } from "@/components/forms/
 
 export default function FieldsPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [search, setSearch] = useState("");
   const [editingField, setEditingField] = useState<FieldType | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const { confirm, dialog } = useConfirm();
 
   const isSearching = search.trim().length > 0;
-  const { data, isLoading, isError } = useFields(isSearching ? 1 : page, isSearching ? 100 : FIELDS_PAGE_SIZE);
+  const { data, isLoading, isError } = useFields(isSearching ? 1 : page, isSearching ? 100 : pageSize);
   const createField = useCreateField();
   const deleteField = useDeleteField();
   const term = search.trim().toLowerCase();
@@ -44,8 +45,10 @@ export default function FieldsPage() {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<FieldForm>({ resolver: zodResolver(fieldSchema) });
+
+  useUnsavedChangesWarning(showCreate && isDirty);
 
   const onSubmit = handleSubmit((values) => {
     createField.mutate(
@@ -182,7 +185,14 @@ export default function FieldsPage() {
             ))}
           </Tbody>
         </Table>
-        <Pagination meta={data?.meta} onPageChange={setPage} />
+        <Pagination
+          meta={data?.meta}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </Card>
 
       <EditFieldModal field={editingField} onClose={() => setEditingField(null)} />

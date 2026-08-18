@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
 import { useResetPassword } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/errors";
+import { passwordSchema } from "@/lib/validation/password";
 import { Field } from "@/components/ui/field";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 
 const schema = z
   .object({
-    password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+    password: passwordSchema,
     confirmPassword: z.string().min(1, "Confirma tu contraseña"),
   })
   .refine((data) => data.password === data.confirmPassword, {

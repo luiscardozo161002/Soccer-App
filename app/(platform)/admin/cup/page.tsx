@@ -8,6 +8,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Plus, Trophy, Users, Swords } from "lucide-react";
 import { useCups, useCreateCup } from "@/hooks/useCups";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,8 +31,10 @@ export default function CupListPage() {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreateCupForm>({ resolver: zodResolver(createCupSchema) });
+
+  useUnsavedChangesWarning(showCreate && isDirty);
 
   const onSubmit = handleSubmit((values) => {
     createCup.mutate(values, {

@@ -9,10 +9,12 @@ import { Pencil, Lock, Plus, RotateCcw } from "lucide-react";
 import { useCupMatches, useCreateCupMatch, useReopenCupMatch, type CupMatch } from "@/hooks/useCupMatches";
 import { useCupEntries } from "@/hooks/useCupEntries";
 import { useFields } from "@/hooks/useFields";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { formatCalendarDate } from "@/lib/utils/date";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
+import { Pagination, PAGE_SIZE_OPTIONS, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +29,11 @@ const statusLabels: Record<CupMatch["status"], string> = {
   postponed: "Pospuesto",
   cancelled: "Cancelado",
 };
+
+// Largest page size the UI offers — used for the two lookups below that
+// need to see everything (team pickers, round filter options) regardless
+// of which page of the main table is currently showing.
+const MAX_PAGE_SIZE = PAGE_SIZE_OPTIONS[PAGE_SIZE_OPTIONS.length - 1];
 
 const createCupMatchSchema = z
   .object({
@@ -45,14 +52,26 @@ type CreateCupMatchForm = z.infer<typeof createCupMatchSchema>;
 
 export function CupMatchesTable({ cupId }: { cupId: string }) {
   const [roundFilter, setRoundFilter] = useState("");
-  const { data, isLoading, isError } = useCupMatches({ cupId, round: roundFilter || undefined });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
+  const { data, isLoading, isError } = useCupMatches({
+    cupId,
+    round: roundFilter || undefined,
+    page,
+    pageSize,
+  });
   const matches = data?.data ?? [];
-  const { data: entriesData } = useCupEntries(cupId);
+
+  // Unfiltered, unpaginated-in-practice lookups for the round dropdown and
+  // the "Nuevo partido" team pickers — these must see the whole cup, not
+  // just whatever page the table happens to be on.
+  const { data: allMatchesData } = useCupMatches({ cupId, pageSize: MAX_PAGE_SIZE });
+  const rounds = [...new Set((allMatchesData?.data ?? []).map((m) => m.round))];
+  const { data: entriesData } = useCupEntries(cupId, 1, MAX_PAGE_SIZE);
   const activeTeams = (entriesData?.data ?? []).filter((e) => e.status === "active").map((e) => e.team);
+
   const { data: fieldsData } = useFields();
   const fields = fieldsData?.data ?? [];
-
-  const rounds = [...new Set(matches.map((m) => m.round))];
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingMatch, setEditingMatch] = useState<CupMatch | null>(null);
@@ -66,8 +85,11 @@ export function CupMatchesTable({ cupId }: { cupId: string }) {
     handleSubmit,
     reset,
     watch,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreateCupMatchForm>({ resolver: zodResolver(createCupMatchSchema) });
+
+  useUnsavedChangesWarning(showCreate && isDirty);
+
   const selectedHome = watch("homeTeamId");
   const selectedAway = watch("awayTeamId");
   const homeOptions = activeTeams.filter((t) => t.id !== selectedAway);
@@ -112,12 +134,18 @@ export function CupMatchesTable({ cupId }: { cupId: string }) {
     <Card>
       <CardHeader
         title="Partidos"
-        description={`${matches.length} partido(s)${roundFilter ? ` en "${roundFilter}"` : ""}.`}
+        description={`${data?.meta.totalItems ?? 0} partido(s)${roundFilter ? ` en "${roundFilter}"` : ""}.`}
         action={
           <div className="flex flex-wrap items-end gap-3">
             <div className="w-48">
               <Field label="Filtrar por ronda">
-                <Select value={roundFilter} onChange={(e) => setRoundFilter(e.target.value)}>
+                <Select
+                  value={roundFilter}
+                  onChange={(e) => {
+                    setRoundFilter(e.target.value);
+                    setPage(1);
+                  }}
+                >
                   <option value="">Todas</option>
                   {rounds.map((r) => (
                     <option key={r} value={r}>
@@ -127,13 +155,23 @@ export function CupMatchesTable({ cupId }: { cupId: string }) {
                 </Select>
               </Field>
             </div>
-            <Button onClick={() => setShowCreate(true)} disabled={activeTeams.length < 2}>
+            <Button
+              onClick={() => setShowCreate(true)}
+              disabled={activeTeams.length < 2}
+              title={activeTeams.length < 2 ? "Inscribe al menos 2 equipos activos en esta copa para crear partidos" : undefined}
+            >
               <Plus size={16} />
               Nuevo partido de copa
             </Button>
           </div>
         }
       />
+      {activeTeams.length < 2 && (
+        <p className="border-t border-border px-6 py-3 text-xs text-muted">
+          Necesitas al menos 2 equipos activos inscritos en esta copa para crear partidos. Ve a &ldquo;Equipos
+          inscritos&rdquo; para inscribir equipos.
+        </p>
+      )}
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo partido de copa">
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
@@ -279,6 +317,14 @@ export function CupMatchesTable({ cupId }: { cupId: string }) {
           ))}
         </Tbody>
       </Table>
+      <Pagination
+        meta={data?.meta}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+      />
 
       <EditCupMatchModal match={editingMatch} onClose={() => setEditingMatch(null)} />
       {registeringMatch && (

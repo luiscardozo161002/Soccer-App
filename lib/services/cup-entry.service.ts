@@ -7,12 +7,18 @@ import type { CreateCupEntriesDto, WithdrawCupEntryDto } from "@/lib/validation/
 // Same fixed forfeit score the league's register-result form applies
 // (components/register-result-form.tsx's applyForfeitScore) — kept
 // consistent so a Copa walkover reads the same way as a Liga one.
-const FORFEIT_WINNER_SCORE = 3;
+// CUP_FORFEIT_WINNER_SCORE is configurable via env; the losing side is
+// always 0, so that half doesn't need its own variable.
+const FORFEIT_WINNER_SCORE = Number(process.env.CUP_FORFEIT_WINNER_SCORE) || 3;
 const FORFEIT_LOSER_SCORE = 0;
 
 export const cupEntryService = {
-  list(cupId: string) {
-    return cupEntryRepository.findByCup(cupId);
+  async list(cupId: string, page: number, pageSize: number) {
+    const [items, totalItems] = await Promise.all([
+      cupEntryRepository.findByCup(cupId, page, pageSize),
+      cupEntryRepository.countByCup(cupId),
+    ]);
+    return { items, totalItems, totalPages: Math.ceil(totalItems / pageSize) };
   },
 
   async getById(id: string) {

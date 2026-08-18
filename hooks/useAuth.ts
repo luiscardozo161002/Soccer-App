@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, post } from "@/lib/http/endpoints";
 import type { ItemResponse } from "@/lib/http/types";
+import { API_ROUTES } from "@/lib/http/api-routes";
 
 export interface AuthUser {
   id: string;
@@ -15,7 +16,7 @@ export interface AuthUser {
 export function useMe() {
   return useQuery({
     queryKey: ["auth", "me"],
-    queryFn: () => get<ItemResponse<AuthUser>>("/api/v1/auth/me"),
+    queryFn: () => get<ItemResponse<AuthUser>>(API_ROUTES.auth.me),
     retry: false,
   });
 }
@@ -24,7 +25,7 @@ export function useLogin() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: { username: string; password: string }) =>
-      post<ItemResponse<AuthUser>, typeof input>("/api/v1/auth/login", input),
+      post<ItemResponse<AuthUser>, typeof input>(API_ROUTES.auth.login, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth"] });
     },
@@ -34,7 +35,7 @@ export function useLogin() {
 export function useLogout() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => post<ItemResponse<null>, Record<string, never>>("/api/v1/auth/logout", {}),
+    mutationFn: () => post<ItemResponse<null>, Record<string, never>>(API_ROUTES.auth.logout, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth"] });
     },
@@ -44,13 +45,13 @@ export function useLogout() {
 export function useForgotPassword() {
   return useMutation({
     mutationFn: (input: { identifier: string }) =>
-      post<ItemResponse<{ resetUrl: string | null }>, typeof input>("/api/v1/auth/forgot-password", input),
+      post<ItemResponse<{ resetUrl: string | null }>, typeof input>(API_ROUTES.auth.forgotPassword, input),
   });
 }
 
 export function useResetPassword() {
   return useMutation({
     mutationFn: (input: { token: string; password: string }) =>
-      post<ItemResponse<null>, typeof input>("/api/v1/auth/reset-password", input),
+      post<ItemResponse<null>, typeof input>(API_ROUTES.auth.resetPassword, input),
   });
 }

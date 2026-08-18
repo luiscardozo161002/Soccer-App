@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, patch } from "@/lib/http/endpoints";
 import type { ItemResponse } from "@/lib/http/types";
+import { API_ROUTES } from "@/lib/http/api-routes";
+import type { UpdateSettingsDto } from "@/lib/validation/settings.schema";
 
 export interface SiteSettings {
   id: string;
@@ -14,25 +16,19 @@ export interface SiteSettings {
   backgroundColor: string;
 }
 
-export interface UpdateSettingsInput {
-  name?: string;
-  slogan?: string;
-  primaryColor?: string;
-  backgroundColor?: string;
-  logo?: string;
-}
+export type UpdateSettingsInput = UpdateSettingsDto;
 
 // See playerPhotoUrl (usePlayers.ts) for why the `v` cache-busting param is needed.
 export function siteLogoUrl(settings?: Pick<SiteSettings, "logoType" | "logoUpdatedAt"> | null) {
   if (!settings?.logoType) return null;
   const v = settings.logoUpdatedAt ? new Date(settings.logoUpdatedAt).getTime() : 0;
-  return `/api/v1/settings/logo?v=${v}`;
+  return `${API_ROUTES.settings.logo}?v=${v}`;
 }
 
 export function useSettings() {
   return useQuery({
     queryKey: ["settings"],
-    queryFn: () => get<ItemResponse<SiteSettings>>("/api/v1/settings"),
+    queryFn: () => get<ItemResponse<SiteSettings>>(API_ROUTES.settings.get),
   });
 }
 
@@ -40,7 +36,7 @@ export function useUpdateSettings() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: UpdateSettingsInput) =>
-      patch<ItemResponse<SiteSettings>, UpdateSettingsInput>("/api/v1/settings", input),
+      patch<ItemResponse<SiteSettings>, UpdateSettingsInput>(API_ROUTES.settings.get, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
     },

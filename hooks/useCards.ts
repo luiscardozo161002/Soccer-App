@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, patch, post, remove } from "@/lib/http/endpoints";
 import type { ItemResponse, ListResponse } from "@/lib/http/types";
+import { API_ROUTES } from "@/lib/http/api-routes";
+import type { CreateCardDto } from "@/lib/validation/card.schema";
 
 export type CardType = "yellow" | "red";
 
@@ -29,20 +31,17 @@ export interface MatchCard {
   };
 }
 
-export interface CreateCardInput {
-  playerId: string;
-  matchId: string;
-  type: CardType;
-  amount?: number;
-  detail?: string;
-}
+export type CreateCardInput = CreateCardDto;
 
-export function useCards(matchId?: string) {
+// Default pageSize=100 keeps existing unpaginated call sites (the per-match
+// card tally on the matches page) working — pass an explicit smaller
+// pageSize for a real paginated table (see CardsTable).
+export function useCards(matchId?: string, page = 1, pageSize = 100) {
   return useQuery({
-    queryKey: ["cards", { matchId }],
+    queryKey: ["cards", { matchId, page, pageSize }],
     queryFn: () =>
       get<ListResponse<MatchCard>>(
-        `/api/v1/cards?pageSize=100${matchId ? `&matchId=${matchId}` : ""}`
+        `${API_ROUTES.cards.list}?page=${page}&pageSize=${pageSize}${matchId ? `&matchId=${matchId}` : ""}`
       ),
   });
 }
@@ -51,7 +50,7 @@ export function useCreateCard() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateCardInput) =>
-      post<ItemResponse<MatchCard>, CreateCardInput>("/api/v1/cards", input),
+      post<ItemResponse<MatchCard>, CreateCardInput>(API_ROUTES.cards.list, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cards"] });
     },
@@ -61,7 +60,7 @@ export function useCreateCard() {
 export function useDeleteCard() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => remove<void>(`/api/v1/cards/${id}`),
+    mutationFn: (id: string) => remove<void>(API_ROUTES.cards.byId(id)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cards"] });
       queryClient.invalidateQueries({ queryKey: ["sanctions"] });
@@ -72,7 +71,7 @@ export function useDeleteCard() {
 export function usePayCard() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => post<ItemResponse<MatchCard>, Record<string, never>>(`/api/v1/cards/${id}/pay`, {}),
+    mutationFn: (id: string) => post<ItemResponse<MatchCard>, Record<string, never>>(API_ROUTES.cards.pay(id), {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cards"] });
     },
@@ -82,7 +81,8 @@ export function usePayCard() {
 export function useRevertCardPayment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => patch<ItemResponse<MatchCard>, { paid: boolean }>(`/api/v1/cards/${id}`, { paid: false }),
+    mutationFn: (id: string) =>
+      patch<ItemResponse<MatchCard>, { paid: boolean }>(API_ROUTES.cards.byId(id), { paid: false }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cards"] });
     },

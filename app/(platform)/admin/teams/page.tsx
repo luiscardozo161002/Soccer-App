@@ -5,12 +5,13 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useTeams, useCreateTeam, useDeleteTeam, teamPhotoUrl, TEAMS_PAGE_SIZE, type Team } from "@/hooks/useTeams";
+import { useTeams, useCreateTeam, useDeleteTeam, teamPhotoUrl, type Team } from "@/hooks/useTeams";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
-import { LEAGUE_CATEGORIES } from "@/lib/constants/league-categories";
+import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
 import { Card } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
-import { Pagination } from "@/components/ui/pagination";
+import { Pagination, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
@@ -22,15 +23,29 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { EditTeamModal, teamSchema, type TeamForm } from "@/components/forms/EditTeamModal";
 
 export default function TeamsPage() {
+  // Defaults to a single category instead of "all" so the page doesn't load
+  // and render every team across every category at once.
+  const [categoryFilter, setCategoryFilter] = useState<LeagueCategoryValue | "all">(LEAGUE_CATEGORIES[0].value);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [search, setSearch] = useState("");
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const { confirm, dialog } = useConfirm();
 
   const isSearching = search.trim().length > 0;
-  const { data, isLoading, isError } = useTeams(isSearching ? 1 : page, isSearching ? 100 : TEAMS_PAGE_SIZE);
+  const categoryParam = categoryFilter === "all" ? undefined : categoryFilter;
+  const { data, isLoading, isError } = useTeams(
+    isSearching ? 1 : page,
+    isSearching ? 100 : pageSize,
+    categoryParam
+  );
   const createTeam = useCreateTeam();
+
+  const handleCategoryChange = (value: LeagueCategoryValue | "all") => {
+    setCategoryFilter(value);
+    setPage(1);
+  };
   const deleteTeam = useDeleteTeam();
   const term = search.trim().toLowerCase();
   const teams = (data?.data ?? []).filter((t) => !term || t.name.toLowerCase().includes(term));
@@ -40,11 +55,13 @@ export default function TeamsPage() {
     control,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<TeamForm>({
     resolver: zodResolver(teamSchema),
     defaultValues: { category: "primera_division" },
   });
+
+  useUnsavedChangesWarning(showCreate && isDirty);
 
   const onSubmit = handleSubmit((values) => {
     createTeam.mutate(
@@ -85,6 +102,21 @@ export default function TeamsPage() {
         <div className="w-56">
           <Field label="Buscar">
             <Input placeholder="Nombre del equipo..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </Field>
+        </div>
+        <div className="w-56">
+          <Field label="Categoría">
+            <Select
+              value={categoryFilter}
+              onChange={(e) => handleCategoryChange(e.target.value as LeagueCategoryValue | "all")}
+            >
+              {LEAGUE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+              <option value="all">Todas las categorías</option>
+            </Select>
           </Field>
         </div>
         <Button onClick={() => setShowCreate(true)}>
@@ -176,7 +208,14 @@ export default function TeamsPage() {
             ))}
           </Tbody>
         </Table>
-        <Pagination meta={data?.meta} onPageChange={setPage} />
+        <Pagination
+          meta={data?.meta}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </Card>
 
       <EditTeamModal team={editingTeam} onClose={() => setEditingTeam(null)} />

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pageSizeSchema } from "@/lib/validation/pagination";
 
 const cardTypeValues = ["yellow", "red"] as const;
 
@@ -20,7 +21,7 @@ export type UpdateCardDto = z.infer<typeof updateCardSchema>;
 
 export const listCardsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  pageSize: pageSizeSchema,
   playerId: z.string().uuid().optional(),
   matchId: z.string().uuid().optional(),
 });

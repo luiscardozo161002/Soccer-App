@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pageSizeSchema } from "@/lib/validation/pagination";
 import { MIN_MATCH_TIME, MAX_MATCH_TIME, isWithinMatchTimeWindow } from "@/lib/constants/match-time";
 
 const timeFormat = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -9,6 +10,7 @@ const matchTimeSchema = z
     message: `Match time must be between ${MIN_MATCH_TIME} and ${MAX_MATCH_TIME}`,
   });
 const matchStatusValues = ["scheduled", "played", "postponed", "cancelled"] as const;
+const leagueCategoryValues = ["primera_division", "division_ascenso", "segunda_division"] as const;
 // "played" is deliberately excluded here: a match can only reach "played"
 // through /result (which requires goals + a time), never through a plain
 // status edit — that's how we used to end up with "played" matches that had
@@ -50,10 +52,11 @@ export type RegisterResultDto = z.infer<typeof registerResultSchema>;
 
 export const listMatchesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  pageSize: pageSizeSchema,
   matchday: z.coerce.number().int().min(1).optional(),
   teamId: z.string().uuid().optional(),
   status: z.enum(matchStatusValues).optional(),
   seasonId: z.string().uuid().optional(),
+  category: z.enum(leagueCategoryValues).optional(),
 });
 export type ListMatchesQuery = z.infer<typeof listMatchesQuerySchema>;

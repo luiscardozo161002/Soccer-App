@@ -20,6 +20,18 @@ const loginSchema = z.object({
 });
 type LoginForm = z.infer<typeof loginSchema>;
 
+// `next` comes straight from the URL, so it's untrusted input: without this
+// check, a link like /login?next=https://evil.example would send anyone who
+// logs in on a phishing page straight to an attacker-controlled site
+// (CWE-601 open redirect). Only allow it when it's an in-app path — a single
+// leading slash and not a protocol-relative URL (`//host/...`, which
+// browsers treat as external despite starting with "/").
+function safeNextPath(next: string | null) {
+  if (!next) return "/admin";
+  if (!next.startsWith("/") || next.startsWith("//")) return "/admin";
+  return next;
+}
+
 function LoginFormCard() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,7 +46,7 @@ function LoginFormCard() {
     login.mutate(values, {
       onSuccess: () => {
         toast.success("Bienvenido");
-        router.push(searchParams.get("next") || "/admin");
+        router.push(safeNextPath(searchParams.get("next")));
         router.refresh();
       },
       onError: (error) =>

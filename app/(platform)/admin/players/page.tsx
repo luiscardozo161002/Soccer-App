@@ -10,27 +10,33 @@ import {
   useCreatePlayer,
   useDeletePlayer,
   playerPhotoUrl,
-  PLAYERS_PAGE_SIZE,
   type Player,
 } from "@/hooks/usePlayers";
 import { useTeams } from "@/hooks/useTeams";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { formatCalendarDate } from "@/lib/utils/date";
+import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
 import { Card } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
-import { Pagination } from "@/components/ui/pagination";
+import { Pagination, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Avatar } from "@/components/ui/avatar";
 import { PhotoInput } from "@/components/ui/photo-input";
 import { Modal } from "@/components/ui/modal";
+import { EmptyOptionsHint } from "@/components/ui/empty-options-hint";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { EditPlayerModal, playerSchema, type PlayerForm } from "@/components/forms/EditPlayerModal";
 
 export default function PlayersPage() {
+  // Defaults to a single category instead of "all" so the page doesn't load
+  // and render every player across every category at once.
+  const [categoryFilter, setCategoryFilter] = useState<LeagueCategoryValue | "all">(LEAGUE_CATEGORIES[0].value);
   const [teamFilter, setTeamFilter] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const { confirm, dialog } = useConfirm();
@@ -38,14 +44,22 @@ export default function PlayersPage() {
   const { data: teamsData } = useTeams();
   const teams = teamsData?.data ?? [];
   const teamsById = Object.fromEntries(teams.map((t) => [t.id, t.name]));
+  const teamsInCategoryFilter = categoryFilter === "all" ? teams : teams.filter((t) => t.category === categoryFilter);
 
   const isSearching = search.trim().length > 0;
   const { data, isLoading, isError } = usePlayers({
     teamId: teamFilter || undefined,
+    category: categoryFilter === "all" ? undefined : categoryFilter,
     page: isSearching ? 1 : page,
-    pageSize: isSearching ? 100 : PLAYERS_PAGE_SIZE,
+    pageSize: isSearching ? 100 : pageSize,
   });
   const createPlayer = useCreatePlayer();
+
+  const handleCategoryChange = (value: LeagueCategoryValue | "all") => {
+    setCategoryFilter(value);
+    setTeamFilter("");
+    setPage(1);
+  };
   const deletePlayer = useDeletePlayer();
   const term = search.trim().toLowerCase();
   const players = (data?.data ?? []).filter(
@@ -57,8 +71,10 @@ export default function PlayersPage() {
     control,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<PlayerForm>({ resolver: zodResolver(playerSchema) });
+
+  useUnsavedChangesWarning(showCreate && isDirty);
 
   const onSubmit = handleSubmit((values) => {
     createPlayer.mutate(
@@ -112,6 +128,21 @@ export default function PlayersPage() {
           </Field>
         </div>
         <div className="w-56">
+          <Field label="Categoría">
+            <Select
+              value={categoryFilter}
+              onChange={(e) => handleCategoryChange(e.target.value as LeagueCategoryValue | "all")}
+            >
+              {LEAGUE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+              <option value="all">Todas las categorías</option>
+            </Select>
+          </Field>
+        </div>
+        <div className="w-56">
           <Field label="Filtrar por equipo">
             <Select
               value={teamFilter}
@@ -121,7 +152,7 @@ export default function PlayersPage() {
               }}
             >
               <option value="">Todos los equipos</option>
-              {teams.map((team) => (
+              {teamsInCategoryFilter.map((team) => (
                 <option key={team.id} value={team.id}>
                   {team.name}
                 </option>
@@ -138,14 +169,22 @@ export default function PlayersPage() {
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo jugador">
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <Field label="Equipo" error={errors.teamId?.message}>
-            <Select {...register("teamId")}>
-              <option value="">Selecciona...</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
-                </option>
-              ))}
-            </Select>
+            {teams.length === 0 ? (
+              <EmptyOptionsHint
+                message="No hay equipos registrados."
+                href="/admin/teams"
+                linkLabel="Crea uno primero"
+              />
+            ) : (
+              <Select {...register("teamId")}>
+                <option value="">Selecciona...</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </Select>
+            )}
           </Field>
           <Field label="Nombre" error={errors.name?.message}>
             <Input placeholder="Carlos Ramírez" maxLength={100} {...register("name")} />
@@ -221,7 +260,14 @@ export default function PlayersPage() {
             ))}
           </Tbody>
         </Table>
-        <Pagination meta={data?.meta} onPageChange={setPage} />
+        <Pagination
+          meta={data?.meta}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </Card>
 
       <EditPlayerModal player={editingPlayer} teams={teams} onClose={() => setEditingPlayer(null)} />

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useUpdateSettings, siteLogoUrl, type SiteSettings } from "@/hooks/useSettings";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { onlyHexColor } from "@/lib/utils/forms";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
@@ -53,6 +54,14 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
     setPrimaryColor(settings.primaryColor);
     setBackgroundColor(settings.backgroundColor);
   }, [settings]);
+
+  const isDirty =
+    name !== settings.name ||
+    slogan !== (settings.slogan ?? "") ||
+    primaryColor !== settings.primaryColor ||
+    backgroundColor !== settings.backgroundColor ||
+    !!logo;
+  useUnsavedChangesWarning(isDirty);
 
   const handleSaveBranding = () => {
     updateSettings.mutate(

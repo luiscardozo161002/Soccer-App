@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
+import { Pagination, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
 import { CategoryBadge } from "@/components/ui/category-badge";
 
 export function CardsTable() {
@@ -20,7 +21,14 @@ export function CardsTable() {
   const [typeFilter, setTypeFilter] = useState<CardType | "">("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "paid">("all");
   const [search, setSearch] = useState("");
-  const { data, isLoading, isError } = useCards();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
+  // Same trick as app/(platform)/admin/players/page.tsx: while a client-side
+  // filter is active, fetch a bigger unpaginated-feeling page so there's
+  // something to actually filter across.
+  const isFiltering =
+    search.trim().length > 0 || categoryFilter !== "" || typeFilter !== "" || statusFilter !== "all";
+  const { data, isLoading, isError } = useCards(undefined, isFiltering ? 1 : page, isFiltering ? 100 : pageSize);
   const term = search.trim().toLowerCase();
   const cards = (data?.data ?? []).filter(
     (c) =>
@@ -185,6 +193,16 @@ export function CardsTable() {
             ))}
           </Tbody>
         </Table>
+        {!isFiltering && (
+          <Pagination
+            meta={data?.meta}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
+        )}
       </Card>
       {dialog}
     </>

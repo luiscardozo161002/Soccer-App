@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pageSizeSchema } from "@/lib/validation/pagination";
 
 const cupTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Formato HH:mm");
 
@@ -47,5 +48,7 @@ export type RegisterCupResultDto = z.infer<typeof registerCupResultSchema>;
 export const listCupMatchesQuerySchema = z.object({
   cupId: z.string().uuid(),
   round: z.string().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: pageSizeSchema,
 });
 export type ListCupMatchesQuery = z.infer<typeof listCupMatchesQuerySchema>;
