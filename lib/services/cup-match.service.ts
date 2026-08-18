@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { ApiError } from "@/lib/errors";
+import { ApiError, notFoundError } from "@/lib/errors";
 import { cupMatchRepository } from "@/lib/repositories/cup-match.repository";
 import { cupEntryRepository } from "@/lib/repositories/cup-entry.repository";
 import { teamRepository } from "@/lib/repositories/team.repository";
@@ -23,7 +23,7 @@ export const cupMatchService = {
   async getById(id: string) {
     const match = await cupMatchRepository.findById(id);
     if (!match) {
-      throw new ApiError(404, "CUP_MATCH_NOT_FOUND", `No cup match exists with id ${id}`);
+      throw notFoundError("CUP_MATCH_NOT_FOUND", "el partido de copa", id);
     }
     return match;
   },
@@ -33,12 +33,12 @@ export const cupMatchService = {
       teamRepository.findById(dto.homeTeamId),
       teamRepository.findById(dto.awayTeamId),
     ]);
-    if (!homeTeam) throw new ApiError(404, "TEAM_NOT_FOUND", "Equipo local no encontrado");
-    if (!awayTeam) throw new ApiError(404, "TEAM_NOT_FOUND", "Equipo visitante no encontrado");
+    if (!homeTeam) throw notFoundError("TEAM_NOT_FOUND", "el equipo local", dto.homeTeamId);
+    if (!awayTeam) throw notFoundError("TEAM_NOT_FOUND", "el equipo visitante", dto.awayTeamId);
 
     if (dto.fieldId) {
       const field = await fieldRepository.findById(dto.fieldId);
-      if (!field) throw new ApiError(404, "FIELD_NOT_FOUND", "Cancha no encontrada");
+      if (!field) throw notFoundError("FIELD_NOT_FOUND", "la cancha", dto.fieldId);
       if (dto.time) {
         const conflict = await cupMatchRepository.findFieldConflict(dto.fieldId, dto.date, dto.time);
         if (conflict) {
@@ -83,11 +83,9 @@ export const cupMatchService = {
       forfeitReason: dto.forfeit ? dto.forfeitReason || null : null,
     });
 
-    // Core to "eliminación directa": the loser is automatically knocked out
-    // of the cup, the same way the withdrawal flow auto-forfeits. Skipped
-    // only if goals ended up tied (shouldn't happen — the schema rejects a
-    // non-forfeit tie — but a forfeit sent with equal goals is defensively
-    // treated as "can't tell who lost" rather than eliminating either side).
+    // Eliminación directa: the loser is knocked out automatically. Skipped
+    // on a tie (shouldn't happen outside a forfeit, but then we can't tell
+    // who lost) so neither side gets wrongly eliminated.
     if (dto.homeGoals !== dto.awayGoals) {
       const loserTeamId = dto.homeGoals < dto.awayGoals ? match.homeTeamId : match.awayTeamId;
       const loserEntry = await cupEntryRepository.findByCupAndTeam(match.cupId, loserTeamId);
@@ -99,11 +97,8 @@ export const cupMatchService = {
     return updated;
   },
 
-  // Bounded escape hatch for the one irreversible-by-design part of Liga
-  // (resultLocked) that's much riskier in a bracket: a mis-typed score
-  // there just leaves a wrong standings row, but here it permanently
-  // ejects a team. Only allowed while nobody has been paired into a newer
-  // match yet — i.e. the bracket hasn't already moved on from this result.
+  // Only allowed while nobody has been paired into a newer match yet —
+  // reopening after the bracket has moved on would leave it inconsistent.
   async reopen(id: string) {
     const match = await this.getById(id);
     if (!match.resultLocked) {

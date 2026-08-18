@@ -1,4 +1,4 @@
-import { ApiError } from "@/lib/errors";
+import { ApiError, notFoundError } from "@/lib/errors";
 import { cardRepository } from "@/lib/repositories/card.repository";
 import { playerRepository } from "@/lib/repositories/player.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
@@ -16,7 +16,7 @@ export const cardService = {
   async getById(id: string) {
     const card = await cardRepository.findById(id);
     if (!card) {
-      throw new ApiError(404, "CARD_NOT_FOUND", `No card exists with id ${id}`);
+      throw notFoundError("CARD_NOT_FOUND", "la tarjeta", id);
     }
     return card;
   },
@@ -26,16 +26,12 @@ export const cardService = {
       playerRepository.findById(dto.playerId),
       matchRepository.findById(dto.matchId),
     ]);
-    if (!player) throw new ApiError(404, "PLAYER_NOT_FOUND", `No player exists with id ${dto.playerId}`);
-    if (!match) throw new ApiError(404, "MATCH_NOT_FOUND", `No match exists with id ${dto.matchId}`);
+    if (!player) throw notFoundError("PLAYER_NOT_FOUND", "el jugador", dto.playerId);
+    if (!match) throw notFoundError("MATCH_NOT_FOUND", "el partido", dto.matchId);
 
     const playsInMatch = player.teamId === match.homeTeamId || player.teamId === match.awayTeamId;
     if (!playsInMatch) {
-      throw new ApiError(
-        409,
-        "PLAYER_NOT_IN_MATCH",
-        "The player's team is not one of the two teams playing this match"
-      );
+      throw new ApiError(409, "PLAYER_NOT_IN_MATCH", "El equipo del jugador no es ninguno de los dos que juegan este partido");
     }
 
     return cardRepository.create(dto);

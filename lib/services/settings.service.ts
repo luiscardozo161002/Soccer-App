@@ -8,10 +8,8 @@ export const settingsService = {
     return settingsRepository.get();
   },
 
-  // Emails can't rely on the app being publicly reachable (e.g. APP_URL
-  // pointing at localhost in dev) to fetch a logo by URL — and Gmail strips
-  // data: URIs from <img src> outright — so callers that need the logo
-  // outside the browser send it as a CID email attachment instead.
+  // Emails can't link to the logo by URL (APP_URL may be localhost, and
+  // Gmail strips data: URIs) — sent as a CID attachment instead.
   async getLogoAttachment() {
     const row = await settingsRepository.getLogo();
     if (!row?.logo || !row.logoType) return null;

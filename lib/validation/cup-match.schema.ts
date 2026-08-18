@@ -28,10 +28,8 @@ export const updateCupMatchSchema = z.object({
 });
 export type UpdateCupMatchDto = z.infer<typeof updateCupMatchSchema>;
 
-// A knockout round always needs a winner: a tied score is only accepted
-// when it's actually a forfeit (whose score is fixed 3-0 anyway), never as
-// a genuine drawn result — otherwise the bracket would have an ambiguous
-// dangling match with nobody advancing.
+// A knockout round always needs a winner — a tie is only accepted as a
+// forfeit, never as a genuine drawn result.
 export const registerCupResultSchema = z
   .object({
     homeGoals: z.number().int().min(0),

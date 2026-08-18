@@ -11,10 +11,8 @@ const matchTimeSchema = z
   });
 const matchStatusValues = ["scheduled", "played", "postponed", "cancelled"] as const;
 const leagueCategoryValues = ["primera_division", "division_ascenso", "segunda_division"] as const;
-// "played" is deliberately excluded here: a match can only reach "played"
-// through /result (which requires goals + a time), never through a plain
-// status edit — that's how we used to end up with "played" matches that had
-// no score and no time.
+// "played" is excluded: a match only reaches it via /result (goals + time),
+// never a plain status edit — that used to leave "played" matches with no score.
 const editableStatusValues = ["scheduled", "postponed", "cancelled"] as const;
 
 export const createMatchSchema = z

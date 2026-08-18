@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 
-// GET requests to /api/v1/* stay public — the landing page reads teams,
-// matches, standings and fields without a session. Only writes (and the
-// /admin pages themselves) require a session. /api/v1/users is the
-// exception: it lists usernames/emails/roles, so it needs a session even
-// for GET.
+// GET on /api/v1/* stays public (the landing page needs it); only writes
+// require a session. /api/v1/users is the exception — it lists admin
+// accounts, so it needs a session even for GET.
 const ALWAYS_PROTECTED_API_PREFIXES = ["/api/v1/users"];
 
 function envInt(name: string, fallback: number) {

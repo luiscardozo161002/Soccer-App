@@ -1,4 +1,4 @@
-import { ApiError } from "@/lib/errors";
+import { ApiError, notFoundError } from "@/lib/errors";
 import { fieldRepository } from "@/lib/repositories/field.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
 import type { CreateFieldDto, UpdateFieldDto } from "@/lib/validation/field.schema";
@@ -15,7 +15,7 @@ export const fieldService = {
   async getById(id: string) {
     const field = await fieldRepository.findById(id);
     if (!field) {
-      throw new ApiError(404, "FIELD_NOT_FOUND", `No field exists with id ${id}`);
+      throw notFoundError("FIELD_NOT_FOUND", "la cancha", id);
     }
     return field;
   },

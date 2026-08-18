@@ -1,4 +1,4 @@
-import { ApiError } from "@/lib/errors";
+import { ApiError, notFoundError } from "@/lib/errors";
 import { optimizeImageFromDataUrl } from "@/lib/utils/images";
 import { teamRepository } from "@/lib/repositories/team.repository";
 import type { Prisma, LeagueCategory } from "@/app/generated/prisma/client";
@@ -31,7 +31,7 @@ export const teamService = {
   async getById(id: string) {
     const team = await teamRepository.findById(id);
     if (!team) {
-      throw new ApiError(404, "TEAM_NOT_FOUND", `No team exists with id ${id}`);
+      throw notFoundError("TEAM_NOT_FOUND", "el equipo", id);
     }
     return team;
   },

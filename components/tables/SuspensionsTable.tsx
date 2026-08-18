@@ -21,10 +21,8 @@ export function SuspensionsTable() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
-  // Same trick as app/(platform)/admin/players/page.tsx: while a client-side
-  // filter (search text or category) is active, fetch a bigger
-  // unpaginated-feeling page so there's something to actually filter
-  // across, instead of just the current page's handful of rows.
+  // While filtering client-side, fetch a bigger page so there's more than
+  // the current page's handful of rows to actually filter across.
   const isFiltering = search.trim().length > 0 || categoryFilter !== "";
   const { data, isLoading, isError } = useSanctions(
     filter === "active" ? false : true,

@@ -1,4 +1,4 @@
-import { ApiError } from "@/lib/errors";
+import { ApiError, notFoundError } from "@/lib/errors";
 import { seasonRepository } from "@/lib/repositories/season.repository";
 
 export const seasonService = {
@@ -9,7 +9,7 @@ export const seasonService = {
   async getById(id: string) {
     const season = await seasonRepository.findById(id);
     if (!season) {
-      throw new ApiError(404, "SEASON_NOT_FOUND", `No season exists with id ${id}`);
+      throw notFoundError("SEASON_NOT_FOUND", "la temporada", id);
     }
     return season;
   },

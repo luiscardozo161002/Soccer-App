@@ -1,9 +1,7 @@
 import Redis from "ioredis";
 
-// Optional, same "declare it, gracefully degrade without it" pattern as
-// lib/email/resend.ts: REDIS_URL is required for rate limiting to work
-// across multiple server instances in production, but a single local dev
-// process is fine falling back to an in-memory counter.
+// Optional: without REDIS_URL, falls back to an in-memory counter (fine for
+// a single local dev process, not for sharing counts across instances).
 const redisUrl = process.env.REDIS_URL;
 const redis = redisUrl
   ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1, retryStrategy: () => null })
@@ -40,10 +38,8 @@ function checkMemory(key: string, limit: number, windowSeconds: number): RateLim
   return { allowed: true, retryAfterSeconds: 0 };
 }
 
-// Fixed-window counter. Fails open to the in-memory fallback if Redis is
-// configured but unreachable — a rate limiter that takes down all of
-// /login when Redis hiccups is worse than one that briefly stops sharing
-// counts across instances.
+// Fixed-window counter. Falls open to memory if Redis is configured but
+// unreachable — a rate limiter that blocks /login on a Redis hiccup is worse.
 export async function checkRateLimit(
   key: string,
   limit: number,

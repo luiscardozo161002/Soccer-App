@@ -1,9 +1,7 @@
 import { Resend } from "resend";
 
-// No email provider configured (e.g. local dev without RESEND_API_KEY) is a
-// valid, expected state — callers fall back to a dev-only delivery path
-// instead of failing outright. What must never happen is treating "not
-// configured" as "configured with an empty/placeholder key".
+// No provider configured (local dev) is a valid state, not an error —
+// callers fall back to a dev-only delivery path instead of failing.
 const apiKey = process.env.RESEND_API_KEY;
 const fromAddress = process.env.EMAIL_FROM;
 
@@ -16,10 +14,8 @@ const LOGO_CONTENT_ID = "logo";
 export interface EmailBranding {
   siteName: string;
   primaryColor: string;
-  // Sent as a CID attachment rather than a data: URI or a link to the app's
-  // own URL: Gmail strips data: URIs from <img src> outright, and the app's
-  // URL may not be reachable by the recipient's mail client (e.g. APP_URL
-  // pointing at localhost in dev).
+  // CID attachment, not a data: URI or app URL: Gmail strips data: URIs,
+  // and APP_URL may not be reachable by the recipient (e.g. localhost).
   logo: { content: string; contentType: string } | null;
 }
 

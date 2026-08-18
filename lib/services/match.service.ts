@@ -1,4 +1,4 @@
-import { ApiError } from "@/lib/errors";
+import { ApiError, notFoundError } from "@/lib/errors";
 import { matchRepository } from "@/lib/repositories/match.repository";
 import { teamRepository } from "@/lib/repositories/team.repository";
 import { fieldRepository } from "@/lib/repositories/field.repository";
@@ -49,7 +49,7 @@ export const matchService = {
   async getById(id: string) {
     const match = await matchRepository.findById(id);
     if (!match) {
-      throw new ApiError(404, "MATCH_NOT_FOUND", `No match exists with id ${id}`);
+      throw notFoundError("MATCH_NOT_FOUND", "el partido", id);
     }
     return match;
   },
@@ -60,9 +60,9 @@ export const matchService = {
       teamRepository.findById(dto.awayTeamId),
       fieldRepository.findById(dto.fieldId),
     ]);
-    if (!homeTeam) throw new ApiError(404, "TEAM_NOT_FOUND", `No team exists with id ${dto.homeTeamId}`);
-    if (!awayTeam) throw new ApiError(404, "TEAM_NOT_FOUND", `No team exists with id ${dto.awayTeamId}`);
-    if (!field) throw new ApiError(404, "FIELD_NOT_FOUND", `No field exists with id ${dto.fieldId}`);
+    if (!homeTeam) throw notFoundError("TEAM_NOT_FOUND", "el equipo", dto.homeTeamId);
+    if (!awayTeam) throw notFoundError("TEAM_NOT_FOUND", "el equipo", dto.awayTeamId);
+    if (!field) throw notFoundError("FIELD_NOT_FOUND", "la cancha", dto.fieldId);
 
     if (homeTeam.category !== awayTeam.category) {
       throw new ApiError(
@@ -102,7 +102,7 @@ export const matchService = {
 
     if (dto.fieldId) {
       const field = await fieldRepository.findById(dto.fieldId);
-      if (!field) throw new ApiError(404, "FIELD_NOT_FOUND", `No field exists with id ${dto.fieldId}`);
+      if (!field) throw notFoundError("FIELD_NOT_FOUND", "la cancha", dto.fieldId);
     }
 
     const resultingStatus = dto.status ?? match.status;
