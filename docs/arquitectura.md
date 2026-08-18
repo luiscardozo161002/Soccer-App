@@ -1,6 +1,11 @@
-# Arquitectura - App de Partidos
+# Arquitectura
 
-Stack: Next.js (frontend + backend) · TypeScript · PostgreSQL + Prisma · JWT · Redis · Resend · Vitest
+Stack: Next.js 16 (App Router, frontend + backend) · TypeScript · PostgreSQL + Prisma 7 · JWT
+(cookie de sesión) · Redis (opcional) · Resend · Tailwind CSS v4 · TanStack Query
+
+> Este documento describe la implementación **actual** del repositorio. Para el volcado completo
+> del esquema de base de datos ver [`docs/schema.sql`](./schema.sql); para cómo levantar el
+> proyecto en local ver el [README](../README.md).
 
 ## 1. Vista general de capas
 
@@ -8,249 +13,133 @@ Stack: Next.js (frontend + backend) · TypeScript · PostgreSQL + Prisma · JWT 
 ┌─────────────────────────────────────────────────────────────┐
 │ UI                                                            │
 │ React · Tailwind · Lucide Icons · Sonner · React Hook Form    │
-│ TanStack Table                                                │
 └───────────────────────────────┬───────────────────────────────┘
-                                 │ hooks
+                                 │ hooks (uno por recurso)
 ┌───────────────────────────────▼───────────────────────────────┐
-│ Estado remoto                                                  │
-│ TanStack Query  (cache, retry, invalidation)                   │
+│ Estado remoto — TanStack Query (cache, retry, invalidation)   │
 └───────────────────────────────┬───────────────────────────────┘
                                  │ Promise
 ┌───────────────────────────────▼───────────────────────────────┐
-│ Cliente HTTP genérico                                          │
-│ fetch() + ApiError + AbortController/timeout                   │
+│ Cliente HTTP genérico — lib/http (fetch + ApiError)            │
 └───────────────────────────────┬───────────────────────────────┘
                                  │ HTTP
 ┌───────────────────────────────▼───────────────────────────────┐
-│ API REST — Next.js Route Handlers  (/app/api/v1/**)            │
+│ proxy.ts — sesión + rate limiting (corre antes que la ruta)   │
 ├─────────────────────────────────────────────────────────────┤
-│ Cross-cutting: auth (JWT) · rate limiting · request-id · log   │
+│ API REST — Next.js Route Handlers (app/api/v1/**)              │
+│   withErrorHandling → valida DTO (Zod) → Service                │
 ├─────────────────────────────────────────────────────────────┤
-│ Validación de esquema — Zod DTOs                                │
+│ Service Layer — reglas de negocio, lanza ApiError               │
 ├─────────────────────────────────────────────────────────────┤
-│ Service Layer — reglas de negocio                               │
-├─────────────────────────────────────────────────────────────┤
-│ Repository — Prisma                                             │
+│ Repository — único punto de acceso a Prisma                    │
 └───────────────────────────────┬───────────────────────────────┘
                                  │
                   ┌──────────────┴──────────────┐
                   ▼                              ▼
-          PostgreSQL (Prisma)              Redis (cache)
-                                            Resend (email)
+          PostgreSQL (Prisma)              Redis (rate limiting)
+                                            Resend (reset de contraseña)
 ```
 
-Principio rector: cada capa hace una sola cosa. TanStack Query no habla HTTP directamente (usa el cliente); el cliente HTTP no valida reglas de negocio; el Route Handler no accede a Prisma directamente (pasa por el Service).
+Principio rector: cada capa hace una sola cosa. El route handler nunca importa Prisma
+directamente — siempre pasa por el service, y el service nunca construye una query Prisma
+directamente — siempre pasa por el repository.
 
-## 2. Estructura de carpetas
+`proxy.ts` reemplaza al `middleware.ts` clásico de Next.js (ver [AGENTS.md](../AGENTS.md): esta
+versión del framework difiere de versiones anteriores en varios puntos — revisar
+`node_modules/next/dist/docs/` antes de asumir convenciones de otras versiones). No hay una pila
+de middlewares componibles por ruta (`withAuth`, `withRateLimit`, etc.); toda la lógica
+transversal de auth + rate limiting vive en ese único archivo, que corre antes de que la request
+llegue a cualquier route handler.
+
+## 2. Estructura de carpetas (real)
 
 ```
 app/
-  api/
-    v1/
-      equipos/
-        route.ts              GET (list), POST
-        [id]/route.ts         GET, PATCH, DELETE
-      jugadores/
-        route.ts               GET (list, filtros por equipo), POST
-        [id]/route.ts          GET, PATCH, DELETE
-      canchas/
-        route.ts               GET, POST
-        [id]/route.ts          GET, PATCH, DELETE
-      partidos/
-        route.ts               GET (list, filtros: jornada, equipo, estado), POST
-        [id]/route.ts          GET, PATCH, DELETE
-        [id]/resultado/route.ts   PATCH  → registrar marcador (subrecurso, no PUT genérico)
-      tarjetas/
-        route.ts               GET, POST
-        [id]/route.ts          GET, PATCH
-        [id]/sanciones/route.ts  POST  → crear sanción derivada de una tarjeta
-      tabla-posiciones/
-        route.ts               GET (calculada, cacheada)
-      auth/
-        login/route.ts         POST
-        refresh/route.ts       POST
-      health/
-        live/route.ts          GET
-        ready/route.ts         GET
-  (dashboard)/
-    equipos/page.tsx
-    jugadores/page.tsx
-    partidos/page.tsx
-    tabla-posiciones/page.tsx
-    amonestados/page.tsx
+  (landing)/page.tsx        Sitio público: calendario, tabla de posiciones, equipos
+  (platform)/admin/
+    layout.tsx                Shell del panel (sidebar + área de contenido)
+    page.tsx                  Tabla de posiciones
+    teams/ players/ matches/ fields/ sanctions/ settings/ history/
+    cup/  cup/[id]/            Copa: lista de torneos y detalle de un torneo
+  login/ forgot-password/ reset-password/
+  api/v1/
+    auth/            login, logout, me, forgot-password, reset-password
+    teams/            list+create, [id] (get/patch/delete), [id]/photo
+    players/          list+create, [id], [id]/photo
+    fields/           list+create, [id]
+    matches/          list+create, [id], [id]/result
+    cards/            list+create, [id], [id]/pay, [id]/sanctions
+    sanctions/        list+create, [id], [id]/pay
+    cups/             list+create, [id]
+    cup-entries/      list+create, [id]/withdraw
+    cup-matches/      list+create, [id], [id]/result, [id]/reopen
+    seasons/          list+create, [id]
+    standings/        GET, calculada en tiempo real (sin caché)
+    settings/         GET/PATCH, settings/logo
+    users/            list+create, [id], [id]/photo   (admins del panel)
+    tournament/reset/ POST — reinicia una temporada
+  generated/prisma/    Cliente de Prisma generado — no editar a mano
+  not-found.tsx        404 (comparte contenedor visual con login)
+
+components/
+  ui/                Primitivas compartidas: Table, Modal, Field/Select, Pagination,
+                      CategoryBadge, EmptyOptionsHint, confirm-dialog, etc.
+  forms/              Modales de edición por recurso (EditTeamModal, EditMatchModal, ...)
+  tables/             Tablas con su propio estado de listado/paginación/filtros
+  auth/               AuthShell + BrandPanel — contenedor visual de login/forgot/reset/404
+
+hooks/                Un hook TanStack Query por recurso (useTeams, usePlayers, useMatches, ...)
 
 lib/
-  http/
-    http-client.ts           fetch() genérico + ApiError + timeout
-    endpoints.ts              get/post/patch/remove wrappers
-  validation/
-    equipo.schema.ts
-    jugador.schema.ts
-    cancha.schema.ts
-    partido.schema.ts
-    tarjeta.schema.ts
-    auth.schema.ts
-  services/
-    equipo.service.ts
-    jugador.service.ts
-    partido.service.ts
-    tarjeta.service.ts
-    tabla-posiciones.service.ts
-    auth.service.ts
-  repositories/
-    equipo.repository.ts
-    jugador.repository.ts
-    partido.repository.ts
-    tarjeta.repository.ts
-  middleware/
-    with-auth.ts
-    with-rate-limit.ts
-    with-request-id.ts
-    error-handler.ts
-  cache/
-    redis.ts
-  email/
-    resend.ts
-  prisma.ts                   PrismaClient singleton
-
-hooks/
-  useEquipos.ts                TanStack Query hooks
-  usePartidos.ts
-  useTablaPosiciones.ts
+  auth/session.ts         Firma/verifica el JWT de sesión (jose)
+  http/                    http-client.ts (fetch + ApiError), endpoints.ts (get/post/patch/remove),
+                           api-routes.ts (rutas de la API como constantes)
+  middleware/error-handler.ts   withErrorHandling — envelope de error uniforme
+  repositories/            Un archivo por recurso, único lugar que importa Prisma
+  services/                Reglas de negocio, un archivo por recurso
+  validation/               Schemas Zod por recurso (se reutilizan en cliente y servidor)
+  security/rate-limit.ts   Rate limiting: Redis (INCR + EXPIRE) con fallback a Map en memoria
+  constants/                Categorías de liga, motivos de tarjeta, etc.
+  email/resend.ts          Envío del correo de restablecimiento de contraseña
+  utils/                    Helpers de fecha, imágenes (sharp), formularios
 
 prisma/
-  schema.prisma
-  migrations/
+  schema.prisma            Modelo de datos
+  seeds/                    Un seeder por recurso, orquestados desde seed.ts
+  seed-data/                JSON de datos de ejemplo consumidos por los seeders
+  bootstrap-admin.ts        Crea/asegura un usuario admin sin correr el seed completo
 
-tests/
-  services/                    Vitest: reglas de negocio
-  api/                         Vitest: Route Handlers (integración)
+proxy.ts                   Sesión (redirige a /login sin sesión) + rate limiting de auth
 ```
+
+No existe (a pesar de tenerlo como devDependency) una suite de tests con Vitest todavía, ni
+endpoints de health check, ni documentación OpenAPI/Swagger generada — si se agregan, actualizar
+esta sección.
 
 ## 3. Modelo de datos (Prisma)
 
-JSON de la API en camelCase, columnas de base de datos en snake_case — Prisma hace el mapeo con `@map`/`@@map`.
+Modelos reales (ver `prisma/schema.prisma` para el detalle completo de columnas/relaciones y
+`docs/schema.sql` para el DDL):
 
-```prisma
-// prisma/schema.prisma
+`Season` · `Team` · `Player` · `Field` · `Match` · `Card` · `Sanction` · `PointAdjustment` ·
+`Cup` · `CupEntry` · `CupMatch` · `SiteSettings` · `User`
 
-model Equipo {
-  id            String   @id @default(uuid())
-  nombre        String
-  fechaIngreso  DateTime @map("fecha_ingreso") @default(now())
-  foto          String?
+Enums de dominio: `Status` (active/inactive), `MatchStatus`, `CardType`, `SeasonStatus`,
+`LeagueCategory` (`primera_division` / `division_ascenso` / `segunda_division`), `CupStatus`,
+`CupEntryStatus`, `CupMatchStatus`.
 
-  jugadores        Jugador[]
-  partidosLocal    Partido[] @relation("PartidoLocal")
-  partidosVisita   Partido[] @relation("PartidoVisitante")
-  ajustesPuntos    AjustePuntos[]
+JSON de la API en camelCase, columnas de base de datos en snake_case — Prisma hace el mapeo con
+`@map`/`@@map`.
 
-  @@map("equipos")
-}
+**Tabla de posiciones**: no es una tabla con datos propios — se calcula con una consulta SQL
+agregada (`lib/repositories/standings.repository.ts`, `prisma.$queryRaw` con `Prisma.sql`
+parametrizado) sobre `Match` para la temporada activa, en cada request. No hay caché: es
+suficientemente barata para el volumen de datos de una liga amateur.
 
-model Jugador {
-  id               String    @id @default(uuid())
-  equipoId         String    @map("id_equipo")
-  nombre           String
-  foto             String?
-  fechaNacimiento  DateTime? @map("fecha_nacimiento")
-  folio            String    @unique
-
-  equipo   Equipo    @relation(fields: [equipoId], references: [id])
-  tarjetas Tarjeta[]
-
-  @@map("jugadores")
-}
-
-model Cancha {
-  id        String  @id @default(uuid())
-  nombre    String
-  ubicacion String?
-
-  partidos Partido[]
-
-  @@map("canchas")
-}
-
-enum EstadoPartido {
-  programado
-  jugado
-  pospuesto
-  cancelado
-}
-
-model Partido {
-  id                 String        @id @default(uuid())
-  equipoLocalId      String        @map("id_equipo_local")
-  equipoVisitanteId  String        @map("id_equipo_visitante")
-  canchaId           String        @map("id_cancha")
-  jornada            Int
-  fecha              DateTime
-  hora               String
-  golesLocal         Int?          @map("goles_local")
-  golesVisitante     Int?          @map("goles_visitante")
-  estado             EstadoPartido @default(programado)
-
-  equipoLocal      Equipo    @relation("PartidoLocal", fields: [equipoLocalId], references: [id])
-  equipoVisitante  Equipo    @relation("PartidoVisitante", fields: [equipoVisitanteId], references: [id])
-  cancha           Cancha    @relation(fields: [canchaId], references: [id])
-  tarjetas         Tarjeta[]
-
-  @@map("partidos")
-}
-
-enum TipoTarjeta {
-  amarilla
-  roja
-}
-
-model Tarjeta {
-  id                 String      @id @default(uuid())
-  jugadorId          String      @map("id_jugador")
-  partidoId          String      @map("id_partido")
-  tipo               TipoTarjeta
-  fechaModificacion  DateTime    @map("fecha_modificacion") @default(now())
-  monto              Decimal?    @db.Decimal(10, 2)
-  detalle            String?
-
-  jugador   Jugador    @relation(fields: [jugadorId], references: [id])
-  partido   Partido    @relation(fields: [partidoId], references: [id])
-  sanciones Sancion[]
-
-  @@map("tarjetas")
-}
-
-model Sancion {
-  id                String  @id @default(uuid())
-  tarjetaId         String  @map("id_tarjeta")
-  jornadaInicio     Int     @map("jornada_inicio")
-  jornadaFin        Int     @map("jornada_fin")
-  partidosSancion   Int     @map("partidos_sancion")
-  cumplida          Boolean @default(false)
-
-  tarjeta Tarjeta @relation(fields: [tarjetaId], references: [id])
-
-  @@map("sanciones")
-}
-
-model AjustePuntos {
-  id        String   @id @default(uuid())
-  equipoId  String   @map("id_equipo")
-  puntos    Int
-  motivo    String
-  fecha     DateTime @default(now())
-
-  equipo Equipo @relation(fields: [equipoId], references: [id])
-
-  @@map("ajustes_puntos")
-}
-```
-
-**Tabla de posiciones**: no es un modelo Prisma con datos propios — se calcula. Dos opciones, en orden de preferencia:
-1. Query agregada en `tabla-posiciones.service.ts` (`groupBy`/`aggregate` de Prisma sobre `Partido` + `AjustePuntos`).
-2. Vista SQL (`CREATE VIEW`) consultada con `prisma.$queryRaw` si la agregación en TS se vuelve compleja.
-
-Cualquiera de las dos se cachea en Redis (sección 8) porque es costosa y cambia solo cuando se registra un resultado.
+**Categorías**: `Team.category` es el dato fuente; `Match.category` se deriva del equipo local al
+crear el partido (ambos equipos de un partido deben ser de la misma categoría, validado en
+`match.service.ts`). Los filtros por categoría en equipos/jugadores/partidos se resuelven en el
+repository (`WHERE category = ...`, o vía la relación `team` para jugadores).
 
 ## 4. Contrato de la API
 
@@ -261,238 +150,194 @@ Cualquiera de las dos se cachea en Redis (sección 8) porque es costosa y cambia
 { "success": true, "data": [ /* ... */ ], "meta": { "page": 1, "pageSize": 20, "totalItems": 84, "totalPages": 5 } }
 ```
 
-Éxito (recurso único):
+Éxito (recurso único), `message` opcional cuando aporta contexto (ej. `"Team created"`):
 ```json
-{ "success": true, "data": { "id": "...", "nombre": "..." } }
+{ "success": true, "data": { "id": "...", "name": "..." }, "message": "Team created" }
 ```
 
 Error:
 ```json
-{ "success": false, "error": { "code": "PARTIDO_CANCHA_OCUPADA", "message": "La cancha ya tiene un partido en ese horario", "details": null } }
+{ "success": false, "error": { "code": "MATCH_RESULT_LOCKED", "message": "...", "details": null } }
 ```
 
-Error de validación (Zod):
+Error de validación (Zod, vía `withErrorHandling`):
 ```json
-{ "success": false, "error": { "code": "VALIDATION_ERROR", "message": "Request inválida", "details": [{ "field": "fechaNacimiento", "message": "Fecha inválida" }] } }
+{ "success": false, "error": { "code": "VALIDATION_ERROR", "message": "Request inválida", "details": [{ "field": "name", "message": "..." }] } }
 ```
 
-`message` en éxito solo cuando aporta contexto (ej. `"Partido creado"`), no en un GET simple.
-
-### Status codes
+### Status codes en uso
 
 | Código | Uso |
 |---|---|
 | 200 | GET / PATCH exitoso |
 | 201 | POST creó un recurso |
-| 204 | DELETE exitoso |
-| 400 | Request mal formada |
-| 401 | No autenticado / token inválido |
-| 403 | Autenticado, sin permiso (ej. rol no-admin) |
+| 204 | DELETE exitoso (`noContent()`) |
+| 400 | Request mal formada (caso puntual) |
+| 401 | No autenticado / sesión inválida |
 | 404 | Recurso inexistente |
-| 409 | Conflicto de negocio (cancha ocupada, folio duplicado) |
+| 409 | Conflicto de negocio (cancha ocupada, folio duplicado, resultado ya confirmado, FK/unique constraint) |
 | 422 | Validación de esquema fallida (Zod) |
-| 429 | Rate limit |
+| 429 | Rate limit (`login`/`forgot-password`/`reset-password`) |
 | 500 | Error inesperado |
-| 503 | Dependencia caída (usado en `/health/ready`) |
 
-### Endpoints principales
+`withErrorHandling` (`lib/middleware/error-handler.ts`) traduce automáticamente `ZodError` → 422,
+`ApiError` → su `status`/`code` propios, y errores conocidos de Prisma (FK violation, unique
+violation, "not found") → 409/404. Todo lo demás cae a 500 con log en servidor.
+
+### Endpoints (resumen — el listado completo está en `app/api/v1/**`)
 
 ```
 POST   /api/v1/auth/login
-POST   /api/v1/auth/refresh
+POST   /api/v1/auth/logout
+GET    /api/v1/auth/me
+POST   /api/v1/auth/forgot-password
+POST   /api/v1/auth/reset-password
 
-GET    /api/v1/equipos              ?page&pageSize
-POST   /api/v1/equipos
-GET    /api/v1/equipos/:id
-PATCH  /api/v1/equipos/:id
-DELETE /api/v1/equipos/:id
+GET    /api/v1/teams                ?page&pageSize&category
+POST   /api/v1/teams
+GET    /api/v1/teams/:id
+PATCH  /api/v1/teams/:id
+DELETE /api/v1/teams/:id
+GET    /api/v1/teams/:id/photo
 
-GET    /api/v1/jugadores            ?equipoId&page&pageSize
-POST   /api/v1/jugadores
-GET    /api/v1/jugadores/:id
-PATCH  /api/v1/jugadores/:id
-DELETE /api/v1/jugadores/:id
+GET    /api/v1/players              ?page&pageSize&teamId&category
+POST   /api/v1/players
+GET|PATCH|DELETE  /api/v1/players/:id
+GET    /api/v1/players/:id/photo
 
-GET    /api/v1/canchas
-POST   /api/v1/canchas
+GET    /api/v1/fields               ?page&pageSize
+POST   /api/v1/fields
+GET|PATCH|DELETE  /api/v1/fields/:id
 
-GET    /api/v1/partidos             ?jornada&equipoId&estado&from&to
-POST   /api/v1/partidos
-GET    /api/v1/partidos/:id
-PATCH  /api/v1/partidos/:id
-PATCH  /api/v1/partidos/:id/resultado     ← registrar marcador (subrecurso de estado)
+GET    /api/v1/matches              ?page&pageSize&matchday&teamId&status&category&seasonId
+POST   /api/v1/matches
+GET|PATCH|DELETE  /api/v1/matches/:id
+PATCH  /api/v1/matches/:id/result    ← registrar marcador (subrecurso, no PATCH genérico)
 
-GET    /api/v1/tarjetas             ?jugadorId&tipo
-POST   /api/v1/tarjetas
-POST   /api/v1/tarjetas/:id/sanciones
+GET    /api/v1/cards                ?matchId&playerId&type
+POST   /api/v1/cards
+GET|PATCH|DELETE  /api/v1/cards/:id
+POST   /api/v1/cards/:id/pay
+POST   /api/v1/cards/:id/sanctions   ← crea la sanción (no hay POST /api/v1/sanctions suelto)
 
-GET    /api/v1/tabla-posiciones     (cacheada en Redis)
+GET    /api/v1/sanctions            ?fulfilled
+GET|PATCH  /api/v1/sanctions/:id
+POST   /api/v1/sanctions/:id/pay
 
-GET    /api/v1/health/live
-GET    /api/v1/health/ready
+GET    /api/v1/cups                 POST /api/v1/cups
+GET    /api/v1/cups/:id              (sin PATCH/DELETE todavía)
+GET    /api/v1/cup-entries          POST /api/v1/cup-entries   (inscribir equipos)
+PATCH  /api/v1/cup-entries/:id/withdraw
+GET    /api/v1/cup-matches          POST /api/v1/cup-matches
+GET|PATCH|DELETE  /api/v1/cup-matches/:id
+PATCH  /api/v1/cup-matches/:id/result
+POST   /api/v1/cup-matches/:id/reopen
+
+GET    /api/v1/seasons              (sin POST — las temporadas se crean por seed/bootstrap, no por la API)
+GET    /api/v1/seasons/:id
+POST   /api/v1/tournament/reset      ← reinicia una temporada (borra resultados/tarjetas)
+
+GET    /api/v1/standings            ?seasonId  (calculada en tiempo real, sin caché)
+
+GET|PATCH  /api/v1/settings          ← el logo se sube aquí como `logo` en base64
+GET    /api/v1/settings/logo         ← sirve el binario del logo ya guardado
+
+GET    /api/v1/users                POST /api/v1/users   (admins del panel)
+GET|PATCH|DELETE  /api/v1/users/:id
+GET    /api/v1/users/:id/photo
 ```
 
-Filtros como query params sobre el recurso (`?estado=jugado`), no endpoints por combinación (`/getPartidosPorEstado`). Enums de dominio (`estado=jugado|programado`) en vez de booleans (`?jugado=true`).
+Filtros como query params sobre el recurso (`?status=played`), no endpoints por combinación.
+Enums de dominio en vez de booleans.
 
 ## 5. Cliente HTTP + TanStack Query (frontend)
 
-```ts
-// lib/http/http-client.ts
-export class ApiError extends Error {
-  constructor(public status: number, public code: string, public details?: unknown) {
-    super(code);
-  }
-}
+`lib/http/http-client.ts` expone un `fetch()` genérico con manejo de `ApiError`; `lib/http/endpoints.ts`
+envuelve `get/post/patch/remove`; `lib/http/api-routes.ts` centraliza las rutas como constantes
+(`API_ROUTES.teams.list`, etc.) para no repetir strings `"/api/v1/..."` por todo el código.
 
-interface RequestOptions extends RequestInit {
-  timeout?: number;
-}
-
-export async function http<T>(url: string, options: RequestOptions = {}): Promise<T> {
-  const { timeout = 10_000, headers, ...config } = options;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    const response = await fetch(url, {
-      ...config,
-      signal: controller.signal,
-      headers: { "Content-Type": "application/json", ...headers },
-    });
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      throw new ApiError(response.status, body?.error?.code ?? "HTTP_ERROR", body?.error?.details);
-    }
-
-    if (response.status === 204) return undefined as T;
-    return response.json();
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-```
+Cada recurso tiene su propio hook en `hooks/` que combina ambos con TanStack Query:
 
 ```ts
-// hooks/usePartidos.ts
-export function usePartidos(filters: PartidoFilters) {
+// hooks/useMatches.ts (forma real, simplificada)
+export function useMatches(filters: MatchFilters = {}) {
   return useQuery({
-    queryKey: ["partidos", filters],
-    queryFn: () => get<PartidoListResponse>(`/api/v1/partidos?${toQueryString(filters)}`),
+    queryKey: ["matches", filters],
+    queryFn: () => get<ListResponse<Match>>(`${API_ROUTES.matches.list}?${toQueryString(filters)}`),
   });
 }
 
-export function useRegistrarResultado() {
+export function useRegisterResult() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { id: string; data: RegistrarResultadoDto }) =>
-      patch<PartidoResponse>(`/api/v1/partidos/${input.id}/resultado`, input.data),
+    mutationFn: ({ id, ...input }: RegisterResultInput & { id: string }) =>
+      patch<ItemResponse<Match>>(API_ROUTES.matches.result(id), input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["partidos"] });
-      queryClient.invalidateQueries({ queryKey: ["tabla-posiciones"] });
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+      queryClient.invalidateQueries({ queryKey: ["standings"] });
     },
-    retry: (count, error) => (error instanceof ApiError && [400,401,403,404,409,422].includes(error.status) ? false : count < 2),
   });
 }
 ```
 
-Ambos se complementan: `fetch` resuelve el transporte, TanStack Query resuelve sincronización/cache/estado — no hay que elegir uno u otro.
+Mutaciones que afectan la tabla de posiciones invalidan explícitamente la query `["standings"]"`
+además de la suya propia — no hay un mecanismo automático de invalidación cruzada.
 
 ## 6. Validación (Zod) — separada de reglas de negocio
 
 ```ts
-// lib/validation/partido.schema.ts
-export const registrarResultadoSchema = z.object({
-  golesLocal: z.number().int().min(0),
-  golesVisitante: z.number().int().min(0),
+// lib/validation/match.schema.ts (real)
+export const registerResultSchema = z.object({
+  homeGoals: z.number().int().min(0),
+  awayGoals: z.number().int().min(0),
+  forfeit: z.boolean().optional(),
+  forfeitReason: z.string().trim().max(300).optional(),
 });
-export type RegistrarResultadoDto = z.infer<typeof registrarResultadoSchema>;
+export type RegisterResultDto = z.infer<typeof registerResultSchema>;
 ```
 
-Zod valida forma (`¿es un entero ≥ 0?`). El Service valida negocio (`¿el partido existe?, ¿ya estaba jugado?, ¿la jornada ya cerró?`) y es quien lanza `ApiError` con código `409`/`404` cuando corresponde.
+Zod valida forma (`¿es un entero ≥ 0?`). El service valida negocio (`¿el partido existe?, ¿ya
+tiene resultado confirmado?, ¿ya pasó la hora del partido?`) y lanza `ApiError` con el código y
+status correctos — nunca al revés.
 
-```ts
-// lib/services/partido.service.ts
-export async function registrarResultado(id: string, dto: RegistrarResultadoDto) {
-  const partido = await partidoRepository.findById(id);
-  if (!partido) throw new ApiError(404, "PARTIDO_NOT_FOUND");
-  if (partido.estado === "jugado") throw new ApiError(409, "PARTIDO_YA_JUGADO");
+Varios schemas de validación (ej. `lib/validation/password.ts`) se reutilizan tal cual en el
+cliente (`zodResolver` de `react-hook-form`) y en el servidor, para no duplicar reglas.
 
-  const actualizado = await partidoRepository.registrarResultado(id, dto);
-  await cache.invalidate("tabla-posiciones");
-  return actualizado;
-}
-```
+## 7. Autenticación y rate limiting (proxy.ts)
 
-## 7. Cross-cutting (middleware separado por responsabilidad)
+- **Sesión**: JWT (HS256, `jose`) firmado con `JWT_SECRET`, guardado en una cookie httpOnly
+  (`lib/auth/session.ts`). El payload lleva `sub` (userId), `username` y `role`. `role` existe en
+  el modelo `User` pero hoy solo tiene el valor `"admin"` — no hay lógica de permisos
+  diferenciados por rol todavía.
+- **Gate de sesión** (`proxy.ts`): cualquier ruta bajo `/admin` sin sesión válida redirige a
+  `/login?next=<ruta original>`; cualquier método distinto de `GET` bajo `/api/v1/*` (y
+  `/api/v1/users` incluso en `GET`, porque lista datos de administradores) responde `401` sin
+  sesión.
+- **`next` seguro**: el login valida que `next` sea una ruta interna (`/algo`, no
+  `//host` ni una URL absoluta) antes de redirigir tras autenticar — evita open redirect.
+- **Rate limiting** (`lib/security/rate-limit.ts`): contador de ventana fija (`INCR` + `EXPIRE` en
+  Redis, o un `Map` en memoria si no hay `REDIS_URL`), aplicado por IP a
+  `POST /api/v1/auth/{login,forgot-password,reset-password}`. Al superar el límite responde `429`
+  con header `Retry-After`. Límites/ventanas configurables por variables de entorno (ver
+  `.env.example`). El contador en memoria solo vive mientras el proceso del servidor esté vivo —
+  se reinicia si el servidor se reinicia, y no se comparte entre instancias sin Redis.
 
-No un middleware único: cada preocupación en su propio wrapper componible sobre el Route Handler.
+## 8. Email (Resend)
 
-```
-withRequestId → withRateLimit → withAuth → handler (valida DTO → llama Service)
-```
+Único caso de uso implementado: el correo de restablecimiento de contraseña
+(`lib/email/resend.ts`, `sendPasswordResetEmail`). Sin `RESEND_API_KEY`/`EMAIL_FROM` configurados,
+`emailDeliveryEnabled` es `false` y el flujo de "olvidé mi contraseña" devuelve el enlace en la
+respuesta de la API en vez de enviarlo por correo — pensado solo para desarrollo local, nunca para
+producción.
 
-- **Auth**: JWT verificado en `withAuth`, adjunta `userId`/`role` al contexto.
-- **Rate limiting**: Redis + sliding window (ej. `@upstash/ratelimit`), responde `429` con headers `RateLimit-Limit`, `RateLimit-Remaining`, `Retry-After`.
-- **Request-id**: header `x-request-id` generado o propagado, usado en logs.
-- **Logging estructurado**: JSON con `requestId`, `route`, `status`, `durationMs`.
-
-## 8. Cache (Redis)
-
-Uso puntual, no generalizado:
-- `tabla-posiciones`: se cachea el resultado calculado; se invalida cuando `PATCH /partidos/:id/resultado` o cualquier cambio en `ajustes_puntos` ocurre.
-- Rate limiting: contadores de ventana deslizante.
-- TanStack Query ya cubre el cache del lado del cliente — Redis solo entra cuando el cálculo del lado del servidor es costoso o debe compartirse entre instancias.
-
-## 9. Email (Resend)
-
-Casos de uso: notificar a un equipo cuando se publica su horario de jornada, o cuando un jugador recibe una sanción. Se dispara **después** de responder al cliente (no bloquea el `201`/`200`):
-
-```ts
-await partidoRepository.registrarResultado(id, dto);
-await cache.invalidate("tabla-posiciones");
-void emailService.notificarResultado(partido).catch((err) => logger.error(err)); // fire-and-forget, no bloquea la respuesta
-return actualizado;
-```
-
-## 10. Documentación (Swagger)
-
-Los mismos esquemas Zod generan el spec OpenAPI con `zod-to-openapi`, evitando mantener la documentación por separado del contrato real. Se sirve en `/api/v1/docs`.
-
-## 11. Health checks
-
-```ts
-// app/api/v1/health/live/route.ts
-export async function GET() {
-  return Response.json({ status: "up" });
-}
-```
-
-```ts
-// app/api/v1/health/ready/route.ts
-export async function GET() {
-  const dbOk = await checkDatabase();
-  const redisOk = await checkRedis();
-  const ok = dbOk && redisOk;
-  return Response.json(
-    { status: ok ? "up" : "down", checks: { database: dbOk ? "up" : "down", redis: redisOk ? "up" : "down" } },
-    { status: ok ? 200 : 503 }
-  );
-}
-```
-
-## 12. Testing (Vitest)
-
-- **`tests/services/*.test.ts`**: reglas de negocio puras (ej. "no se puede registrar resultado de un partido ya jugado"), con el repositorio mockeado.
-- **`tests/api/*.test.ts`**: Route Handlers de extremo a extremo contra una base de datos de prueba (Postgres en Docker o `pg-mem`), verificando status code + forma del envelope.
-
-## 13. Resumen de decisiones clave
+## 9. Resumen de decisiones clave
 
 | Decisión | Motivo |
 |---|---|
-| `tabla-posiciones` calculada, no tabla física | Evita desincronización manual con `partidos` |
-| `resultado` como subrecurso de `partidos` (`PATCH .../resultado`) | Acción de negocio explícita, no un PUT genérico que sobreescribe todo el partido |
-| Validación Zod separada del Service | Estructura vs. negocio son preocupaciones distintas y se testean distinto |
-| Redis solo para lo costoso/compartido | TanStack Query ya cubre cache de cliente; no duplicar sin necesidad |
-| Email fire-and-forget tras la respuesta | No bloquear al cliente por un efecto secundario no crítico |
+| `standings` calculada con SQL agregado, sin caché | Costo bajo para el volumen de datos de una liga amateur; evita desincronización manual |
+| `result` como subrecurso de `matches`/`cup-matches` (`PATCH .../result`) | Acción de negocio explícita (bloquea edición posterior), no un PATCH genérico que sobreescribe todo el partido |
+| Validación Zod separada del service | Estructura vs. negocio son preocupaciones distintas y se reutilizan distinto (Zod también corre en el cliente) |
+| `proxy.ts` único en vez de middlewares componibles por ruta | Next.js 16 solo permite un proxy raíz; auth + rate limiting son las únicas preocupaciones transversales necesarias hoy |
+| Rate limiting con fallback a memoria si no hay Redis | Dev local no debería depender de tener Redis corriendo; producción sí debería configurar `REDIS_URL` para que el límite se comparta entre instancias |
+| Categorías de liga como filtro en cada recurso (equipos/jugadores/partidos), no un endpoint separado por categoría | Consistente con el resto de los filtros de la API (query params sobre el recurso) |
 | camelCase en API, mapeo Prisma a snake_case en BD | Consistencia dentro de cada capa sin forzar una convención sobre la otra |
