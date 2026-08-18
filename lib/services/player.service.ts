@@ -1,4 +1,4 @@
-import { ApiError } from "@/lib/errors";
+import { ApiError, notFoundError } from "@/lib/errors";
 import { optimizeImageFromDataUrl } from "@/lib/utils/images";
 import { playerRepository } from "@/lib/repositories/player.repository";
 import { teamRepository } from "@/lib/repositories/team.repository";
@@ -39,7 +39,7 @@ export const playerService = {
   async getById(id: string) {
     const player = await playerRepository.findById(id);
     if (!player) {
-      throw new ApiError(404, "PLAYER_NOT_FOUND", `No player exists with id ${id}`);
+      throw notFoundError("PLAYER_NOT_FOUND", "el jugador", id);
     }
     return player;
   },
@@ -47,7 +47,7 @@ export const playerService = {
   async create(dto: CreatePlayerDto) {
     const team = await teamRepository.findById(dto.teamId);
     if (!team) {
-      throw new ApiError(404, "TEAM_NOT_FOUND", `No team exists with id ${dto.teamId}`);
+      throw notFoundError("TEAM_NOT_FOUND", "el equipo", dto.teamId);
     }
 
     const duplicated = await playerRepository.findByRegistrationNumber(dto.registrationNumber);
@@ -74,7 +74,7 @@ export const playerService = {
     if (dto.teamId) {
       const team = await teamRepository.findById(dto.teamId);
       if (!team) {
-        throw new ApiError(404, "TEAM_NOT_FOUND", `No team exists with id ${dto.teamId}`);
+        throw notFoundError("TEAM_NOT_FOUND", "el equipo", dto.teamId);
       }
     }
 

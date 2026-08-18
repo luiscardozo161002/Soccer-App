@@ -3,10 +3,8 @@
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Shared footer for every "Editar X" modal: fields start disabled and the
-// only control is "Editar"; clicking it enables the fields and swaps in
-// Cancelar/Guardar, with Guardar staying disabled until something actually
-// changed (isDirty), so there's nothing to save on a no-op edit.
+// Shared footer for every "Editar X" modal: "Editar" enables the fields and
+// swaps in Cancelar/Guardar; Guardar stays disabled until something changed.
 export function EditFormFooter({
   isEditing,
   isDirty,

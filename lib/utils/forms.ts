@@ -1,8 +1,7 @@
 import type { ChangeEvent, KeyboardEvent } from "react";
 
-// Keystroke-level input constraints, not just a post-submit validation
-// message — the field is corrected as the user types instead of only being
-// flagged invalid afterwards.
+// Keystroke-level constraints — corrects as the user types instead of only
+// flagging invalid on submit.
 
 export function onlyDigits(value: string) {
   return value.replace(/[^0-9]/g, "");
@@ -25,20 +24,16 @@ export function onlyHexColor(value: string) {
   return digits ? `#${digits}` : "";
 }
 
-// For native type="number" inputs: blocks keystrokes that the browser
-// otherwise accepts (e, +, -, .) but that don't make sense for the whole
-// positive integers we use this on (matchday, quantities), instead of
-// letting them through and only rejecting the value on submit.
+// Blocks keystrokes (e, +, -, .) that type="number" accepts but don't make
+// sense for the positive integers this is used on (matchday, quantities).
 export function blockNonIntegerKeys(e: KeyboardEvent<HTMLInputElement>) {
   if (["e", "E", "+", "-", "."].includes(e.key)) {
     e.preventDefault();
   }
 }
 
-// Wraps a react-hook-form `register(...)` result (or a `Controller` field)
-// so the DOM value is sanitized before react-hook-form ever sees it —
-// otherwise invalid characters would flash into the field's state for a
-// render before validation catches them.
+// Sanitizes the DOM value before react-hook-form sees it, so invalid
+// characters never flash into the field's state for a render.
 export function withSanitizer<T extends { onChange: (e: ChangeEvent<HTMLInputElement>) => void }>(
   registration: T,
   sanitize: (value: string) => string

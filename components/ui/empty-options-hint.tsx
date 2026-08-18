@@ -1,10 +1,7 @@
 import Link from "next/link";
 
-// Drop-in replacement for a <Select> whose options come from another
-// resource (teams, fields, players...) when that resource has none yet.
-// An empty <select> just shows the placeholder with no way to tell whether
-// that's because nothing matches the filters or because nothing exists at
-// all — this makes the "go create one first" case explicit.
+// Replaces a <Select> sourced from another resource (teams, fields...) when
+// that resource has none yet — an empty <select> gives no clue why.
 export function EmptyOptionsHint({ message, href, linkLabel }: { message: string; href: string; linkLabel: string }) {
   return (
     <p className="rounded-xl border border-dashed border-border bg-surface px-3 py-2 text-xs text-muted">

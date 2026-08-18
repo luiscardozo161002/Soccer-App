@@ -1,4 +1,4 @@
-import { ApiError } from "@/lib/errors";
+import { ApiError, notFoundError } from "@/lib/errors";
 import { userRepository } from "@/lib/repositories/user.repository";
 import { hashPassword } from "@/lib/auth/password";
 import { optimizeImageFromDataUrl } from "@/lib/utils/images";
@@ -13,7 +13,7 @@ export const userService = {
 
   async getById(id: string) {
     const user = await userRepository.findById(id);
-    if (!user) throw new ApiError(404, "USER_NOT_FOUND", `No user exists with id ${id}`);
+    if (!user) throw notFoundError("USER_NOT_FOUND", "el usuario", id);
     return user;
   },
 

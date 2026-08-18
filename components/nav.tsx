@@ -93,10 +93,8 @@ export function Nav() {
         <div className="flex items-center gap-2 px-1">
           <span className="shrink-0">
             {isSettingsLoading ? (
-              // Only a real loading state shows a skeleton — once settings
-              // have actually loaded and there's no logo, this falls
-              // through to the plain fallback icon below, not a spinner
-              // that would suggest it's still loading forever.
+              // Skeleton only while actually loading — a loaded settings
+              // response with no logo falls through to the icon below.
               <span className="block h-11 w-11 shrink-0 animate-pulse rounded-full bg-primary-light" />
             ) : logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element

@@ -21,12 +21,9 @@ export const authService = {
     return { token, user: { id: user.id, username: user.username, email: user.email, role: user.role } };
   },
 
-  // When email delivery is configured, the reset link is sent to the
-  // account's own address and this returns null — the token never appears
-  // in the API response, since handing it back to whoever submitted the
-  // identifier would be an account-takeover vector. Without RESEND_API_KEY
-  // configured (e.g. local dev), it falls back to returning the raw token
-  // so the flow stays testable.
+  // Returns null when email is configured (the link is sent, not returned —
+  // handing it back would be an account-takeover vector); returns the raw
+  // token only as a local-dev fallback when RESEND_API_KEY isn't set.
   async requestPasswordReset(identifier: string) {
     const user = await userRepository.findByUsernameOrEmail(identifier);
     if (!user) return null;

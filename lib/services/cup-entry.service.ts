@@ -1,14 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { ApiError } from "@/lib/errors";
+import { ApiError, notFoundError } from "@/lib/errors";
 import { cupEntryRepository } from "@/lib/repositories/cup-entry.repository";
 import { cupMatchRepository } from "@/lib/repositories/cup-match.repository";
 import type { CreateCupEntriesDto, WithdrawCupEntryDto } from "@/lib/validation/cup-entry.schema";
 
-// Same fixed forfeit score the league's register-result form applies
-// (components/register-result-form.tsx's applyForfeitScore) — kept
-// consistent so a Copa walkover reads the same way as a Liga one.
-// CUP_FORFEIT_WINNER_SCORE is configurable via env; the losing side is
-// always 0, so that half doesn't need its own variable.
+// Matches the league's fixed forfeit score (register-result-form.tsx) so a
+// Copa walkover reads the same as a Liga one; configurable via env.
 const FORFEIT_WINNER_SCORE = Number(process.env.CUP_FORFEIT_WINNER_SCORE) || 3;
 const FORFEIT_LOSER_SCORE = 0;
 
@@ -24,7 +21,7 @@ export const cupEntryService = {
   async getById(id: string) {
     const entry = await cupEntryRepository.findById(id);
     if (!entry) {
-      throw new ApiError(404, "CUP_ENTRY_NOT_FOUND", `No cup entry exists with id ${id}`);
+      throw notFoundError("CUP_ENTRY_NOT_FOUND", "la inscripción a la copa", id);
     }
     return entry;
   },
@@ -33,10 +30,9 @@ export const cupEntryService = {
     return cupEntryRepository.createMany(dto.cupId, dto.teamIds);
   },
 
-  // Core of the withdrawal requirement: mark the team out of the cup, and
-  // auto-resolve any match they still had pending as a default win for
-  // whoever they were scheduled against — both in one transaction so a
-  // failure partway through never leaves the bracket half-updated.
+  // One transaction: mark the team withdrawn, and auto-forfeit any pending
+  // match to their scheduled opponent, so a failure partway through never
+  // leaves the bracket half-updated.
   async withdraw(id: string, dto: WithdrawCupEntryDto) {
     const entry = await this.getById(id);
     if (entry.status !== "active") {

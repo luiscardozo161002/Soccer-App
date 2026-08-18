@@ -1,7 +1,5 @@
-// Matches can only be scheduled 9:00-16:00 (fields/referees aren't available
-// overnight or at dawn). Shared between the client form (which builds a
-// restricted dropdown instead of a native time picker, since native pickers
-// don't hide out-of-range options) and the server-side zod schema.
+// Matches can only be scheduled 9:00-16:00; shared by the client's dropdown
+// (a native time picker can't hide out-of-range options) and the zod schema.
 export const MIN_MATCH_TIME = "09:00";
 export const MAX_MATCH_TIME = "16:00";
 

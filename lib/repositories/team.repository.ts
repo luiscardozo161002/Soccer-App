@@ -3,10 +3,8 @@ import type { Prisma } from "@/app/generated/prisma/client";
 import type { LeagueCategory } from "@/app/generated/prisma/client";
 
 export const teamRepository = {
-  // Postgres orders enum columns by declaration order, and LeagueCategory is
-  // declared Primera / Ascenso / Segunda — so this sorts teams by division
-  // in that order (then alphabetically within each division) everywhere the
-  // list is consumed, with no client-side re-sorting needed.
+  // LeagueCategory is declared Primera/Ascenso/Segunda, and Postgres orders
+  // enums by declaration — so this sorts by division with no extra logic.
   findMany({ page, pageSize, category }: { page: number; pageSize: number; category?: LeagueCategory }) {
     return prisma.team.findMany({
       where: category ? { category } : undefined,

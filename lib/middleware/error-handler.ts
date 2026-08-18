@@ -10,11 +10,8 @@ function errorEnvelope(code: string, message: string, details: unknown = null) {
   return { success: false, error: { code, message, details } };
 }
 
-// With the @prisma/adapter-pg driver adapter (Prisma 7), Postgres errors that
-// aren't recognized by Prisma's own query engine (e.g. FK/unique violations
-// raised directly by Postgres) surface as P2039 with the real Postgres
-// SQLSTATE nested at error.meta.driverAdapterError.cause.code, instead of the
-// classic P2002/P2003 codes. Read the SQLSTATE from there as a fallback.
+// @prisma/adapter-pg (Prisma 7) surfaces some Postgres errors as P2039
+// instead of the classic P2002/P2003, with the real SQLSTATE nested here.
 function postgresErrorCode(error: Prisma.PrismaClientKnownRequestError): string | undefined {
   const meta = error.meta as { driverAdapterError?: { cause?: { code?: string } } } | undefined;
   return meta?.driverAdapterError?.cause?.code;

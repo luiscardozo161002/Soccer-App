@@ -5,10 +5,7 @@ import { useEffect, useState } from "react";
 export function Avatar({ src, name, size = 26 }: { src: string | null; name: string; size?: number }) {
   const [status, setStatus] = useState<"loading" | "loaded" | "error">(src ? "loading" : "error");
 
-  // The initializer above only runs on mount, so when a row is re-rendered
-  // with a new/changed src (e.g. a photo was just uploaded, or updated
-  // elsewhere) without remounting, this resets the state instead of getting
-  // stuck showing the old image or initials forever.
+  // Re-sync on a changed src without remounting (e.g. photo just uploaded).
   useEffect(() => {
     setStatus(src ? "loading" : "error");
   }, [src]);

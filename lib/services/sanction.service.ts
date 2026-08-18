@@ -1,4 +1,4 @@
-import { ApiError } from "@/lib/errors";
+import { ApiError, notFoundError } from "@/lib/errors";
 import { sanctionRepository } from "@/lib/repositories/sanction.repository";
 import { cardRepository } from "@/lib/repositories/card.repository";
 import type { CreateSanctionDto, ListSanctionsQuery, UpdateSanctionDto } from "@/lib/validation/sanction.schema";
@@ -15,7 +15,7 @@ export const sanctionService = {
   async getById(id: string) {
     const sanction = await sanctionRepository.findById(id);
     if (!sanction) {
-      throw new ApiError(404, "SANCTION_NOT_FOUND", `No sanction exists with id ${id}`);
+      throw notFoundError("SANCTION_NOT_FOUND", "la sanción", id);
     }
     return sanction;
   },
@@ -23,7 +23,7 @@ export const sanctionService = {
   async createForCard(cardId: string, dto: CreateSanctionDto) {
     const card = await cardRepository.findById(cardId);
     if (!card) {
-      throw new ApiError(404, "CARD_NOT_FOUND", `No card exists with id ${cardId}`);
+      throw notFoundError("CARD_NOT_FOUND", "la tarjeta", cardId);
     }
     if (card.type !== "red") {
       throw new ApiError(409, "CARD_NOT_RED", "Solo las tarjetas rojas generan suspensión");

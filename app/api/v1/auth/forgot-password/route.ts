@@ -8,9 +8,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   const dto = forgotPasswordSchema.parse(await req.json());
   const token = await authService.requestPasswordReset(dto.identifier);
 
-  // `token` is only non-null when email delivery isn't configured (RESEND_API_KEY
-  // / EMAIL_FROM missing, e.g. local dev) — see authService.requestPasswordReset.
-  // Once configured, the reset link goes to the account's own inbox instead,
-  // and this always responds with resetUrl: null.
+  // `token` is only non-null without email delivery configured (local dev);
+  // once configured the link goes to the inbox and this returns null.
   return ok({ resetUrl: token ? `/reset-password?token=${token}` : null });
 });

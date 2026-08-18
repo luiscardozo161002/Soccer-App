@@ -1,7 +1,5 @@
-// Single source of truth for every API path the client calls. Hooks build
-// on top of these (adding their own query strings) instead of writing
-// "/api/v1/..." literals — one typo here breaks a build instead of failing
-// silently at request time.
+// Single source of truth for every API path — hooks build on these instead
+// of writing "/api/v1/..." literals, so a typo breaks the build, not runtime.
 export const API_ROUTES = {
   auth: {
     login: "/api/v1/auth/login",
