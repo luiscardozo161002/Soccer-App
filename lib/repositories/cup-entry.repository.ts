@@ -5,12 +5,18 @@ const withTeam = {
 } as const;
 
 export const cupEntryRepository = {
-  findByCup(cupId: string) {
+  findByCup(cupId: string, page: number, pageSize: number) {
     return prisma.cupEntry.findMany({
       where: { cupId },
       include: withTeam,
       orderBy: { team: { name: "asc" } },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     });
+  },
+
+  countByCup(cupId: string) {
+    return prisma.cupEntry.count({ where: { cupId } });
   },
 
   findById(id: string) {

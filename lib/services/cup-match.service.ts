@@ -12,8 +12,12 @@ import type {
 } from "@/lib/validation/cup-match.schema";
 
 export const cupMatchService = {
-  list(query: ListCupMatchesQuery) {
-    return cupMatchRepository.findMany(query);
+  async list(query: ListCupMatchesQuery) {
+    const [items, totalItems] = await Promise.all([
+      cupMatchRepository.findMany(query),
+      cupMatchRepository.count(query),
+    ]);
+    return { items, totalItems, totalPages: Math.ceil(totalItems / query.pageSize) };
   },
 
   async getById(id: string) {

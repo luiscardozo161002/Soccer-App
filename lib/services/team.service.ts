@@ -1,7 +1,7 @@
 import { ApiError } from "@/lib/errors";
 import { optimizeImageFromDataUrl } from "@/lib/utils/images";
 import { teamRepository } from "@/lib/repositories/team.repository";
-import type { Prisma } from "@/app/generated/prisma/client";
+import type { Prisma, LeagueCategory } from "@/app/generated/prisma/client";
 import type { CreateTeamDto, UpdateTeamDto } from "@/lib/validation/team.schema";
 
 async function toWriteData(dto: CreateTeamDto | UpdateTeamDto): Promise<Prisma.TeamUncheckedUpdateInput> {
@@ -20,10 +20,10 @@ async function toWriteData(dto: CreateTeamDto | UpdateTeamDto): Promise<Prisma.T
 }
 
 export const teamService = {
-  async list(page: number, pageSize: number) {
+  async list(page: number, pageSize: number, category?: LeagueCategory) {
     const [items, totalItems] = await Promise.all([
-      teamRepository.findMany({ page, pageSize }),
-      teamRepository.count(),
+      teamRepository.findMany({ page, pageSize, category }),
+      teamRepository.count(category),
     ]);
     return { items, totalItems, totalPages: Math.ceil(totalItems / pageSize) };
   },

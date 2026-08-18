@@ -6,22 +6,24 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Pencil, Lock, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useMatches, useCreateMatch, MATCHES_PAGE_SIZE, type MatchStatus, type Match } from "@/hooks/useMatches";
+import { useMatches, useCreateMatch, type MatchStatus, type Match } from "@/hooks/useMatches";
 import { useTeams } from "@/hooks/useTeams";
 import { useFields } from "@/hooks/useFields";
 import { useCards } from "@/hooks/useCards";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { formatCalendarDate, todayLocalISODate } from "@/lib/utils/date";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
 import { blockNonIntegerKeys } from "@/lib/utils/forms";
 import { Card } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
-import { Pagination } from "@/components/ui/pagination";
+import { Pagination, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
 import { CategoryDot } from "@/components/ui/category-badge";
 import { Modal } from "@/components/ui/modal";
+import { EmptyOptionsHint } from "@/components/ui/empty-options-hint";
 import { RegisterResultForm } from "@/components/register-result-form";
 import {
   EditMatchModal,
@@ -86,8 +88,12 @@ function CardsIndicator({ matchId, cardsByMatch }: { matchId: string; cardsByMat
 }
 
 export default function MatchesPage() {
+  // Defaults to a single category instead of "all" so the page doesn't load
+  // and render every match across every category at once.
+  const [categoryFilter, setCategoryFilter] = useState<LeagueCategoryValue | "all">(LEAGUE_CATEGORIES[0].value);
   const [statusFilter, setStatusFilter] = useState<MatchStatus | "">("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [registeringMatch, setRegisteringMatch] = useState<Match | null>(null);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [newMatchCategory, setNewMatchCategory] = useState<LeagueCategoryValue>(LEAGUE_CATEGORIES[0].value);
@@ -107,11 +113,17 @@ export default function MatchesPage() {
   const isSearching = search.trim().length > 0;
   const { data, isLoading, isError } = useMatches({
     status: statusFilter || undefined,
+    category: categoryFilter === "all" ? undefined : categoryFilter,
     page: isSearching ? 1 : page,
-    pageSize: isSearching ? 100 : MATCHES_PAGE_SIZE,
+    pageSize: isSearching ? 100 : pageSize,
   });
   const matches = data?.data ?? [];
   const createMatch = useCreateMatch();
+
+  const handleListCategoryChange = (value: LeagueCategoryValue | "all") => {
+    setCategoryFilter(value);
+    setPage(1);
+  };
 
   const { data: cardsData } = useCards();
   const cardsByMatch = new Map<string, { yellow: number; red: number }>();
@@ -127,10 +139,13 @@ export default function MatchesPage() {
     reset,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreateMatchFormInput, unknown, CreateMatchFormOutput>({
     resolver: zodResolver(createMatchSchema),
   });
+
+  useUnsavedChangesWarning(showCreate && isDirty);
+
   const selectedHomeTeamId = watch("homeTeamId");
   const selectedAwayTeamId = watch("awayTeamId");
   const homeTeamOptions = teamsInCategory.filter((t) => t.id !== selectedAwayTeamId);
@@ -221,6 +236,21 @@ export default function MatchesPage() {
               </Select>
             </Field>
           </div>
+          <div className="w-56">
+            <Field label="Categoría">
+              <Select
+                value={categoryFilter}
+                onChange={(e) => handleListCategoryChange(e.target.value as LeagueCategoryValue | "all")}
+              >
+                {LEAGUE_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+                <option value="all">Todas las categorías</option>
+              </Select>
+            </Field>
+          </div>
           <Button onClick={() => setShowCreate(true)}>
             <Plus size={16} />
             Nuevo partido
@@ -242,37 +272,57 @@ export default function MatchesPage() {
               ))}
             </Select>
           </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Local" error={errors.homeTeamId?.message}>
-              <Select {...register("homeTeamId")}>
-                <option value="">Selecciona...</option>
-                {homeTeamOptions.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Visitante" error={errors.awayTeamId?.message}>
-              <Select {...register("awayTeamId")}>
-                <option value="">Selecciona...</option>
-                {awayTeamOptions.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </div>
+          {teamsInCategory.length === 0 ? (
+            <EmptyOptionsHint
+              message="No hay equipos registrados en esta categoría."
+              href="/admin/teams"
+              linkLabel="Crea uno primero"
+            />
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Local" error={errors.homeTeamId?.message}>
+                <Select {...register("homeTeamId")}>
+                  <option value="">Selecciona...</option>
+                  {homeTeamOptions.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Visitante" error={errors.awayTeamId?.message}>
+                <Select {...register("awayTeamId")}>
+                  <option value="">Selecciona...</option>
+                  {awayTeamOptions.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+          )}
           <Field label="Cancha" error={errors.fieldId?.message}>
-            <Select {...register("fieldId")}>
-              <option value="">Selecciona...</option>
-              {fieldOptions.map((field) => (
-                <option key={field.id} value={field.id}>
-                  {field.name}
-                </option>
-              ))}
-            </Select>
+            {fields.length === 0 ? (
+              <EmptyOptionsHint
+                message="No hay canchas registradas."
+                href="/admin/fields"
+                linkLabel="Crea una primero"
+              />
+            ) : fieldOptions.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border bg-surface px-3 py-2 text-xs text-muted">
+                Todas las canchas ya están ocupadas en esa jornada, fecha y hora.
+              </p>
+            ) : (
+              <Select {...register("fieldId")}>
+                <option value="">Selecciona...</option>
+                {fieldOptions.map((field) => (
+                  <option key={field.id} value={field.id}>
+                    {field.name}
+                  </option>
+                ))}
+              </Select>
+            )}
           </Field>
           <div className="grid grid-cols-3 gap-4">
             <Field label="Jornada" error={errors.matchday?.message}>
@@ -402,7 +452,14 @@ export default function MatchesPage() {
             ))}
           </Tbody>
         </Table>
-        <Pagination meta={data?.meta} onPageChange={setPage} />
+        <Pagination
+          meta={data?.meta}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </Card>
 
       <EditMatchModal match={editingMatch} fields={fields} onClose={() => setEditingMatch(null)} />

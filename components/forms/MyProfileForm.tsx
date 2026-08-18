@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useUsers, useUpdateUser, adminPhotoUrl } from "@/hooks/useUsers";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { withSanitizer, sanitizePhone } from "@/lib/utils/forms";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
@@ -34,6 +35,8 @@ export function MyProfileForm({ userId }: { userId: string }) {
     reset,
     formState: { errors, isDirty },
   } = useForm<ProfileForm>({ resolver: zodResolver(profileSchema) });
+
+  useUnsavedChangesWarning(isEditing && (isDirty || photoRemoved));
 
   const originalValues = me
     ? { username: me.username, email: me.email, phoneNumber: me.phoneNumber ?? "", photo: undefined }

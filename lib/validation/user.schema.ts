@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { pageSizeSchema } from "@/lib/validation/pagination";
+import { passwordSchema } from "@/lib/validation/password";
 
 const photoDataUrl = z
   .string()
@@ -8,7 +10,7 @@ export const createUserSchema = z.object({
   username: z.string().trim().min(3, "Mínimo 3 caracteres").max(40),
   email: z.string().trim().email("Correo inválido"),
   phoneNumber: z.string().trim().max(20).optional().or(z.literal("")),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  password: passwordSchema,
   role: z.string().trim().min(1).max(30).default("admin"),
   photo: photoDataUrl.optional(),
 });
@@ -26,6 +28,6 @@ export type UpdateUserDto = z.infer<typeof updateUserSchema>;
 
 export const listUsersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  pageSize: pageSizeSchema,
 });
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;

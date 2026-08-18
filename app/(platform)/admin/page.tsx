@@ -9,6 +9,7 @@ import { formatCalendarDate } from "@/lib/utils/date";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
 import { Card, CardBody } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
+import { Pagination, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
 import { Field, Select } from "@/components/ui/field";
 import { CategoryBadge } from "@/components/ui/category-badge";
 import "@/app/globals.css"
@@ -49,22 +50,39 @@ function StatTile({
 }
 
 export default function StandingsPage() {
-  const [categoryFilter, setCategoryFilter] = useState<LeagueCategoryValue | "all">("all");
+  // Defaults to a single category instead of "all" so the page doesn't load
+  // and render every team across every category at once.
+  const [categoryFilter, setCategoryFilter] = useState<LeagueCategoryValue | "all">(LEAGUE_CATEGORIES[0].value);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const { data, isLoading, isError } = useStandings();
   const rows = data?.data ?? [];
   const filteredRows = categoryFilter === "all" ? rows : rows.filter((r) => r.category === categoryFilter);
 
   const { data: teamsData } = useTeams();
   const teams = teamsData?.data ?? [];
+  const filteredTeams = categoryFilter === "all" ? teams : teams.filter((t) => t.category === categoryFilter);
 
   const { data: matchesData } = useMatches();
   const matches = matchesData?.data ?? [];
-  const playedCount = matches.filter((m) => m.status === "played").length;
-  const nextMatch = matches
+  const filteredMatches = categoryFilter === "all" ? matches : matches.filter((m) => m.category === categoryFilter);
+  const playedCount = filteredMatches.filter((m) => m.status === "played").length;
+  const nextMatch = filteredMatches
     .filter((m) => m.status === "scheduled")
     .sort((a, b) => `${a.date}T${a.time ?? "99:99"}`.localeCompare(`${b.date}T${b.time ?? "99:99"}`))[0];
   const teamsById = Object.fromEntries(teams.map((t) => [t.id, t.name]));
   const leader = filteredRows[0];
+
+  const totalItems = filteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = filteredRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const paginationMeta = { page: safePage, pageSize, totalItems, totalPages };
+
+  const handleCategoryChange = (value: LeagueCategoryValue | "all") => {
+    setCategoryFilter(value);
+    setPage(1);
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -77,27 +95,33 @@ export default function StandingsPage() {
           <Field label="Categoría">
             <Select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value as LeagueCategoryValue | "all")}
+              onChange={(e) => handleCategoryChange(e.target.value as LeagueCategoryValue | "all")}
             >
-              <option value="all">Todas las categorías</option>
               {LEAGUE_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label}
                 </option>
               ))}
+              <option value="all">Todas las categorías</option>
             </Select>
           </Field>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile icon={Shield} tone="teal" label="Equipos" value={String(teams.length)} hint="Registrados en la liga" />
+        <StatTile
+          icon={Shield}
+          tone="teal"
+          label="Equipos"
+          value={String(filteredTeams.length)}
+          hint={categoryFilter === "all" ? "Registrados en la liga" : "Registrados en la categoría"}
+        />
         <StatTile
           icon={CalendarDays}
           tone="violet"
           label="Partidos jugados"
-          value={`${playedCount}/${matches.length}`}
-          hint="Del calendario total"
+          value={`${playedCount}/${filteredMatches.length}`}
+          hint={categoryFilter === "all" ? "Del calendario total" : "Del calendario de la categoría"}
         />
         <StatTile
           icon={Trophy}
@@ -136,16 +160,17 @@ export default function StandingsPage() {
             {!isLoading && !isError && filteredRows.length === 0 && (
               <EmptyRow colSpan={11} message="Todavía no hay partidos jugados." />
             )}
-            {filteredRows.map((row, index) => {
+            {pagedRows.map((row, index) => {
+              const rank = (safePage - 1) * pageSize + index;
               return (
                 <tr key={row.teamId}>
                   <Td className="sticky left-0 z-10 bg-surface">
                     <div className="flex items-center gap-3">
                       <span
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${index === 0 ? "bg-primary text-white" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/50"
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${rank === 0 ? "bg-primary text-white" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/50"
                           }`}
                       >
-                        {index + 1}
+                        {rank + 1}
                       </span>
                       <span className="font-semibold text-ink">{row.name}</span>
                     </div>
@@ -171,6 +196,14 @@ export default function StandingsPage() {
             })}
           </Tbody>
         </Table>
+        <Pagination
+          meta={paginationMeta}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
         <p className="flex flex-wrap gap-x-3 gap-y-1 border-t border-border px-6 py-3 text-xs text-muted">
           <span><span className="font-semibold text-ink">PJ</span> Jugados</span>
           <span><span className="font-semibold text-ink">PTE</span> Pendientes</span>

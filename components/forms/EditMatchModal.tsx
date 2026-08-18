@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useUpdateMatch, type MatchStatus, type Match } from "@/hooks/useMatches";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { todayLocalISODate } from "@/lib/utils/date";
 import { matchTimeOptions, isWithinMatchTimeWindow } from "@/lib/constants/match-time";
@@ -90,6 +91,8 @@ export function EditMatchModal({
   });
   const watchedStatus = watch("status");
   const needsReason = watchedStatus === "postponed" || watchedStatus === "cancelled";
+
+  useUnsavedChangesWarning(isEditing && isDirty);
 
   const originalValues = match
     ? {

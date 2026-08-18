@@ -5,10 +5,12 @@ import { toast } from "sonner";
 import { UserPlus, LogOut } from "lucide-react";
 import { useCupEntries, useAddCupEntries, useWithdrawCupEntry, type CupEntry } from "@/hooks/useCupEntries";
 import { useTeams } from "@/hooks/useTeams";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { LEAGUE_CATEGORIES } from "@/lib/constants/league-categories";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
+import { Pagination, PAGE_SIZE_OPTIONS, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
@@ -21,19 +23,20 @@ const entryStatusLabels: Record<CupEntry["status"], string> = {
   withdrawn: "Retirado",
 };
 
-function AddTeamsModal({
-  cupId,
-  excludeTeamIds,
-  onClose,
-}: {
-  cupId: string;
-  excludeTeamIds: Set<string>;
-  onClose: () => void;
-}) {
+// Largest page size the UI offers — used to fetch the whole roster in one
+// request just to know which teams are already in, independent of
+// whatever page the table itself happens to be showing.
+const MAX_PAGE_SIZE = PAGE_SIZE_OPTIONS[PAGE_SIZE_OPTIONS.length - 1];
+
+function AddTeamsModal({ cupId, onClose }: { cupId: string; onClose: () => void }) {
+  const { data: entriesData } = useCupEntries(cupId, 1, MAX_PAGE_SIZE);
+  const excludeTeamIds = new Set((entriesData?.data ?? []).map((e) => e.teamId));
   const { data: teamsData } = useTeams();
   const teams = (teamsData?.data ?? []).filter((t) => !excludeTeamIds.has(t.id));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const addEntries = useAddCupEntries();
+
+  useUnsavedChangesWarning(selected.size > 0);
 
   const toggle = (teamId: string) => {
     setSelected((prev) => {
@@ -120,6 +123,8 @@ function WithdrawModal({ entry, onClose }: { entry: CupEntry; onClose: () => voi
   const [reason, setReason] = useState("");
   const withdraw = useWithdrawCupEntry();
 
+  useUnsavedChangesWarning(reason.trim().length > 0);
+
   const submit = () => {
     if (!reason.trim()) {
       toast.error("Indica el motivo del retiro");
@@ -168,18 +173,18 @@ function WithdrawModal({ entry, onClose }: { entry: CupEntry; onClose: () => voi
 }
 
 export function CupEntriesTable({ cupId }: { cupId: string }) {
-  const { data, isLoading, isError } = useCupEntries(cupId);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
+  const { data, isLoading, isError } = useCupEntries(cupId, page, pageSize);
   const entries = data?.data ?? [];
   const [showAddTeams, setShowAddTeams] = useState(false);
   const [withdrawingEntry, setWithdrawingEntry] = useState<CupEntry | null>(null);
-
-  const excludeTeamIds = new Set(entries.map((e) => e.teamId));
 
   return (
     <Card>
       <CardHeader
         title="Equipos inscritos"
-        description={`${entries.length} equipo(s) en esta copa.`}
+        description={`${data?.meta.totalItems ?? 0} equipo(s) en esta copa.`}
         action={
           <Button onClick={() => setShowAddTeams(true)}>
             <UserPlus size={16} />
@@ -229,10 +234,16 @@ export function CupEntriesTable({ cupId }: { cupId: string }) {
           ))}
         </Tbody>
       </Table>
+      <Pagination
+        meta={data?.meta}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+      />
 
-      {showAddTeams && (
-        <AddTeamsModal cupId={cupId} excludeTeamIds={excludeTeamIds} onClose={() => setShowAddTeams(false)} />
-      )}
+      {showAddTeams && <AddTeamsModal cupId={cupId} onClose={() => setShowAddTeams(false)} />}
       {withdrawingEntry && <WithdrawModal entry={withdrawingEntry} onClose={() => setWithdrawingEntry(null)} />}
     </Card>
   );

@@ -7,10 +7,13 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser, adminPhotoUrl, type AdminUser } from "@/hooks/useUsers";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { withSanitizer, sanitizePhone } from "@/lib/utils/forms";
+import { passwordSchema } from "@/lib/validation/password";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
+import { Pagination, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
 import { Field, Input } from "@/components/ui/field";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Badge } from "@/components/ui/badge";
@@ -25,13 +28,15 @@ const createUserSchema = z.object({
   username: z.string().trim().min(3, "Mínimo 3 caracteres").max(40),
   email: z.string().trim().email("Correo inválido"),
   phoneNumber: z.string().trim().max(20).optional().or(z.literal("")),
-  password: z.string().min(8, "Mínimo 8 caracteres"),
+  password: passwordSchema,
   photo: z.string().optional(),
 });
 type CreateUserForm = z.infer<typeof createUserSchema>;
 
 export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
-  const { data, isLoading, isError } = useUsers();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
+  const { data, isLoading, isError } = useUsers(page, pageSize);
   const users = data?.data ?? [];
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
@@ -44,8 +49,10 @@ export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
     control,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema) });
+
+  useUnsavedChangesWarning(isDirty);
 
   const onSubmit = handleSubmit((values) => {
     createUser.mutate(
@@ -189,6 +196,14 @@ export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
           ))}
         </Tbody>
       </Table>
+      <Pagination
+        meta={data?.meta}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+      />
 
       <EditUserModal user={editingUser} onClose={() => setEditingUser(null)} />
       {dialog}

@@ -87,7 +87,7 @@ export function Nav() {
       </button>
 
       <div
-        className={`scrollbar-modern flex h-full flex-col gap-5 overflow-y-auto px-3 py-2 ${collapsed ? "" : "px-3.5"
+        className={`scrollbar-modern flex h-full flex-col gap-3 overflow-y-auto px-3 py-1.5 ${collapsed ? "" : "px-3.5"
           }`}
       >
         <div className="flex items-center gap-2 px-1">
@@ -125,7 +125,7 @@ export function Nav() {
                 key={href}
                 href={href}
                 title={label}
-                className={`group flex items-center gap-2.5 rounded-full px-2.5 py-1.5 text-sm font-extralight transition-all ${collapsed ? "justify-center" : "justify-start"} ${active
+                className={`group flex items-center gap-2.5 rounded-full px-2.5 py-1 text-sm font-extralight transition-all ${collapsed ? "justify-center" : "justify-start"} ${active
                   ? "bg-primary text-white"
                   : "text-muted hover:bg-primary-light hover:text-primary"
                   }`}
@@ -137,26 +137,26 @@ export function Nav() {
           })}
         </nav>
 
-        <div className="mt-auto flex flex-col gap-2">
+        <div className="mt-auto flex flex-col gap-1.5">
           <ThemeToggle
-            className={`flex items-center gap-2 rounded-full px-2.5 py-1.5 text-sm font-extralight text-muted transition-colors hover:bg-primary-light hover:text-ink ${collapsed ? "justify-center" : "justify-start"}`}
+            className={`flex items-center gap-2 rounded-full px-2.5 py-1 text-sm font-extralight text-muted transition-colors hover:bg-primary-light hover:text-ink ${collapsed ? "justify-center" : "justify-start"}`}
             label={<span className={collapsed ? "hidden" : "block"}>Tema</span>}
           />
           <Link
             href="/"
             title="Ver sitio público"
-            className={`flex items-center gap-2 rounded-full px-2.5 py-1.5 text-sm font-extralight text-muted transition-colors hover:bg-primary-light hover:text-ink ${collapsed ? "justify-center" : "justify-start"}`}
+            className={`flex items-center gap-2 rounded-full px-2.5 py-1 text-sm font-extralight text-muted transition-colors hover:bg-primary-light hover:text-ink ${collapsed ? "justify-center" : "justify-start"}`}
           >
             <Globe size={16} className="shrink-0" />
             <span className={collapsed ? "hidden" : "block"}>Sitio público</span>
           </Link>
-          <div className={`rounded-lg border border-border bg-primary-light/30 p-2 text-[11px] text-muted ${collapsed ? "hidden" : "block"}`}>
+          <div className={`rounded-lg border border-border bg-primary-light/30 p-1.5 text-[11px] text-muted ${collapsed ? "hidden" : "block"}`}>
             Temporada activa
             <p className="mt-0.5 font-semibold text-ink">{activeSeason?.name ?? `Liga ${new Date().getFullYear()}`}</p>
           </div>
 
           {me && (
-            <div className={`flex items-center gap-2 border-t border-border pt-2 ${collapsed ? "justify-center" : ""}`}>
+            <div className={`flex items-center gap-2 border-t border-border pt-1.5 ${collapsed ? "justify-center" : ""}`}>
               {!collapsed && <Avatar src={adminPhotoUrl(me)} name={me.username} size={28} />}
               <span className={`min-w-0 flex-1 ${collapsed ? "hidden" : "block"}`}>
                 <span className="block truncate text-sm font-semibold text-ink">{me.username}</span>

@@ -12,13 +12,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
+import { Pagination, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
 import { CategoryBadge } from "@/components/ui/category-badge";
 
 export function SuspensionsTable() {
   const [filter, setFilter] = useState<"active" | "resolved">("active");
   const [categoryFilter, setCategoryFilter] = useState<LeagueCategoryValue | "">("");
   const [search, setSearch] = useState("");
-  const { data, isLoading, isError } = useSanctions(filter === "active" ? false : true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
+  // Same trick as app/(platform)/admin/players/page.tsx: while a client-side
+  // filter (search text or category) is active, fetch a bigger
+  // unpaginated-feeling page so there's something to actually filter
+  // across, instead of just the current page's handful of rows.
+  const isFiltering = search.trim().length > 0 || categoryFilter !== "";
+  const { data, isLoading, isError } = useSanctions(
+    filter === "active" ? false : true,
+    isFiltering ? 1 : page,
+    isFiltering ? 100 : pageSize
+  );
   const term = search.trim().toLowerCase();
   const sanctions = (data?.data ?? []).filter(
     (s) =>
@@ -179,6 +191,16 @@ export function SuspensionsTable() {
             ))}
           </Tbody>
         </Table>
+        {!isFiltering && (
+          <Pagination
+            meta={data?.meta}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
+        )}
       </Card>
       {dialog}
     </>

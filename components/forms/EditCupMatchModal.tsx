@@ -7,6 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useUpdateCupMatch, type CupMatch } from "@/hooks/useCupMatches";
 import { useFields } from "@/hooks/useFields";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
@@ -39,6 +40,8 @@ export function EditCupMatchModal({ match, onClose }: { match: CupMatch | null; 
     reset,
     formState: { errors, isDirty },
   } = useForm<EditCupMatchForm>({ resolver: zodResolver(editCupMatchSchema) });
+
+  useUnsavedChangesWarning(isEditing && isDirty);
 
   const originalValues = match
     ? {

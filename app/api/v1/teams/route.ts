@@ -10,7 +10,8 @@ export const GET = withErrorHandling(async (req) => {
   );
   const { items, totalItems, totalPages } = await teamService.list(
     query.page,
-    query.pageSize
+    query.pageSize,
+    query.category
   );
 
   return ok(items, {

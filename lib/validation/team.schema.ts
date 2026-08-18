@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pageSizeSchema } from "@/lib/validation/pagination";
 
 const photoDataUrl = z
   .string()
@@ -19,6 +20,7 @@ export type UpdateTeamDto = z.infer<typeof updateTeamSchema>;
 
 export const listTeamsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  pageSize: pageSizeSchema,
+  category: z.enum(leagueCategoryValues).optional(),
 });
 export type ListTeamsQuery = z.infer<typeof listTeamsQuerySchema>;

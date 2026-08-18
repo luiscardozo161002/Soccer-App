@@ -3,7 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, patch, post } from "@/lib/http/endpoints";
 import type { ItemResponse, ListResponse } from "@/lib/http/types";
+import { API_ROUTES } from "@/lib/http/api-routes";
 import type { CardType } from "@/hooks/useCards";
+import type { CreateSanctionDto } from "@/lib/validation/sanction.schema";
 
 export interface SanctionCard {
   id: string;
@@ -33,19 +35,16 @@ export interface Sanction {
   card: SanctionCard;
 }
 
-export interface CreateSanctionInput {
-  cardId: string;
-  matchdayStart: number;
-  matchdayEnd: number;
-  matchesSuspended: number;
-}
+// cardId selects the URL (`API_ROUTES.cards.sanctions(cardId)`), it isn't
+// part of the request body — the rest matches CreateSanctionDto exactly.
+export type CreateSanctionInput = CreateSanctionDto & { cardId: string };
 
-export function useSanctions(fulfilled?: boolean) {
+export function useSanctions(fulfilled?: boolean, page = 1, pageSize = 20) {
   return useQuery({
-    queryKey: ["sanctions", { fulfilled }],
+    queryKey: ["sanctions", { fulfilled, page, pageSize }],
     queryFn: () =>
       get<ListResponse<Sanction>>(
-        `/api/v1/sanctions?pageSize=100${fulfilled !== undefined ? `&fulfilled=${fulfilled}` : ""}`
+        `${API_ROUTES.sanctions.list}?page=${page}&pageSize=${pageSize}${fulfilled !== undefined ? `&fulfilled=${fulfilled}` : ""}`
       ),
   });
 }
@@ -54,10 +53,7 @@ export function useCreateSanction() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ cardId, ...input }: CreateSanctionInput) =>
-      post<ItemResponse<Sanction>, Omit<CreateSanctionInput, "cardId">>(
-        `/api/v1/cards/${cardId}/sanctions`,
-        input
-      ),
+      post<ItemResponse<Sanction>, CreateSanctionDto>(API_ROUTES.cards.sanctions(cardId), input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sanctions"] });
     },
@@ -67,7 +63,8 @@ export function useCreateSanction() {
 export function usePaySanction() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => post<ItemResponse<Sanction>, Record<string, never>>(`/api/v1/sanctions/${id}/pay`, {}),
+    mutationFn: (id: string) =>
+      post<ItemResponse<Sanction>, Record<string, never>>(API_ROUTES.sanctions.pay(id), {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sanctions"] });
     },
@@ -79,7 +76,7 @@ export function useRevertSanction() {
   return useMutation({
     mutationFn: (id: string) =>
       patch<ItemResponse<Sanction>, { fulfilled: boolean; waivedByPayment: boolean }>(
-        `/api/v1/sanctions/${id}`,
+        API_ROUTES.sanctions.byId(id),
         { fulfilled: false, waivedByPayment: false }
       ),
     onSuccess: () => {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pageSizeSchema } from "@/lib/validation/pagination";
 
 export const createSanctionSchema = z
   .object({
@@ -23,7 +24,7 @@ export type UpdateSanctionDto = z.infer<typeof updateSanctionSchema>;
 
 export const listSanctionsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  pageSize: pageSizeSchema,
   cardId: z.string().uuid().optional(),
   // z.coerce.boolean() would turn "false" into true (any non-empty string
   // is truthy), so the raw string is compared explicitly instead.

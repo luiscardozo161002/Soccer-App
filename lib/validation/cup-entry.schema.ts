@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pageSizeSchema } from "@/lib/validation/pagination";
 
 export const createCupEntriesSchema = z.object({
   cupId: z.string().uuid(),
@@ -13,5 +14,7 @@ export type WithdrawCupEntryDto = z.infer<typeof withdrawCupEntrySchema>;
 
 export const listCupEntriesQuerySchema = z.object({
   cupId: z.string().uuid(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: pageSizeSchema,
 });
 export type ListCupEntriesQuery = z.infer<typeof listCupEntriesQuerySchema>;

@@ -11,7 +11,8 @@ export const GET = withErrorHandling(async (req) => {
   const { items, totalItems, totalPages } = await playerService.list(
     query.page,
     query.pageSize,
-    query.teamId
+    query.teamId,
+    query.category
   );
 
   return ok(items, {

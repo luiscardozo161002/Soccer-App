@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRegisterCupResult, type CupMatch } from "@/hooks/useCupMatches";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { onlyDigits } from "@/lib/utils/forms";
 import { Modal } from "@/components/ui/modal";
@@ -19,6 +20,8 @@ export function RegisterCupResultForm({ match, onDone }: { match: CupMatch; onDo
 
   const registerResult = useRegisterCupResult();
   const { confirm, dialog } = useConfirm();
+
+  useUnsavedChangesWarning(homeGoals !== "0" || awayGoals !== "0" || forfeit || forfeitReason.trim().length > 0);
 
   const applyForfeitScore = (winner: "home" | "away") => {
     setHomeGoals(winner === "home" ? "3" : "0");

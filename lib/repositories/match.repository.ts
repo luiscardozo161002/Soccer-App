@@ -24,12 +24,13 @@ function mapMatch<T extends { homeTeam: { category: any } }>(match: T) {
 }
 
 export const matchRepository = {
-  async findMany({ page, pageSize, matchday, teamId, status, seasonId }: ListMatchesQuery) {
+  async findMany({ page, pageSize, matchday, teamId, status, seasonId, category }: ListMatchesQuery) {
     const where: Prisma.MatchWhereInput = {
       matchday,
       status,
       seasonId,
       ...(teamId ? { OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }] } : {}),
+      ...(category ? { homeTeam: { category } } : {}),
     };
 
     const matches = await prisma.match.findMany({
@@ -43,12 +44,13 @@ export const matchRepository = {
     return matches.map(mapMatch);
   },
 
-  count({ matchday, teamId, status, seasonId }: Omit<ListMatchesQuery, "page" | "pageSize">) {
+  count({ matchday, teamId, status, seasonId, category }: Omit<ListMatchesQuery, "page" | "pageSize">) {
     const where: Prisma.MatchWhereInput = {
       matchday,
       status,
       seasonId,
       ...(teamId ? { OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }] } : {}),
+      ...(category ? { homeTeam: { category } } : {}),
     };
     return prisma.match.count({ where });
   },
