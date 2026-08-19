@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,7 +29,6 @@ function safeNextPath(next: string | null) {
 }
 
 function LoginFormCard() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const login = useLogin();
   const {
@@ -42,8 +41,12 @@ function LoginFormCard() {
     login.mutate(values, {
       onSuccess: () => {
         toast.success("Bienvenido");
-        router.push(safeNextPath(searchParams.get("next")));
-        router.refresh();
+        // A hard navigation instead of router.push — this runs once per
+        // login, so reliability matters more than an SPA transition, and
+        // push()+refresh() back-to-back is a known Next.js race (refresh
+        // can interrupt the pending push) that showed up as "login works
+        // but never redirects" specifically on mobile timing.
+        window.location.href = safeNextPath(searchParams.get("next"));
       },
       onError: (error) =>
         toast.error(error instanceof ApiError ? error.message : "No se pudo iniciar sesión"),

@@ -9,7 +9,7 @@ import {
 export function CategoryBadge({ category, className = "" }: { category: LeagueCategoryValue; className?: string }) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${CATEGORY_BADGE_CLASSES[category]} ${className}`}
+      className={`inline-block max-w-full truncate rounded-full px-2.5 py-0.5 text-xs font-semibold ${CATEGORY_BADGE_CLASSES[category]} ${className}`}
     >
       {categoryLabel(category)}
     </span>

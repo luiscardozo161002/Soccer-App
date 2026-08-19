@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   CalendarDays,
   MapPinned,
-  ArrowRight,
   ExternalLink,
 } from "lucide-react";
 import { useStandings } from "@/hooks/useStandings";
@@ -684,7 +683,7 @@ export default function LandingPage() {
               Todavía no hay equipos registrados en {activeCategory.label}.
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {categoryRoster.map((team) => (
                 <motion.div
                   key={team.id}
