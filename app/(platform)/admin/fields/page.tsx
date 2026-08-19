@@ -105,11 +105,13 @@ export default function FieldsPage() {
             <Input placeholder="Cancha Municipal 1" maxLength={100} {...register("name")} />
           </FormField>
           <FormField label="Ubicación (opcional)" error={errors.location?.message}>
-            <Input placeholder="Av. Reforma 123" maxLength={200} {...register("location")} />
+            <Input placeholder="20.036978, -99.326613" maxLength={200} {...register("location")} />
           </FormField>
           <p className="text-xs text-muted">
-            Tip: escribe la dirección tal como la buscarías en Google Maps — cada cancha tendrá un enlace
-            directo para verla en el mapa.
+            Tip: lo más preciso es pegar las coordenadas (en Google Maps: clic derecho en el punto exacto,
+            o &ldquo;Compartir esta ubicación&rdquo;, y copia el par de números). También acepta una
+            dirección de texto o un enlace de Maps — pero el nombre del lugar puede repetirse en varios
+            sitios, así que las coordenadas son las únicas que no fallan.
           </p>
           <div className="flex justify-end">
             <Button type="submit" disabled={createField.isPending}>

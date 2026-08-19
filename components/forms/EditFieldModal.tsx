@@ -70,7 +70,12 @@ export function EditFieldModal({ field, onClose }: { field: FieldType | null; on
           <Input maxLength={100} disabled={!isEditing} {...register("name")} />
         </FormField>
         <FormField label="Ubicación (opcional)" error={errors.location?.message}>
-          <Input maxLength={200} disabled={!isEditing} placeholder="Av. Reforma 123" {...register("location")} />
+          <Input
+            maxLength={200}
+            disabled={!isEditing}
+            placeholder="20.036978, -99.326613"
+            {...register("location")}
+          />
         </FormField>
         <EditFormFooter
           isEditing={isEditing}

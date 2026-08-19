@@ -17,7 +17,13 @@ export interface Field {
 export type CreateFieldInput = CreateFieldDto;
 export type UpdateFieldInput = UpdateFieldDto;
 
+// `location` is either a plain address (wrapped into a Maps search so it
+// still opens somewhere useful) or a Maps share link already pasted in
+// (google.com/maps/... or the maps.app.goo.gl short form) — used as-is so
+// it opens the exact pinned spot instead of Google's best guess for a
+// re-encoded search of that same URL string.
 export function googleMapsUrl(location: string) {
+  if (/^https?:\/\//i.test(location.trim())) return location.trim();
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
 }
 
