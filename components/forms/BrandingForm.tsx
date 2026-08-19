@@ -61,7 +61,7 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
     primaryColor !== settings.primaryColor ||
     backgroundColor !== settings.backgroundColor ||
     !!logo;
-  useUnsavedChangesWarning(isDirty);
+  const dismissUnsavedWarning = useUnsavedChangesWarning(isDirty);
 
   const handleSaveBranding = () => {
     updateSettings.mutate(
@@ -69,6 +69,7 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
       {
         onSuccess: () => {
           toast.success("Nombre actualizado");
+          dismissUnsavedWarning();
           window.location.reload();
         },
         onError: (error) =>
@@ -85,6 +86,7 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
         onSuccess: () => {
           toast.success("Logo actualizado");
           setLogo(undefined);
+          dismissUnsavedWarning();
           window.location.reload();
         },
         onError: (error) =>
@@ -99,6 +101,7 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
       {
         onSuccess: () => {
           toast.success("Colores actualizados");
+          dismissUnsavedWarning();
           window.location.reload();
         },
         onError: (error) =>
