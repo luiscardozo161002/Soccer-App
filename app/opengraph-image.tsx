@@ -3,6 +3,10 @@ import { settingsService } from "@/lib/services/settings.service";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+// Reads admin-editable branding from the DB — statically generating this at
+// build time would both fail (no DB access during build) and bake in stale
+// branding permanently, same reasoning as app/layout.tsx's `dynamic` export.
+export const dynamic = "force-dynamic";
 
 export default async function Image() {
   const settings = await settingsService.get();
