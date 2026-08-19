@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -5,6 +6,10 @@ import { Providers } from "./providers";
 import { ThemeProvider } from "@/context/theme-context";
 import { settingsService } from "@/lib/services/settings.service";
 import { shade, hexToRgba, ensureDarkModeLegible } from "@/lib/utils/color";
+
+// Deduped so generateMetadata and RootLayout share one query per request
+// instead of two.
+const getSettings = cache(() => settingsService.get());
 
 const themeInitScript = `
 (function () {
@@ -28,10 +33,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Soccer App",
-  description: "Gestión de liga: equipos, jugadores, partidos y posiciones",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return {
+    title: settings?.name || "Liga de Futbol",
+    description: "Gestión de liga: equipos, jugadores, partidos y posiciones",
+  };
+}
 
 // Branding (primaryColor/background) is admin-editable at runtime and read
 // from the DB on every render — prerendering this layout would both fail at
@@ -39,7 +47,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const settings = await settingsService.get();
+  const settings = await getSettings();
   const primary = settings?.primaryColor ?? "#0d9488";
   const background = settings?.backgroundColor ?? "#eef3f1";
   // A color picked for light backgrounds can be too dark to read as text
