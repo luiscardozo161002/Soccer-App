@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import { Nav } from "@/components/nav";
 import { PageTransition } from "@/components/page-transition";
+
+// Session-gated and not meant for search results — robots.txt disallows
+// /admin too, but that only advises crawlers not to fetch it; this actually
+// blocks indexing if a crawler reaches it some other way (a stray link, etc).
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (

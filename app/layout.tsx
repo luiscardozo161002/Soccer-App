@@ -33,11 +33,33 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const baseUrl = process.env.APP_URL || "http://localhost:3000";
+
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
+  const name = settings?.name || "Liga de Futbol";
+  const description =
+    settings?.slogan ||
+    "Tabla de posiciones, calendario de partidos y equipos de la liga, actualizados en tiempo real.";
+
   return {
-    title: settings?.name || "Liga de Futbol",
-    description: "Gestión de liga: equipos, jugadores, partidos y posiciones",
+    metadataBase: new URL(baseUrl),
+    title: name,
+    description,
+    alternates: { canonical: "/" },
+    openGraph: {
+      title: name,
+      description,
+      url: "/",
+      siteName: name,
+      locale: "es_MX",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: name,
+      description,
+    },
   };
 }
 
@@ -54,6 +76,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // against a dark-mode surface, so dark mode gets its own legible variant
   // instead of reusing the raw admin-picked hex unmodified.
   const primaryDark = ensureDarkModeLegible(primary);
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SportsOrganization",
+    name: settings?.name || "Liga de Futbol",
+    description: settings?.slogan || undefined,
+    sport: "Soccer",
+    url: baseUrl,
+  };
   const themeVarsCss = `
     :root {
       --color-primary: ${primary};
@@ -78,6 +108,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         <style dangerouslySetInnerHTML={{ __html: themeVarsCss }} />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
         <ThemeProvider>
           <Providers>{children}</Providers>
         </ThemeProvider>
