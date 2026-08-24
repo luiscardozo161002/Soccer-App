@@ -14,7 +14,8 @@ import { passwordSchema } from "@/lib/validation/password";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
 import { Pagination, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, Select } from "@/components/ui/field";
+import { ROLES, type Role } from "@/lib/auth/roles";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,9 +30,12 @@ const createUserSchema = z.object({
   email: z.string().trim().email("Correo inválido"),
   phoneNumber: z.string().trim().max(20).optional().or(z.literal("")),
   password: passwordSchema,
+  role: z.enum(ROLES),
   photo: z.string().optional(),
 });
 type CreateUserForm = z.infer<typeof createUserSchema>;
+
+const ROLE_LABELS: Record<Role, string> = { admin: "Administrador", arbitro: "Árbitro" };
 
 export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
   const [page, setPage] = useState(1);
@@ -50,22 +54,19 @@ export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
     handleSubmit,
     reset,
     formState: { errors, isDirty },
-  } = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema) });
+  } = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema), defaultValues: { role: "admin" } });
 
   useUnsavedChangesWarning(isDirty);
 
   const onSubmit = handleSubmit((values) => {
-    createUser.mutate(
-      { ...values, role: "admin" },
-      {
-        onSuccess: () => {
-          toast.success(`Administrador "${values.username}" creado`);
-          reset();
-        },
-        onError: (error) =>
-          toast.error(error instanceof ApiError ? error.message : "No se pudo crear el administrador"),
-      }
-    );
+    createUser.mutate(values, {
+      onSuccess: () => {
+        toast.success(`${ROLE_LABELS[values.role]} "${values.username}" creado`);
+        reset();
+      },
+      onError: (error) =>
+        toast.error(error instanceof ApiError ? error.message : "No se pudo crear el usuario"),
+    });
   });
 
   const handleDelete = async (user: AdminUser) => {
@@ -76,9 +77,9 @@ export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
     });
     if (!ok) return;
     deleteUser.mutate(user.id, {
-      onSuccess: () => toast.success("Administrador eliminado"),
+      onSuccess: () => toast.success(`${ROLE_LABELS[user.role]} eliminado`),
       onError: (error) =>
-        toast.error(error instanceof ApiError ? error.message : "No se pudo eliminar el administrador"),
+        toast.error(error instanceof ApiError ? error.message : "No se pudo eliminar el usuario"),
     });
   };
 
@@ -96,7 +97,8 @@ export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
     updateUser.mutate(
       { id: user.id, status: activating ? "active" : "inactive" },
       {
-        onSuccess: () => toast.success(activating ? "Administrador activado" : "Administrador desactivado"),
+        onSuccess: () =>
+          toast.success(`${ROLE_LABELS[user.role]} ${activating ? "activado" : "desactivado"}`),
         onError: (error) =>
           toast.error(error instanceof ApiError ? error.message : "No se pudo actualizar el estatus"),
       }
@@ -105,7 +107,7 @@ export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
 
   return (
     <Card>
-      <CardHeader title="Administradores" description="Quién tiene acceso al portal de gestión." />
+      <CardHeader title="Usuarios" description="Quién tiene acceso al portal de gestión y con qué rol." />
       <CardBody>
         <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-4">
           <div className="w-40">
@@ -133,6 +135,17 @@ export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
               <PasswordInput {...register("password")} />
             </Field>
           </div>
+          <div className="w-40">
+            <Field label="Rol" error={errors.role?.message}>
+              <Select {...register("role")}>
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABELS[r]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
           <Controller
             control={control}
             name="photo"
@@ -142,7 +155,7 @@ export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
           />
           <Button type="submit" disabled={createUser.isPending}>
             <UserPlus size={16} />
-            {createUser.isPending ? "Creando..." : "Crear administrador"}
+            {createUser.isPending ? "Creando..." : "Crear usuario"}
           </Button>
         </form>
       </CardBody>
@@ -151,12 +164,13 @@ export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
         <Thead>
           <Th>Usuario</Th>
           <Th>Correo</Th>
+          <Th>Rol</Th>
           <Th>Estatus</Th>
           <Th className="text-right">Acciones</Th>
         </Thead>
         <Tbody>
-          {isLoading && <EmptyRow colSpan={4} message="Cargando..." />}
-          {isError && <EmptyRow colSpan={4} message="No se pudo cargar la lista de administradores." />}
+          {isLoading && <EmptyRow colSpan={5} message="Cargando..." />}
+          {isError && <EmptyRow colSpan={5} message="No se pudo cargar la lista de usuarios." />}
           {users.map((user) => (
             <tr key={user.id}>
               <Td className="font-semibold text-ink">
@@ -169,6 +183,7 @@ export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
                 </div>
               </Td>
               <Td>{user.email}</Td>
+              <Td>{ROLE_LABELS[user.role]}</Td>
               <Td>
                 <Badge tone={user.status}>{user.status === "active" ? "Activo" : "Inactivo"}</Badge>
               </Td>

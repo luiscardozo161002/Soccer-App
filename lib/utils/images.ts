@@ -11,10 +11,10 @@ export interface OptimizedImage {
   type: string;
 }
 
-// Decodes a base64 data URL, resizes to a square thumbnail and re-encodes
-// as webp so every stored photo is small and consistent regardless of what
-// the client uploaded.
-export async function optimizeImageFromDataUrl(dataUrl: string): Promise<OptimizedImage> {
+// Shared by every image-upload flow (avatars, logos, evidence): decodes and
+// size-checks a base64 data URL, leaving the resize/encode strategy to the
+// caller since that differs (square avatar crop vs. full-aspect evidence).
+export function decodeImageDataUrl(dataUrl: string): Buffer {
   const match = dataUrl.match(DATA_URL_RE);
   if (!match) {
     throw new ApiError(
@@ -28,7 +28,13 @@ export async function optimizeImageFromDataUrl(dataUrl: string): Promise<Optimiz
   if (raw.byteLength > MAX_SOURCE_BYTES) {
     throw new ApiError(422, "IMAGE_TOO_LARGE", "La imagen no debe superar 8MB");
   }
+  return raw;
+}
 
+// Resizes to a square thumbnail and re-encodes as webp so every stored
+// avatar/logo is small and consistent regardless of what the client uploaded.
+export async function optimizeImageFromDataUrl(dataUrl: string): Promise<OptimizedImage> {
+  const raw = decodeImageDataUrl(dataUrl);
   try {
     const buffer = await sharp(raw)
       .resize(OUTPUT_SIZE, OUTPUT_SIZE, { fit: "cover" })

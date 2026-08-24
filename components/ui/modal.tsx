@@ -1,45 +1,45 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 
+const sizeClasses = {
+  sm: "w-full max-w-md",
+  md: "w-full max-w-lg",
+  lg: "w-full max-w-3xl",
+} as const;
+
+// Closes only via the header's X or the caller's own Cancelar/Guardar
+// buttons — never on a backdrop click or Escape, so an in-progress edit
+// can't be lost by an accidental click or keypress.
 export function Modal({
   open,
   onClose,
   title,
   description,
+  size = "md",
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   description?: string;
+  size?: keyof typeof sizeClasses;
   children: ReactNode;
 }) {
-  useEffect(() => {
-    if (!open) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
-
   return (
     <AnimatePresence>
       {open && (
         <motion.div
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/70 p-4 py-10 backdrop-blur-md sm:items-center"
-          onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
         >
           <motion.div
-            className="w-full max-w-lg rounded-2xl bg-surface shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]"
-            onClick={(e) => e.stopPropagation()}
+            className={`rounded-2xl bg-surface shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)] ${sizeClasses[size]}`}
             initial={{ opacity: 0, y: 20, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.97 }}

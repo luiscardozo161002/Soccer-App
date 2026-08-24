@@ -1,5 +1,6 @@
+import { prisma } from "@/lib/prisma";
 import { ApiError, notFoundError } from "@/lib/errors";
-import { matchRepository } from "@/lib/repositories/match.repository";
+import { matchRepository, includeCategory, mapMatch } from "@/lib/repositories/match.repository";
 import { teamRepository } from "@/lib/repositories/team.repository";
 import { fieldRepository } from "@/lib/repositories/field.repository";
 import { seasonService } from "@/lib/services/season.service";
@@ -144,9 +145,12 @@ export const matchService = {
     return matchRepository.update(id, dto);
   },
 
-  async registerResult(id: string, dto: RegisterResultDto) {
+  async registerResult(id: string, dto: RegisterResultDto, actor: { userId: string; isAdmin: boolean }) {
     const match = await this.getById(id);
-    if (match.resultLocked) {
+    // An already-locked result can only be corrected by an admin (e.g. the
+    // referee made a mistake) — everyone else still hits the hard lock.
+    const isCorrectingLockedResult = match.resultLocked;
+    if (isCorrectingLockedResult && !actor.isAdmin) {
       throw new ApiError(
         409,
         "MATCH_RESULT_LOCKED",
@@ -167,7 +171,59 @@ export const matchService = {
         "No se puede registrar el resultado antes de la hora programada del partido"
       );
     }
-    return matchRepository.registerResult(id, dto);
+
+    // Serializable: two matches of the same jornada landing on the same
+    // suspension's range at once must not both miscount toward "fulfilled".
+    return prisma.$transaction(
+      async (tx) => {
+        const updated = await tx.match.update({
+          where: { id },
+          data: {
+            homeGoals: dto.homeGoals,
+            awayGoals: dto.awayGoals,
+            forfeit: dto.forfeit ?? false,
+            forfeitReason: dto.forfeit ? dto.forfeitReason || null : null,
+            status: "played",
+            resultLocked: true,
+            ...(isCorrectingLockedResult
+              ? { resultEditedAt: new Date(), resultEditedById: actor.userId }
+              : {}),
+          },
+          include: includeCategory,
+        });
+
+        // CANCELADO/APLAZADO never reach here — this only runs on the one
+        // path that sets status "played", so a cancelled/postponed match
+        // can never consume a suspension by construction.
+        for (const teamId of [updated.homeTeamId, updated.awayTeamId]) {
+          const sanctions = await tx.sanction.findMany({
+            where: {
+              fulfilled: false,
+              matchdayStart: { lte: updated.matchday },
+              matchdayEnd: { gte: updated.matchday },
+              card: { player: { teamId } },
+            },
+          });
+
+          for (const sanction of sanctions) {
+            const already = await tx.sanctionMatch.findUnique({
+              where: { sanctionId_matchId: { sanctionId: sanction.id, matchId: id } },
+            });
+            if (!already) {
+              await tx.sanctionMatch.create({ data: { sanctionId: sanction.id, matchId: id } });
+            }
+
+            const appliedCount = await tx.sanctionMatch.count({ where: { sanctionId: sanction.id } });
+            if (appliedCount >= sanction.matchesSuspended) {
+              await tx.sanction.update({ where: { id: sanction.id }, data: { fulfilled: true } });
+            }
+          }
+        }
+
+        return mapMatch(updated);
+      },
+      { isolationLevel: "Serializable" }
+    );
   },
 
   async remove(id: string) {

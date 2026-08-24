@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { get } from "@/lib/http/endpoints";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { get, patch } from "@/lib/http/endpoints";
 import type { ItemResponse } from "@/lib/http/types";
 import { API_ROUTES } from "@/lib/http/api-routes";
+import type { UpdateSeasonDto } from "@/lib/validation/season.schema";
 
 export type SeasonStatus = "active" | "archived";
 
@@ -13,7 +14,10 @@ export interface Season {
   startDate: string;
   endDate: string | null;
   status: SeasonStatus;
+  minMatchesPlayoffs: number | null;
 }
+
+export type UpdateSeasonInput = UpdateSeasonDto;
 
 export function useSeasons() {
   return useQuery({
@@ -27,5 +31,16 @@ export function useSeason(id: string | undefined) {
     queryKey: ["seasons", id],
     queryFn: () => get<ItemResponse<Season>>(API_ROUTES.seasons.byId(id!)),
     enabled: !!id,
+  });
+}
+
+export function useUpdateSeason() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...input }: UpdateSeasonInput & { id: string }) =>
+      patch<ItemResponse<Season>, UpdateSeasonInput>(API_ROUTES.seasons.byId(id), input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["seasons"] });
+    },
   });
 }

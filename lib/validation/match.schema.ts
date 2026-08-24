@@ -20,6 +20,7 @@ export const createMatchSchema = z
     homeTeamId: z.string().uuid(),
     awayTeamId: z.string().uuid(),
     fieldId: z.string().uuid(),
+    refereeId: z.string().uuid().nullable().optional(),
     matchday: z.number().int().min(1),
     date: z.coerce.date(),
     time: matchTimeSchema.optional(),
@@ -32,6 +33,7 @@ export type CreateMatchDto = z.infer<typeof createMatchSchema>;
 
 export const updateMatchSchema = z.object({
   fieldId: z.string().uuid().optional(),
+  refereeId: z.string().uuid().nullable().optional(),
   matchday: z.number().int().min(1).optional(),
   date: z.coerce.date().optional(),
   time: matchTimeSchema.optional(),
@@ -56,5 +58,6 @@ export const listMatchesQuerySchema = z.object({
   status: z.enum(matchStatusValues).optional(),
   seasonId: z.string().uuid().optional(),
   category: z.enum(leagueCategoryValues).optional(),
+  refereeId: z.string().uuid().optional(),
 });
 export type ListMatchesQuery = z.infer<typeof listMatchesQuerySchema>;

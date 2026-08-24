@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/app/generated/prisma/client";
 import type { CreateCardDto, ListCardsQuery, UpdateCardDto } from "@/lib/validation/card.schema";
 
 // select (not include) so binary photo columns never get pulled into
@@ -41,7 +42,7 @@ export const cardRepository = {
     return prisma.card.findUnique({ where: { id }, include: withDetails });
   },
 
-  create(data: CreateCardDto) {
+  create(data: CreateCardDto & { amount: Prisma.Decimal }) {
     return prisma.card.create({ data });
   },
 

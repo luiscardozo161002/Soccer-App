@@ -11,6 +11,7 @@ export function EditFormFooter({
   submitting,
   onEdit,
   onCancel,
+  editLabel = "Editar",
   submitLabel = "Guardar cambios",
 }: {
   isEditing: boolean;
@@ -18,6 +19,7 @@ export function EditFormFooter({
   submitting: boolean;
   onEdit: () => void;
   onCancel: () => void;
+  editLabel?: string;
   submitLabel?: string;
 }) {
   if (!isEditing) {
@@ -25,7 +27,7 @@ export function EditFormFooter({
       <div className="flex justify-end">
         <Button type="button" onClick={onEdit}>
           <Pencil size={15} />
-          Editar
+          {editLabel}
         </Button>
       </div>
     );

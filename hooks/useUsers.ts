@@ -6,6 +6,7 @@ import type { ItemResponse, ListResponse } from "@/lib/http/types";
 import { API_ROUTES } from "@/lib/http/api-routes";
 import type { EntityStatus } from "@/hooks/useTeams";
 import type { CreateUserDto, UpdateUserDto } from "@/lib/validation/user.schema";
+import type { Role } from "@/lib/auth/roles";
 
 export interface AdminUser {
   id: string;
@@ -14,7 +15,7 @@ export interface AdminUser {
   phoneNumber: string | null;
   photoType: string | null;
   photoUpdatedAt: string | null;
-  role: string;
+  role: Role;
   status: EntityStatus;
   createdAt: string;
 }
@@ -32,10 +33,13 @@ export function adminPhotoUrl(user: Pick<AdminUser, "id" | "photoType" | "photoU
 // Default pageSize=100 keeps existing unpaginated call sites (MyProfileForm
 // looking up "me" by id) working — pass an explicit smaller pageSize for a
 // real paginated table (see AdminUsersTable).
-export function useUsers(page = 1, pageSize = 100) {
+export function useUsers(page = 1, pageSize = 100, role?: Role) {
   return useQuery({
-    queryKey: ["users", { page, pageSize }],
-    queryFn: () => get<ListResponse<AdminUser>>(`${API_ROUTES.users.list}?page=${page}&pageSize=${pageSize}`),
+    queryKey: ["users", { page, pageSize, role }],
+    queryFn: () =>
+      get<ListResponse<AdminUser>>(
+        `${API_ROUTES.users.list}?page=${page}&pageSize=${pageSize}${role ? `&role=${role}` : ""}`
+      ),
   });
 }
 

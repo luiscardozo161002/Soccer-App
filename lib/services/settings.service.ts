@@ -23,7 +23,11 @@ export const settingsService = {
       primaryColor: dto.primaryColor,
       backgroundColor: dto.backgroundColor,
     };
-    if (dto.logo) {
+    if (dto.logo === null) {
+      data.logo = null;
+      data.logoType = null;
+      data.logoUpdatedAt = null;
+    } else if (dto.logo) {
       const { buffer, type } = await optimizeImageFromDataUrl(dto.logo);
       data.logo = new Uint8Array(buffer);
       data.logoType = type;

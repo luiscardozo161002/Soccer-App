@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 
-function fileToDataUrl(file: File): Promise<string> {
+export function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);

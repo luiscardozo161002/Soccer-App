@@ -3,7 +3,7 @@ export const CARD_REASONS = [
   "Falta antideportiva",
   "Insulto al árbitro",
   "Agresión a un jugador",
-  "Barrida fuerte / juego brusco",
+  "Juego brusco",
   "Protesta excesiva",
   "Insultos desde la porra/afición",
   "Otro",

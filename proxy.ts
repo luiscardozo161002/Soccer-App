@@ -7,6 +7,13 @@ import { checkRateLimit } from "@/lib/security/rate-limit";
 // accounts, so it needs a session even for GET.
 const ALWAYS_PROTECTED_API_PREFIXES = ["/api/v1/users"];
 
+// A referee is scoped to matches (result registration) and match evidence
+// only — every other write endpoint (teams, players, users, settings,
+// sanctions, ...) is off-limits regardless of the fine-grained per-match
+// check those two routes also do. role comes from the verified JWT, so this
+// needs no DB lookup and is safe to do at the edge.
+const ARBITRO_WRITE_PREFIX = "/api/v1/matches/";
+
 function envInt(name: string, fallback: number) {
   const value = Number(process.env[name]);
   return Number.isFinite(value) && value > 0 ? value : fallback;
@@ -75,6 +82,12 @@ export async function proxy(req: NextRequest) {
         return NextResponse.json(
           { success: false, error: { code: "UNAUTHORIZED", message: "Inicia sesión para continuar", details: null } },
           { status: 401 }
+        );
+      }
+      if (session.role === "arbitro" && req.method !== "GET" && !pathname.startsWith(ARBITRO_WRITE_PREFIX)) {
+        return NextResponse.json(
+          { success: false, error: { code: "FORBIDDEN", message: "No tienes permiso para esta acción", details: null } },
+          { status: 403 }
         );
       }
     }

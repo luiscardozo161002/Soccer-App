@@ -1,5 +1,6 @@
 import { ApiError, notFoundError } from "@/lib/errors";
 import { seasonRepository } from "@/lib/repositories/season.repository";
+import type { UpdateSeasonDto } from "@/lib/validation/season.schema";
 
 export const seasonService = {
   list() {
@@ -12,6 +13,11 @@ export const seasonService = {
       throw notFoundError("SEASON_NOT_FOUND", "la temporada", id);
     }
     return season;
+  },
+
+  async update(id: string, dto: UpdateSeasonDto) {
+    await this.getById(id);
+    return seasonRepository.update(id, dto);
   },
 
   async getActive() {

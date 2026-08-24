@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Pencil, Lock, Plus } from "lucide-react";
+import { Pencil, Lock, Plus, Images, PencilLine } from "lucide-react";
 import { toast } from "sonner";
 import { useMatches, useCreateMatch, type MatchStatus, type Match } from "@/hooks/useMatches";
 import { useTeams } from "@/hooks/useTeams";
@@ -25,6 +25,7 @@ import { CategoryDot } from "@/components/ui/category-badge";
 import { Modal } from "@/components/ui/modal";
 import { EmptyOptionsHint } from "@/components/ui/empty-options-hint";
 import { RegisterResultForm } from "@/components/register-result-form";
+import { MatchEvidenceViewerModal } from "@/components/forms/MatchEvidenceViewerModal";
 import {
   EditMatchModal,
   statusLabels,
@@ -95,7 +96,9 @@ export default function MatchesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [registeringMatch, setRegisteringMatch] = useState<Match | null>(null);
+  const [editingResultMatch, setEditingResultMatch] = useState<Match | null>(null);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+  const [viewingEvidenceMatch, setViewingEvidenceMatch] = useState<Match | null>(null);
   const [newMatchCategory, setNewMatchCategory] = useState<LeagueCategoryValue>(LEAGUE_CATEGORIES[0].value);
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -163,8 +166,8 @@ export default function MatchesPage() {
   const takenFieldIds = new Set(
     watchedTime
       ? (matchdayMatchesData?.data ?? [])
-          .filter((m) => m.date.slice(0, 10) === watchedDate && m.time === watchedTime)
-          .map((m) => m.fieldId)
+        .filter((m) => m.date.slice(0, 10) === watchedDate && m.time === watchedTime)
+        .map((m) => m.fieldId)
       : []
   );
   const fieldOptions = fields.filter((f) => !takenFieldIds.has(f.id));
@@ -438,13 +441,37 @@ export default function MatchesPage() {
                       </Button>
                     )}
                     {match.resultLocked && (
-                      <span
-                        className="flex items-center gap-1 rounded-full bg-primary-light px-2.5 py-1 text-[10px] font-bold uppercase text-primary"
-                        title="Resultado confirmado: ya no se puede editar"
-                      >
-                        <Lock size={12} />
-                        Confirmado
-                      </span>
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Ver evidencia de la jornada ${match.matchday}`}
+                          title="Ver evidencia fotográfica"
+                          onClick={() => setViewingEvidenceMatch(match)}
+                        >
+                          <Images size={20} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Corregir resultado de la jornada ${match.matchday}`}
+                          title="Corregir marcador, tarjetas o evidencia (por si el árbitro se equivocó)"
+                          onClick={() => setEditingResultMatch(match)}
+                        >
+                          <PencilLine size={16} />
+                        </Button>
+                        <span
+                          className="flex items-center gap-1 rounded-full bg-primary-light px-2.5 py-1 text-[10px] font-bold uppercase text-primary"
+                          title={
+                            match.resultEditedAt
+                              ? `Confirmado — corregido el ${new Date(match.resultEditedAt).toLocaleString("es-MX")}`
+                              : "Resultado confirmado"
+                          }
+                        >
+                          <Lock size={12} />
+                          Confirmado
+                        </span>
+                      </>
                     )}
                   </div>
                 </Td>
@@ -476,6 +503,36 @@ export default function MatchesPage() {
           onDone={() => setRegisteringMatch(null)}
         />
       )}
+      {editingResultMatch && (
+        <RegisterResultForm
+          match={{
+            id: editingResultMatch.id,
+            matchday: editingResultMatch.matchday,
+            homeTeamId: editingResultMatch.homeTeamId,
+            awayTeamId: editingResultMatch.awayTeamId,
+            homeTeamName: teamsById[editingResultMatch.homeTeamId] ?? "Local",
+            awayTeamName: teamsById[editingResultMatch.awayTeamId] ?? "Visitante",
+          }}
+          initialResult={{
+            homeGoals: editingResultMatch.homeGoals ?? 0,
+            awayGoals: editingResultMatch.awayGoals ?? 0,
+            forfeit: editingResultMatch.forfeit,
+            forfeitReason: editingResultMatch.forfeitReason,
+          }}
+          onDone={() => setEditingResultMatch(null)}
+        />
+      )}
+      <MatchEvidenceViewerModal
+        match={
+          viewingEvidenceMatch && {
+            id: viewingEvidenceMatch.id,
+            matchday: viewingEvidenceMatch.matchday,
+            homeTeamName: teamsById[viewingEvidenceMatch.homeTeamId] ?? "Local",
+            awayTeamName: teamsById[viewingEvidenceMatch.awayTeamId] ?? "Visitante",
+          }
+        }
+        onClose={() => setViewingEvidenceMatch(null)}
+      />
     </div>
   );
 }

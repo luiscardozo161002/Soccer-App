@@ -10,6 +10,7 @@ export const updateSettingsSchema = z.object({
   logo: z
     .string()
     .startsWith("data:image/", "El logo debe ser una imagen codificada en base64")
+    .nullable()
     .optional(),
 });
 export type UpdateSettingsDto = z.infer<typeof updateSettingsSchema>;

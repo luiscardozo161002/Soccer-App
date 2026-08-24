@@ -1,36 +1,37 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 // Warns before a browser tab close/refresh while a form has unsaved changes.
 // Only covers that native prompt — in-app navigation (closing a modal, the
 // Next.js router) is a separate concern and isn't handled here.
-//
-// Tracks `isDirty` via a ref (read live inside the listener) instead of
-// re-registering the listener on every change, so the returned `dismiss()`
-// takes effect immediately — a `setState` right before a same-tick
-// `window.location.reload()` wouldn't re-render in time to matter, since
-// the caller is about to reload anyway and won't stick around for it.
+
+// A counter, not a one-shot flag: a save can be in flight for a while (its
+// own eventual window.location.reload() isn't the only reload that can
+// land during that window — a dev-mode Fast Refresh reload racing the
+// pending request was still tripping this). Call at the start of a save
+// and again once it settles (success or error), so the warning stays
+// suppressed for the save's whole duration but never leaks past it.
+let pendingSaves = 0;
+
+export function suppressUnsavedChangesWarningOnce() {
+  pendingSaves++;
+}
+
+export function resumeUnsavedChangesWarning() {
+  pendingSaves = Math.max(0, pendingSaves - 1);
+}
+
 export function useUnsavedChangesWarning(isDirty: boolean) {
-  const isDirtyRef = useRef(isDirty);
-
   useEffect(() => {
-    isDirtyRef.current = isDirty;
-  }, [isDirty]);
+    if (!isDirty) return;
 
-  useEffect(() => {
     function handleBeforeUnload(event: BeforeUnloadEvent) {
-      if (!isDirtyRef.current) return;
+      if (pendingSaves > 0) return;
       event.preventDefault();
     }
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
-
-  // Call right before an intentional reload/navigation that follows a
-  // successful save, so it isn't mistaken for the user abandoning changes.
-  return function dismiss() {
-    isDirtyRef.current = false;
-  };
+  }, [isDirty]);
 }
