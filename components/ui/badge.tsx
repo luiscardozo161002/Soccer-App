@@ -9,6 +9,7 @@ const colors: Record<string, string> = {
   red: "bg-red-100 text-red-700 dark:bg-red-400/15 dark:text-red-300",
   eliminated: "bg-red-50 text-red-600 dark:bg-red-400/10 dark:text-red-300",
   withdrawn: "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/50",
+  recent: "bg-blue-50 text-blue-600 dark:bg-blue-400/10 dark:text-blue-300",
 };
 
 export function Badge({ children, tone }: { children: string; tone: string }) {

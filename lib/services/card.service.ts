@@ -2,6 +2,7 @@ import { ApiError, notFoundError } from "@/lib/errors";
 import { cardRepository } from "@/lib/repositories/card.repository";
 import { playerRepository } from "@/lib/repositories/player.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
+import { cardReasonConfigRepository } from "@/lib/repositories/card-reason-config.repository";
 import type { CreateCardDto, ListCardsQuery, UpdateCardDto } from "@/lib/validation/card.schema";
 
 export const cardService = {
@@ -34,7 +35,19 @@ export const cardService = {
       throw new ApiError(409, "PLAYER_NOT_IN_MATCH", "El equipo del jugador no es ninguno de los dos que juegan este partido");
     }
 
-    return cardRepository.create(dto);
+    // The fine is fully catalog-driven — never client-supplied — so a card
+    // already issued keeps the price that was in effect at the time, even
+    // if the catalog changes later.
+    const reasonConfig = await cardReasonConfigRepository.findActiveByTypeAndReason(dto.type, dto.detail);
+    if (!reasonConfig) {
+      throw new ApiError(
+        422,
+        "CARD_REASON_NOT_CONFIGURED",
+        "Ese motivo no está configurado (o no está activo) para este tipo de tarjeta"
+      );
+    }
+
+    return cardRepository.create({ ...dto, amount: reasonConfig.amount });
   },
 
   async update(id: string, dto: UpdateCardDto) {

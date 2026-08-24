@@ -62,11 +62,12 @@ enum CupMatchStatus {
 // jugadores y canchas no estan ligados a una temporada: se reutilizan entre
 // torneos.
 model Season {
-  id        String       @id @default(uuid())
-  name      String
-  startDate DateTime     @default(now()) @map("start_date")
-  endDate   DateTime?    @map("end_date")
-  status    SeasonStatus @default(active)
+  id                 String       @id @default(uuid())
+  name               String
+  startDate          DateTime     @default(now()) @map("start_date")
+  endDate            DateTime?    @map("end_date")
+  status             SeasonStatus @default(active)
+  minMatchesPlayoffs Int?         @map("min_matches_playoffs")
 
   matches          Match[]
   pointAdjustments PointAdjustment[]
@@ -104,6 +105,7 @@ model Player {
   photoUpdatedAt     DateTime? @map("photo_updated_at")
   birthDate          DateTime? @map("birth_date")
   registrationNumber String    @unique @map("registration_number")
+  registeredAt       DateTime  @default(now()) @map("registered_at")
   status             Status    @default(active)
 
   team  Team   @relation(fields: [teamId], references: [id])
@@ -130,6 +132,7 @@ model Match {
   homeTeamId String      @map("home_team_id")
   awayTeamId String      @map("away_team_id")
   fieldId    String      @map("field_id")
+  refereeId  String?     @map("referee_id")
   matchday   Int
   date       DateTime
   time       String?
@@ -140,14 +143,49 @@ model Match {
   statusReason String?   @map("status_reason")
   resultLocked Boolean   @default(false) @map("result_locked")
   status     MatchStatus @default(scheduled)
+  // Set only when an admin corrects an already-confirmed result — stays
+  // null for a match's first (normal) registration. See matchService.registerResult.
+  resultEditedAt   DateTime? @map("result_edited_at")
+  resultEditedById String?   @map("result_edited_by_id")
 
-  season   Season @relation(fields: [seasonId], references: [id])
-  homeTeam Team   @relation("HomeTeam", fields: [homeTeamId], references: [id])
-  awayTeam Team   @relation("AwayTeam", fields: [awayTeamId], references: [id])
-  field    Field  @relation(fields: [fieldId], references: [id])
-  cards    Card[]
+  season          Season           @relation(fields: [seasonId], references: [id])
+  homeTeam        Team             @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam        Team             @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  field           Field            @relation(fields: [fieldId], references: [id])
+  referee         User?            @relation("MatchReferee", fields: [refereeId], references: [id])
+  resultEditor    User?            @relation("MatchResultEditor", fields: [resultEditedById], references: [id])
+  cards           Card[]
+  evidence        MatchEvidence[]
+  sanctionMatches SanctionMatch[]
 
+  @@index([refereeId])
   @@map("matches")
+}
+
+enum MatchEvidenceSlot {
+  front
+  back
+}
+
+// Foto de la cédula arbitral subida al registrar el resultado (anverso y
+// reverso) — exactamente un registro por (match, slot); volver a subir a un
+// slot reemplaza la foto anterior en vez de acumular ("retake"). fecha_carga
+// (createdAt) es deliberadamente distinta de Match.date (fecha del partido)
+// — son dos conceptos distintos para auditoría, nunca se colapsan en uno.
+model MatchEvidence {
+  id               String            @id @default(uuid())
+  matchId          String            @map("match_id")
+  slot             MatchEvidenceSlot
+  photo            Bytes
+  photoType        String            @map("photo_type")
+  uploadedByUserId String            @map("uploaded_by_user_id")
+  createdAt        DateTime          @default(now()) @map("created_at")
+
+  match      Match @relation(fields: [matchId], references: [id])
+  uploadedBy User  @relation(fields: [uploadedByUserId], references: [id])
+
+  @@unique([matchId, slot])
+  @@map("match_evidence")
 }
 
 // Cada tarjeta pertenece a un jugador en un partido especifico.
@@ -183,9 +221,44 @@ model Sanction {
   waivedByPayment  Boolean @default(false) @map("waived_by_payment")
   status           Status  @default(active)
 
-  card Card @relation(fields: [cardId], references: [id])
+  card           Card            @relation(fields: [cardId], references: [id])
+  appliedMatches SanctionMatch[]
 
   @@map("sanctions")
+}
+
+// Registro de qué partidos ya se aplicaron (consumieron) contra una
+// sanción — la fuente de verdad para "restantes", nunca un contador mutable.
+// Poblado únicamente cuando un partido pasa a status "played" via
+// matchService.registerResult(); un partido cancelado/pospuesto nunca
+// genera una fila aquí.
+model SanctionMatch {
+  id         String   @id @default(uuid())
+  sanctionId String   @map("sanction_id")
+  matchId    String   @map("match_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  sanction Sanction @relation(fields: [sanctionId], references: [id])
+  match    Match    @relation(fields: [matchId], references: [id])
+
+  @@unique([sanctionId, matchId])
+  @@map("sanction_matches")
+}
+
+// Precio "de hoy" por (tipo de tarjeta, motivo). Card.amount congela este
+// valor al momento de crear la tarjeta — cambiar aquí nunca altera multas
+// ya emitidas.
+model CardReasonConfig {
+  id        String   @id @default(uuid())
+  cardType  CardType @map("card_type")
+  reason    String
+  amount    Decimal  @db.Decimal(10, 2)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([cardType, reason])
+  @@map("card_reason_configs")
 }
 
 // Ajustes manuales de puntos (ej. descuentos disciplinarios),
@@ -293,6 +366,10 @@ model User {
   resetToken           String?   @unique @map("reset_token")
   resetTokenExpiresAt  DateTime? @map("reset_token_expires_at")
   createdAt            DateTime  @default(now()) @map("created_at")
+
+  refereeMatches   Match[]         @relation("MatchReferee")
+  editedResults    Match[]         @relation("MatchResultEditor")
+  uploadedEvidence MatchEvidence[]
 
   @@map("users")
 }

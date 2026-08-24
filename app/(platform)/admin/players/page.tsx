@@ -9,9 +9,11 @@ import {
   usePlayers,
   useCreatePlayer,
   useDeletePlayer,
+  usePlayerEligibility,
   playerPhotoUrl,
   type Player,
 } from "@/hooks/usePlayers";
+import { useSanctions, activeSanctionsByPlayer, sanctionMatchesRemaining, type Sanction } from "@/hooks/useSanctions";
 import { useTeams } from "@/hooks/useTeams";
 import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
@@ -23,11 +25,39 @@ import { Pagination, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pa
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { PhotoInput } from "@/components/ui/photo-input";
 import { Modal } from "@/components/ui/modal";
+import { PlayerPhotoModal, type PlayerPhotoModalTarget } from "@/components/ui/player-photo-modal";
 import { EmptyOptionsHint } from "@/components/ui/empty-options-hint";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { EditPlayerModal, playerSchema, type PlayerForm } from "@/components/forms/EditPlayerModal";
+
+// Isolated so each row's eligibility query is independent of the others and
+// of the surrounding table re-rendering.
+function RecentPlayerBadge({ playerId }: { playerId: string }) {
+  const { data } = usePlayerEligibility(playerId);
+  const eligibility = data?.data;
+  if (!eligibility?.isRecent) return null;
+  return (
+    <Badge tone="recent">
+      {`Jugador reciente · Alta ${formatCalendarDate(eligibility.registeredAt)} · ${eligibility.matchesPlayedSinceRegistration}/${eligibility.minMatchesPlayoffs} partidos`}
+    </Badge>
+  );
+}
+
+// Suspended until their team plays enough matches to clear it — see
+// matchService.registerResult(), which is the only place that advances or
+// auto-lifts this. sanction is looked up from a single bulk fetch (see
+// PlayersPage), not a per-row query.
+function SuspendedPlayerBadge({ sanction }: { sanction: Sanction }) {
+  const applied = sanction._count.appliedMatches;
+  return (
+    <Badge tone="cancelled">
+      {`No puede jugar · ${applied}/${sanction.matchesSuspended} partidos cumplidos (faltan ${sanctionMatchesRemaining(sanction)})`}
+    </Badge>
+  );
+}
 
 export default function PlayersPage() {
   // Defaults to a single category instead of "all" so the page doesn't load
@@ -38,6 +68,7 @@ export default function PlayersPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [viewingPlayer, setViewingPlayer] = useState<PlayerPhotoModalTarget | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const { confirm, dialog } = useConfirm();
 
@@ -54,6 +85,8 @@ export default function PlayersPage() {
     pageSize: isSearching ? 100 : pageSize,
   });
   const createPlayer = useCreatePlayer();
+  const { data: activeSanctionsData } = useSanctions(false, 1, 100);
+  const sanctionsByPlayer = activeSanctionsByPlayer(activeSanctionsData?.data ?? []);
 
   const handleCategoryChange = (value: LeagueCategoryValue | "all") => {
     setCategoryFilter(value);
@@ -228,10 +261,20 @@ export default function PlayersPage() {
             {players.map((player) => (
               <tr key={player.id}>
                 <Td>
-                  <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setViewingPlayer({ name: player.name, photoUrl: playerPhotoUrl(player) })}
+                    className="flex items-center gap-3 text-left"
+                  >
                     <Avatar src={playerPhotoUrl(player)} name={player.name} />
-                    <span className="font-semibold text-ink">{player.name}</span>
-                  </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="font-semibold text-ink hover:text-primary">{player.name}</span>
+                      <RecentPlayerBadge playerId={player.id} />
+                      {sanctionsByPlayer.has(player.id) && (
+                        <SuspendedPlayerBadge sanction={sanctionsByPlayer.get(player.id)!} />
+                      )}
+                    </div>
+                  </button>
                 </Td>
                 <Td>{teamsById[player.teamId] ?? "—"}</Td>
                 <Td>{player.registrationNumber}</Td>
@@ -271,6 +314,7 @@ export default function PlayersPage() {
       </Card>
 
       <EditPlayerModal player={editingPlayer} teams={teams} onClose={() => setEditingPlayer(null)} />
+      <PlayerPhotoModal player={viewingPlayer} onClose={() => setViewingPlayer(null)} />
       {dialog}
     </div>
   );

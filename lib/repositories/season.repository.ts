@@ -24,4 +24,8 @@ export const seasonRepository = {
   archive(id: string) {
     return prisma.season.update({ where: { id }, data: { status: "archived", endDate: new Date() } });
   },
+
+  update(id: string, data: { minMatchesPlayoffs?: number | null }) {
+    return prisma.season.update({ where: { id }, data });
+  },
 };

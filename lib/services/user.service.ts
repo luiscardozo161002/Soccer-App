@@ -7,7 +7,10 @@ import type { Prisma } from "@/app/generated/prisma/client";
 
 export const userService = {
   async list(query: ListUsersQuery) {
-    const [items, totalItems] = await Promise.all([userRepository.findMany(query), userRepository.count()]);
+    const [items, totalItems] = await Promise.all([
+      userRepository.findMany(query),
+      userRepository.count(query.role),
+    ]);
     return { items, totalItems, totalPages: Math.ceil(totalItems / query.pageSize) };
   },
 
@@ -56,9 +59,11 @@ export const userService = {
       if (id === currentUserId) {
         throw new ApiError(409, "CANNOT_DEACTIVATE_SELF", "No puedes desactivar tu propia cuenta");
       }
-      const activeCount = await userRepository.countActive();
-      if (activeCount <= 1) {
-        throw new ApiError(409, "LAST_ACTIVE_ADMIN", "No puedes desactivar al único administrador activo");
+      if (user.role === "admin") {
+        const activeAdmins = await userRepository.countActive("admin");
+        if (activeAdmins <= 1) {
+          throw new ApiError(409, "LAST_ACTIVE_ADMIN", "No puedes desactivar al único administrador activo");
+        }
       }
     }
 
@@ -83,13 +88,15 @@ export const userService = {
   },
 
   async remove(id: string, currentUserId: string) {
-    await this.getById(id);
+    const user = await this.getById(id);
     if (id === currentUserId) {
       throw new ApiError(409, "CANNOT_DELETE_SELF", "No puedes eliminar tu propia cuenta");
     }
-    const total = await userRepository.count();
-    if (total <= 1) {
-      throw new ApiError(409, "LAST_ADMIN", "No puedes eliminar al único administrador");
+    if (user.role === "admin") {
+      const totalAdmins = await userRepository.count("admin");
+      if (totalAdmins <= 1) {
+        throw new ApiError(409, "LAST_ADMIN", "No puedes eliminar al único administrador");
+      }
     }
     await userRepository.delete(id);
   },

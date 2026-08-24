@@ -17,6 +17,7 @@ export const API_ROUTES = {
     list: "/api/v1/players",
     byId: (id: string) => `/api/v1/players/${id}`,
     photo: (id: string) => `/api/v1/players/${id}/photo`,
+    eligibility: (id: string) => `/api/v1/players/${id}/eligibility`,
   },
   fields: {
     list: "/api/v1/fields",
@@ -26,6 +27,9 @@ export const API_ROUTES = {
     list: "/api/v1/matches",
     byId: (id: string) => `/api/v1/matches/${id}`,
     result: (id: string) => `/api/v1/matches/${id}/result`,
+    evidence: (id: string) => `/api/v1/matches/${id}/evidence`,
+    evidenceById: (id: string, evidenceId: string) => `/api/v1/matches/${id}/evidence/${evidenceId}`,
+    evidencePhoto: (id: string, evidenceId: string) => `/api/v1/matches/${id}/evidence/${evidenceId}/photo`,
   },
   cards: {
     list: "/api/v1/cards",
@@ -37,6 +41,10 @@ export const API_ROUTES = {
     list: "/api/v1/sanctions",
     byId: (id: string) => `/api/v1/sanctions/${id}`,
     pay: (id: string) => `/api/v1/sanctions/${id}/pay`,
+  },
+  cardReasonConfigs: {
+    list: "/api/v1/card-reason-configs",
+    byId: (id: string) => `/api/v1/card-reason-configs/${id}`,
   },
   seasons: {
     list: "/api/v1/seasons",

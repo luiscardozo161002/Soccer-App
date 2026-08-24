@@ -14,6 +14,7 @@ export interface Match {
   homeTeamId: string;
   awayTeamId: string;
   fieldId: string;
+  refereeId: string | null;
   matchday: number;
   date: string;
   time: string | null;
@@ -23,6 +24,8 @@ export interface Match {
   forfeitReason: string | null;
   statusReason: string | null;
   resultLocked: boolean;
+  resultEditedAt: string | null;
+  resultEditedById: string | null;
   status: MatchStatus;
   category: LeagueCategoryValue;
 }
@@ -38,6 +41,7 @@ export interface MatchFilters {
   teamId?: string;
   status?: MatchStatus;
   category?: LeagueCategoryValue;
+  refereeId?: string;
   page?: number;
   pageSize?: number;
 }
@@ -51,6 +55,7 @@ function toQueryString(filters: MatchFilters) {
   if (filters.teamId) params.set("teamId", filters.teamId);
   if (filters.status) params.set("status", filters.status);
   if (filters.category) params.set("category", filters.category);
+  if (filters.refereeId) params.set("refereeId", filters.refereeId);
   return params.toString();
 }
 
@@ -92,6 +97,8 @@ export function useRegisterResult() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["matches"] });
       queryClient.invalidateQueries({ queryKey: ["standings"] });
+      // A result can auto-fulfill a suspension (see matchService.registerResult).
+      queryClient.invalidateQueries({ queryKey: ["sanctions"] });
     },
   });
 }

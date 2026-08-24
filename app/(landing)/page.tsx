@@ -151,7 +151,7 @@ function FieldLink({ location, name }: { location: string | null | undefined; na
 function Header() {
   const [open, setOpen] = useState(false);
   const { data: settingsData } = useSettings();
-  const siteName = settingsData?.data?.name ?? "Liga de Futbol";
+  const siteName = settingsData?.data?.name ?? "LigA Futbolera";
   const logoUrl = siteLogoUrl(settingsData?.data);
 
   return (

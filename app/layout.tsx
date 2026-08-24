@@ -29,7 +29,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Soccer App",
+  title: "Liga Futbolera",
   description: "Gestión de liga: equipos, jugadores, partidos y posiciones",
 };
 

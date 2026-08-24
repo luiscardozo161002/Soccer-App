@@ -14,12 +14,15 @@ const withDetails = {
         select: {
           id: true,
           name: true,
+          photoType: true,
+          photoUpdatedAt: true,
           team: { select: { id: true, name: true, category: true } },
         },
       },
       match: { select: { id: true, matchday: true, date: true } },
     },
   },
+  _count: { select: { appliedMatches: true } },
 } as const;
 
 export const sanctionRepository = {

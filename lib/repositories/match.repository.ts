@@ -1,13 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
-import type {
-  CreateMatchDto,
-  ListMatchesQuery,
-  RegisterResultDto,
-  UpdateMatchDto,
-} from "@/lib/validation/match.schema";
+import type { CreateMatchDto, ListMatchesQuery, UpdateMatchDto } from "@/lib/validation/match.schema";
 
-const includeCategory = {
+export const includeCategory = {
   homeTeam: {
     select: {
       category: true,
@@ -15,7 +10,7 @@ const includeCategory = {
   },
 } as const;
 
-function mapMatch<T extends { homeTeam: { category: any } }>(match: T) {
+export function mapMatch<T extends { homeTeam: { category: any } }>(match: T) {
   const { homeTeam, ...rest } = match;
   return {
     ...rest,
@@ -24,11 +19,12 @@ function mapMatch<T extends { homeTeam: { category: any } }>(match: T) {
 }
 
 export const matchRepository = {
-  async findMany({ page, pageSize, matchday, teamId, status, seasonId, category }: ListMatchesQuery) {
+  async findMany({ page, pageSize, matchday, teamId, status, seasonId, category, refereeId }: ListMatchesQuery) {
     const where: Prisma.MatchWhereInput = {
       matchday,
       status,
       seasonId,
+      refereeId,
       ...(teamId ? { OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }] } : {}),
       ...(category ? { homeTeam: { category } } : {}),
     };
@@ -44,11 +40,12 @@ export const matchRepository = {
     return matches.map(mapMatch);
   },
 
-  count({ matchday, teamId, status, seasonId, category }: Omit<ListMatchesQuery, "page" | "pageSize">) {
+  count({ matchday, teamId, status, seasonId, category, refereeId }: Omit<ListMatchesQuery, "page" | "pageSize">) {
     const where: Prisma.MatchWhereInput = {
       matchday,
       status,
       seasonId,
+      refereeId,
       ...(teamId ? { OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }] } : {}),
       ...(category ? { homeTeam: { category } } : {}),
     };
@@ -66,6 +63,17 @@ export const matchRepository = {
 
   countByField(fieldId: string) {
     return prisma.match.count({ where: { fieldId } });
+  },
+
+  countPlayedSince(teamId: string, seasonId: string, since: Date) {
+    return prisma.match.count({
+      where: {
+        seasonId,
+        status: "played",
+        date: { gt: since },
+        OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
+      },
+    });
   },
 
   // Scoped to matchday: the same field/date/time slot is reused week after
@@ -89,22 +97,6 @@ export const matchRepository = {
     const match = await prisma.match.update({
       where: { id },
       data,
-      include: includeCategory,
-    });
-    return mapMatch(match);
-  },
-
-  async registerResult(id: string, data: RegisterResultDto) {
-    const match = await prisma.match.update({
-      where: { id },
-      data: {
-        homeGoals: data.homeGoals,
-        awayGoals: data.awayGoals,
-        forfeit: data.forfeit ?? false,
-        forfeitReason: data.forfeit ? data.forfeitReason || null : null,
-        status: "played",
-        resultLocked: true,
-      },
       include: includeCategory,
     });
     return mapMatch(match);

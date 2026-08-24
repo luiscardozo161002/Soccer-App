@@ -2,18 +2,21 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { ShieldAlert, DollarSign, Undo2 } from "lucide-react";
-import { useSanctions, usePaySanction, useRevertSanction } from "@/hooks/useSanctions";
+import { DollarSign, Undo2 } from "lucide-react";
+import { useSanctions, usePaySanction, useRevertSanction, sanctionMatchesRemaining } from "@/hooks/useSanctions";
+import { playerPhotoUrl } from "@/hooks/usePlayers";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { ApiError } from "@/lib/errors";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
 import { Pagination, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
 import { CategoryBadge } from "@/components/ui/category-badge";
+import { PlayerPhotoModal, type PlayerPhotoModalTarget } from "@/components/ui/player-photo-modal";
 
 export function SuspensionsTable() {
   const [filter, setFilter] = useState<"active" | "resolved">("active");
@@ -40,6 +43,7 @@ export function SuspensionsTable() {
   );
   const paySanction = usePaySanction();
   const revertSanction = useRevertSanction();
+  const [viewingPlayer, setViewingPlayer] = useState<PlayerPhotoModalTarget | null>(null);
   const { confirm, dialog } = useConfirm();
 
   const handlePay = async (id: string, playerName: string, amount: string | null) => {
@@ -139,12 +143,19 @@ export function SuspensionsTable() {
             {sanctions.map((sanction) => (
               <tr key={sanction.id}>
                 <Td>
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 dark:bg-red-400/10 dark:text-red-300">
-                      <ShieldAlert size={15} />
-                    </span>
-                    <span className="font-semibold text-ink">{sanction.card.player.name}</span>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setViewingPlayer({
+                        name: sanction.card.player.name,
+                        photoUrl: playerPhotoUrl(sanction.card.player),
+                      })
+                    }
+                    className="flex items-center gap-2 text-left"
+                  >
+                    <Avatar src={playerPhotoUrl(sanction.card.player)} name={sanction.card.player.name} size={28} />
+                    <span className="font-semibold text-ink hover:text-primary">{sanction.card.player.name}</span>
+                  </button>
                 </Td>
                 <Td>{sanction.card.player.team.name}</Td>
                 <Td>
@@ -154,7 +165,11 @@ export function SuspensionsTable() {
                 <Td className="text-center">
                   {sanction.matchdayStart}–{sanction.matchdayEnd}
                 </Td>
-                <Td className="text-center">{sanction.matchesSuspended}</Td>
+                <Td className="text-center">
+                  {sanction.fulfilled
+                    ? sanction.matchesSuspended
+                    : `${sanctionMatchesRemaining(sanction)}/${sanction.matchesSuspended} restantes`}
+                </Td>
                 <Td>
                   {sanction.fulfilled ? (
                     <Badge tone="active">{sanction.waivedByPayment ? "Multa pagada" : "Cumplida"}</Badge>
@@ -200,6 +215,7 @@ export function SuspensionsTable() {
           />
         )}
       </Card>
+      <PlayerPhotoModal player={viewingPlayer} onClose={() => setViewingPlayer(null)} />
       {dialog}
     </>
   );

@@ -4,11 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, post } from "@/lib/http/endpoints";
 import type { ItemResponse } from "@/lib/http/types";
 import { API_ROUTES } from "@/lib/http/api-routes";
+import type { Role } from "@/lib/auth/roles";
 
 export interface AuthUser {
   id: string;
   username: string;
-  role: string;
+  role: Role;
   photoType: string | null;
   photoUpdatedAt: string | null;
 }

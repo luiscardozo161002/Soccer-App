@@ -15,6 +15,8 @@ export interface SanctionCard {
   player: {
     id: string;
     name: string;
+    photoType: string | null;
+    photoUpdatedAt: string | null;
     team: { id: string; name: string; category: string };
   };
   match: {
@@ -33,6 +35,26 @@ export interface Sanction {
   fulfilled: boolean;
   waivedByPayment: boolean;
   card: SanctionCard;
+  _count: { appliedMatches: number };
+}
+
+// "Restantes" is never stored — derived here from the applied-matches count
+// so it stays correct even if a sanction is reconstructed later.
+export function sanctionMatchesRemaining(sanction: Sanction) {
+  return Math.max(0, sanction.matchesSuspended - sanction._count.appliedMatches);
+}
+
+// One lookup built once per page from the unfulfilled-sanctions list,
+// instead of a per-row query — a player is "currently suspended" iff they
+// have an active (fulfilled: false) sanction, regardless of the matchday
+// range it was originally created with (registerResult() is what actually
+// advances/auto-fulfills it as their team's matches get played).
+export function activeSanctionsByPlayer(sanctions: Sanction[]) {
+  const map = new Map<string, Sanction>();
+  for (const sanction of sanctions) {
+    if (!sanction.fulfilled) map.set(sanction.card.player.id, sanction);
+  }
+  return map;
 }
 
 // cardId selects the URL (`API_ROUTES.cards.sanctions(cardId)`), it isn't

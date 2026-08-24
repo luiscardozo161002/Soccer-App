@@ -62,17 +62,17 @@ export function EditUserModal({ user, onClose }: { user: AdminUser | null; onClo
       { id: user.id, ...values, photo: photoRemoved ? null : values.photo },
       {
         onSuccess: () => {
-          toast.success("Administrador actualizado");
+          toast.success("Usuario actualizado");
           handleClose();
         },
         onError: (error) =>
-          toast.error(error instanceof ApiError ? error.message : "No se pudo actualizar el administrador"),
+          toast.error(error instanceof ApiError ? error.message : "No se pudo actualizar el usuario"),
       }
     );
   });
 
   return (
-    <Modal open={!!user} onClose={handleClose} title="Editar administrador">
+    <Modal open={!!user} onClose={handleClose} title="Editar usuario">
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <Field label="Usuario" error={errors.username?.message}>
           <Input maxLength={40} disabled={!isEditing} {...register("username")} />

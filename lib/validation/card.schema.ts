@@ -7,14 +7,14 @@ export const createCardSchema = z.object({
   playerId: z.string().uuid(),
   matchId: z.string().uuid(),
   type: z.enum(cardTypeValues),
-  amount: z.number().min(0).optional(),
-  detail: z.string().trim().max(255).optional(),
+  // detail must name an active CardReasonConfig reason for this type — the
+  // amount is looked up server-side from there, never accepted from the
+  // client (see cardService.create). No free-text "Otro" anymore.
+  detail: z.string().trim().min(1).max(255),
 });
 export type CreateCardDto = z.infer<typeof createCardSchema>;
 
 export const updateCardSchema = z.object({
-  amount: z.number().min(0).optional(),
-  detail: z.string().trim().max(255).optional(),
   paid: z.boolean().optional(),
 });
 export type UpdateCardDto = z.infer<typeof updateCardSchema>;

@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useUpdateMatch, type MatchStatus, type Match } from "@/hooks/useMatches";
+import { useUsers } from "@/hooks/useUsers";
 import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { todayLocalISODate } from "@/lib/utils/date";
@@ -48,6 +49,7 @@ export const TIME_OPTIONS = matchTimeOptions();
 export const editMatchSchema = z
   .object({
     fieldId: z.string().uuid("Selecciona la cancha"),
+    refereeId: z.string().uuid().optional().or(z.literal("")),
     matchday: z.coerce.number().int().min(1, "Jornada inválida"),
     date: z.string().min(1, "La fecha es obligatoria"),
     time: timeFieldSchema,
@@ -78,6 +80,7 @@ export function EditMatchModal({
   onClose: () => void;
 }) {
   const updateMatch = useUpdateMatch();
+  const { data: referees } = useUsers(1, 100, "arbitro");
   const { confirm, dialog } = useConfirm();
   const [isEditing, setIsEditing] = useState(false);
   const {
@@ -97,6 +100,7 @@ export function EditMatchModal({
   const originalValues = match
     ? {
         fieldId: match.fieldId,
+        refereeId: match.refereeId ?? "",
         matchday: match.matchday,
         date: match.date.slice(0, 10),
         time: match.time ?? "",
@@ -139,6 +143,7 @@ export function EditMatchModal({
       {
         id: match.id,
         ...values,
+        refereeId: values.refereeId || null,
         time: values.time || undefined,
         statusReason: values.statusReason || undefined,
       },
@@ -166,6 +171,16 @@ export function EditMatchModal({
               ))}
             </Select>
           </Field>
+          <Field label="Árbitro asignado (opcional)" error={errors.refereeId?.message}>
+            <Select disabled={!isEditing} {...register("refereeId")}>
+              <option value="">Sin asignar</option>
+              {(referees?.data ?? []).map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.username}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Jornada" error={errors.matchday?.message}>
               <Input
@@ -186,7 +201,12 @@ export function EditMatchModal({
               </Select>
             </Field>
             <Field label="Fecha" error={errors.date?.message}>
-              <Input type="date" disabled={!isEditing} {...register("date")} />
+              <Input
+                type="date"
+                min={watchedStatus === "scheduled" ? todayLocalISODate() : undefined}
+                disabled={!isEditing}
+                {...register("date")}
+              />
             </Field>
             <Field label="Hora (opcional)" error={errors.time?.message}>
               <Select disabled={!isEditing} {...register("time")}>

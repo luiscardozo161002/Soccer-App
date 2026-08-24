@@ -40,8 +40,9 @@ export const userRepository = {
     });
   },
 
-  findMany({ page, pageSize }: ListUsersQuery) {
+  findMany({ page, pageSize, role }: ListUsersQuery) {
     return prisma.user.findMany({
+      where: { role },
       skip: (page - 1) * pageSize,
       take: pageSize,
       orderBy: { createdAt: "asc" },
@@ -49,12 +50,12 @@ export const userRepository = {
     });
   },
 
-  count() {
-    return prisma.user.count();
+  count(role?: string) {
+    return prisma.user.count({ where: { role } });
   },
 
-  countActive() {
-    return prisma.user.count({ where: { status: "active" } });
+  countActive(role?: string) {
+    return prisma.user.count({ where: { status: "active", role } });
   },
 
   findById(id: string) {
