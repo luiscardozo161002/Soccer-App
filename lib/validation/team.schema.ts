@@ -15,7 +15,9 @@ export const createTeamSchema = z.object({
 });
 export type CreateTeamDto = z.infer<typeof createTeamSchema>;
 
-export const updateTeamSchema = createTeamSchema.partial();
+export const updateTeamSchema = createTeamSchema.partial().extend({
+  photo: photoDataUrl.nullable().optional(),
+});
 export type UpdateTeamDto = z.infer<typeof updateTeamSchema>;
 
 export const listTeamsQuerySchema = z.object({

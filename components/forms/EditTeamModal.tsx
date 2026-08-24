@@ -29,6 +29,7 @@ export type TeamForm = z.infer<typeof teamSchema>;
 export function EditTeamModal({ team, onClose }: { team: Team | null; onClose: () => void }) {
   const updateTeam = useUpdateTeam();
   const [isEditing, setIsEditing] = useState(false);
+  const [photoRemoved, setPhotoRemoved] = useState(false);
   const {
     register,
     control,
@@ -37,12 +38,13 @@ export function EditTeamModal({ team, onClose }: { team: Team | null; onClose: (
     formState: { errors, isDirty },
   } = useForm<TeamForm>({ resolver: zodResolver(teamSchema) });
 
-  useUnsavedChangesWarning(isEditing && isDirty);
+  useUnsavedChangesWarning(isEditing && (isDirty || photoRemoved));
 
   useEffect(() => {
     if (team) {
       reset({ name: team.name, category: team.category, photo: undefined });
       setIsEditing(false);
+      setPhotoRemoved(false);
     }
   }, [team, reset]);
 
@@ -56,11 +58,12 @@ export function EditTeamModal({ team, onClose }: { team: Team | null; onClose: (
   const handleCancel = () => {
     reset({ name: team.name, category: team.category, photo: undefined });
     setIsEditing(false);
+    setPhotoRemoved(false);
   };
 
   const onSubmit = handleSubmit((values) => {
     updateTeam.mutate(
-      { id: team.id, name: values.name, category: values.category, photo: values.photo },
+      { id: team.id, name: values.name, category: values.category, photo: photoRemoved ? null : values.photo },
       {
         onSuccess: () => {
           toast.success("Equipo actualizado");
@@ -92,8 +95,15 @@ export function EditTeamModal({ team, onClose }: { team: Team | null; onClose: (
           name="photo"
           render={({ field }) => (
             <PhotoInput
-              value={field.value ?? teamPhotoUrl(team) ?? undefined}
-              onChange={field.onChange}
+              value={photoRemoved ? undefined : field.value ?? teamPhotoUrl(team) ?? undefined}
+              onChange={(dataUrl) => {
+                field.onChange(dataUrl);
+                setPhotoRemoved(false);
+              }}
+              onRemove={() => {
+                field.onChange(undefined);
+                setPhotoRemoved(true);
+              }}
               disabled={!isEditing}
               uploading={updateTeam.isPending}
             />
@@ -101,7 +111,7 @@ export function EditTeamModal({ team, onClose }: { team: Team | null; onClose: (
         />
         <EditFormFooter
           isEditing={isEditing}
-          isDirty={isDirty}
+          isDirty={isDirty || photoRemoved}
           submitting={updateTeam.isPending}
           onEdit={() => setIsEditing(true)}
           onCancel={handleCancel}

@@ -80,7 +80,7 @@ export function PhotoInput({
           <button
             type="button"
             onClick={() => (onRemove ? onRemove() : onChange(undefined))}
-            className="flex items-center gap-1 text-xs font-semibold text-muted hover:text-red-500"
+            className="flex items-center gap-1 text-xs font-semibold text-muted hover:text-red-500 border-2 border-dashed border-border bg-primary-light/40"
           >
             <X size={14} /> Quitar
           </button>
