@@ -8,8 +8,6 @@ export const settingsService = {
     return settingsRepository.get();
   },
 
-  // Emails can't link to the logo by URL (APP_URL may be localhost, and
-  // Gmail strips data: URIs) — sent as a CID attachment instead.
   async getLogoAttachment() {
     const row = await settingsRepository.getLogo();
     if (!row?.logo || !row.logoType) return null;
@@ -17,7 +15,7 @@ export const settingsService = {
   },
 
   async update(dto: UpdateSettingsDto) {
-    const data: Prisma.SiteSettingsUncheckedUpdateInput = {
+    const data: Omit<Prisma.SiteSettingsUncheckedCreateInput, "id"> = {
       name: dto.name,
       slogan: dto.slogan,
       primaryColor: dto.primaryColor,
