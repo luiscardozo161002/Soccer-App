@@ -2,16 +2,22 @@
 
 import { useState } from "react";
 import { Trophy, Shield, CalendarDays, Clock3 } from "lucide-react";
-import { useStandings } from "@/hooks/useStandings";
+import { useStandings, type StandingsRow } from "@/hooks/useStandings";
 import { useTeams } from "@/hooks/useTeams";
 import { useMatches } from "@/hooks/useMatches";
 import { formatCalendarDate } from "@/lib/utils/date";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
+import {
+  standingsZone,
+  standingsZonesForCategory,
+  STANDINGS_ZONE_BADGE_CLASSES,
+  STANDINGS_ZONE_DOT_CLASSES,
+  STANDINGS_ZONE_LABELS,
+} from "@/lib/constants/standings-zones";
 import { Card, CardBody } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
 import { Pagination, DEFAULT_PAGE_SIZE, type PageSize } from "@/components/ui/pagination";
 import { Field, Select } from "@/components/ui/field";
-import { CategoryBadge } from "@/components/ui/category-badge";
 import "@/app/globals.css"
 
 const tileTones = {
@@ -49,6 +55,80 @@ function StatTile({
   );
 }
 
+function StandingsTableHead() {
+  return (
+    <Thead>
+      <Th className="sticky left-0 z-10 bg-surface">Equipo</Th>
+      <Th className="text-center" title="Juegos jugados">J.J.</Th>
+      <Th className="text-center" title="Juegos ganados">J.G.</Th>
+      <Th className="text-center" title="Juegos empatados">J.E.</Th>
+      <Th className="text-center" title="Juegos perdidos">J.P.</Th>
+      <Th className="text-center" title="Goles a favor">G.F.</Th>
+      <Th className="text-center" title="Goles en contra">G.C.</Th>
+      <Th className="text-center" title="Diferencia de goles">DIF.</Th>
+      <Th className="text-center" title="Puntos">PTS.</Th>
+    </Thead>
+  );
+}
+
+function StandingsRows({
+  rows,
+  category,
+  rankOffset = 0,
+}: {
+  rows: StandingsRow[];
+  category: LeagueCategoryValue;
+  rankOffset?: number;
+}) {
+  return (
+    <>
+      {rows.map((row, index) => {
+        const rank = rankOffset + index;
+        const zone = standingsZone(category, rank);
+        return (
+        <tr key={row.teamId}>
+          <Td className="sticky left-0 z-10 bg-surface">
+            <div className="flex items-center gap-3">
+              <span
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${STANDINGS_ZONE_BADGE_CLASSES[zone]}`}
+              >
+                {rank + 1}
+              </span>
+              <span className="font-semibold text-ink">{row.name}</span>
+            </div>
+          </Td>
+          <Td className="text-center">{row.played}</Td>
+          <Td className="text-center">{row.won}</Td>
+          <Td className="text-center">{row.drawn}</Td>
+          <Td className="text-center">{row.lost}</Td>
+          <Td className="text-center">{row.goalsFor}</Td>
+          <Td className="text-center">{row.goalsAgainst}</Td>
+          <Td className="text-center">{row.goalDifference}</Td>
+          <Td className="text-center">
+            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary-light px-2 text-sm font-bold text-primary">
+              {row.points}
+            </span>
+          </Td>
+        </tr>
+        );
+      })}
+    </>
+  );
+}
+
+function StandingsZoneLegend({ category }: { category: LeagueCategoryValue }) {
+  return (
+    <p className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border px-5 py-3 text-xs text-muted">
+      {standingsZonesForCategory(category).map((zone) => (
+        <span key={zone} className="flex items-center gap-1.5">
+          <span className={`h-2.5 w-2.5 rounded-full ${STANDINGS_ZONE_DOT_CLASSES[zone]}`} />
+          {STANDINGS_ZONE_LABELS[zone]}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 export default function StandingsPage() {
   // Defaults to a single category instead of "all" so the page doesn't load
   // and render every team across every category at once.
@@ -78,6 +158,10 @@ export default function StandingsPage() {
   const safePage = Math.min(page, totalPages);
   const pagedRows = filteredRows.slice((safePage - 1) * pageSize, safePage * pageSize);
   const paginationMeta = { page: safePage, pageSize, totalItems, totalPages };
+  const groupedByCategory =
+    categoryFilter === "all"
+      ? LEAGUE_CATEGORIES.map((c) => ({ category: c, rows: filteredRows.filter((r) => r.category === c.value) }))
+      : null;
 
   const handleCategoryChange = (value: LeagueCategoryValue | "all") => {
     setCategoryFilter(value);
@@ -139,81 +223,88 @@ export default function StandingsPage() {
         />
       </div>
 
+      {isLoading && (
+        <Card>
+          <Table>
+            <StandingsTableHead />
+            <Tbody>
+              <EmptyRow colSpan={9} message="Cargando..." />
+            </Tbody>
+          </Table>
+        </Card>
+      )}
+      {isError && (
+        <Card>
+          <Table>
+            <StandingsTableHead />
+            <Tbody>
+              <EmptyRow colSpan={9} message="No se pudo cargar la tabla de posiciones." />
+            </Tbody>
+          </Table>
+        </Card>
+      )}
+
+      {!isLoading && !isError && groupedByCategory && (
+        <div className="flex flex-col gap-4">
+          {groupedByCategory.map(({ category, rows }) => (
+            <Card key={category.value}>
+              <h2 className="border-b border-border px-5 py-3 text-sm font-extrabold uppercase tracking-wide text-ink">
+                {category.label}
+              </h2>
+              <Table>
+                <StandingsTableHead />
+                <Tbody>
+                  {rows.length === 0 ? (
+                    <EmptyRow colSpan={9} message={`Todavía no hay partidos jugados en ${category.label}.`} />
+                  ) : (
+                    <StandingsRows rows={rows} category={category.value} />
+                  )}
+                </Tbody>
+              </Table>
+              {rows.length > 0 && <StandingsZoneLegend category={category.value} />}
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && !isError && !groupedByCategory && (
+        <Card>
+          <Table>
+            <StandingsTableHead />
+            <Tbody>
+              {filteredRows.length === 0 ? (
+                <EmptyRow colSpan={9} message="Todavía no hay partidos jugados." />
+              ) : (
+                <StandingsRows
+                  rows={pagedRows}
+                  category={categoryFilter as LeagueCategoryValue}
+                  rankOffset={(safePage - 1) * pageSize}
+                />
+              )}
+            </Tbody>
+          </Table>
+          <Pagination
+            meta={paginationMeta}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
+          {filteredRows.length > 0 && <StandingsZoneLegend category={categoryFilter as LeagueCategoryValue} />}
+        </Card>
+      )}
+
       <Card>
-        <Table>
-          <Thead>
-            <Th className="sticky left-0 z-10 bg-surface">Equipo</Th>
-            <Th>Categoría</Th>
-            <Th className="text-center" title="Partidos jugados">PJ</Th>
-            <Th className="text-center" title="Partidos pendientes">PTE</Th>
-            <Th className="text-center" title="Partidos ganados">PG</Th>
-            <Th className="text-center" title="Partidos empatados">PE</Th>
-            <Th className="text-center" title="Partidos perdidos">PP</Th>
-            <Th className="text-center" title="Goles a favor">GF</Th>
-            <Th className="text-center" title="Goles en contra">GC</Th>
-            <Th className="text-center" title="Diferencia de goles">DG</Th>
-            <Th className="text-center" title="Puntos">PTS</Th>
-          </Thead>
-          <Tbody>
-            {isLoading && <EmptyRow colSpan={11} message="Cargando..." />}
-            {isError && <EmptyRow colSpan={11} message="No se pudo cargar la tabla de posiciones." />}
-            {!isLoading && !isError && filteredRows.length === 0 && (
-              <EmptyRow colSpan={11} message="Todavía no hay partidos jugados." />
-            )}
-            {pagedRows.map((row, index) => {
-              const rank = (safePage - 1) * pageSize + index;
-              return (
-                <tr key={row.teamId}>
-                  <Td className="sticky left-0 z-10 bg-surface">
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${rank === 0 ? "bg-primary text-white" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/50"
-                          }`}
-                      >
-                        {rank + 1}
-                      </span>
-                      <span className="font-semibold text-ink">{row.name}</span>
-                    </div>
-                  </Td>
-                  <Td>
-                    <CategoryBadge category={row.category} />
-                  </Td>
-                  <Td className="text-center">{row.played}</Td>
-                  <Td className="text-center">{row.pending}</Td>
-                  <Td className="text-center">{row.won}</Td>
-                  <Td className="text-center">{row.drawn}</Td>
-                  <Td className="text-center">{row.lost}</Td>
-                  <Td className="text-center">{row.goalsFor}</Td>
-                  <Td className="text-center">{row.goalsAgainst}</Td>
-                  <Td className="text-center">{row.goalDifference}</Td>
-                  <Td className="text-center">
-                    <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary-light px-2 text-sm font-bold text-primary">
-                      {row.points}
-                    </span>
-                  </Td>
-                </tr>
-              );
-            })}
-          </Tbody>
-        </Table>
-        <Pagination
-          meta={paginationMeta}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1);
-          }}
-        />
-        <p className="flex flex-wrap gap-x-3 gap-y-1 border-t border-border px-6 py-3 text-xs text-muted">
-          <span><span className="font-semibold text-ink">PJ</span> Jugados</span>
-          <span><span className="font-semibold text-ink">PTE</span> Pendientes</span>
-          <span><span className="font-semibold text-ink">PG</span> Ganados</span>
-          <span><span className="font-semibold text-ink">PE</span> Empatados</span>
-          <span><span className="font-semibold text-ink">PP</span> Perdidos</span>
-          <span><span className="font-semibold text-ink">GF</span> Goles a favor</span>
-          <span><span className="font-semibold text-ink">GC</span> Goles en contra</span>
-          <span><span className="font-semibold text-ink">DG</span> Diferencia de goles</span>
-          <span><span className="font-semibold text-ink">PTS</span> Puntos</span>
+        <p className="flex flex-wrap gap-x-3 gap-y-1 px-5 py-3 text-xs text-muted">
+          <span><span className="font-semibold text-ink">J.J.</span> Juegos jugados</span>
+          <span><span className="font-semibold text-ink">J.G.</span> Juegos ganados</span>
+          <span><span className="font-semibold text-ink">J.E.</span> Juegos empatados</span>
+          <span><span className="font-semibold text-ink">J.P.</span> Juegos perdidos</span>
+          <span><span className="font-semibold text-ink">G.F.</span> Goles a favor</span>
+          <span><span className="font-semibold text-ink">G.C.</span> Goles en contra</span>
+          <span><span className="font-semibold text-ink">DIF.</span> Diferencia de goles</span>
+          <span><span className="font-semibold text-ink">PTS.</span> Puntos</span>
         </p>
       </Card>
     </div>

@@ -2,12 +2,24 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { LoaderCircle } from "lucide-react";
+import { Trophy } from "lucide-react";
 
-export function BrandLogo({ logoUrl, siteName }: { logoUrl: string | null; siteName: string }) {
+export function BrandLogo({
+  logoUrl,
+  siteName,
+  isLoading = false,
+}: {
+  logoUrl: string | null;
+  siteName: string;
+  isLoading?: boolean;
+}) {
   return (
     <div className="relative z-10 flex items-center gap-3">
-      {logoUrl ? (
+      {isLoading ? (
+        // Skeleton only while actually loading — once settings have
+        // resolved with no logo, that's a final state, not a spinner.
+        <span className="block h-12 w-12 shrink-0 animate-pulse rounded-full border-2 border-white/40 bg-white/10" />
+      ) : logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={logoUrl}
@@ -16,7 +28,7 @@ export function BrandLogo({ logoUrl, siteName }: { logoUrl: string | null; siteN
         />
       ) : (
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-white/40 bg-white/10 text-2xl">
-          <LoaderCircle className="animate-spin text-white" size={24} />
+          <Trophy className="text-white" size={22} />
         </span>
       )}
       <span className="text-lg font-black uppercase tracking-tight text-white">{siteName}</span>
@@ -51,7 +63,15 @@ const cornerVignette =
 const edgeVignette =
   "radial-gradient(ellipse 90% 80% at 50% 40%, transparent 40%, rgba(0,0,0,0.32) 75%, rgba(0,0,0,0.55) 100%)";
 
-export function BrandPanel({ logoUrl, siteName }: { logoUrl: string | null; siteName: string }) {
+export function BrandPanel({
+  logoUrl,
+  siteName,
+  isLoading = false,
+}: {
+  logoUrl: string | null;
+  siteName: string;
+  isLoading?: boolean;
+}) {
   return (
     <div className="relative hidden w-1/2 shrink-0 overflow-hidden lg:flex lg:flex-col lg:p-12">
       {/* Slightly scaled up so the blur filter never reveals a sharp edge. */}
@@ -68,7 +88,7 @@ export function BrandPanel({ logoUrl, siteName }: { logoUrl: string | null; site
         style={{ backgroundImage: edgeVignette }}
       />
 
-      <BrandLogo logoUrl={logoUrl} siteName={siteName} />
+      <BrandLogo logoUrl={logoUrl} siteName={siteName} isLoading={isLoading} />
 
       <div className="relative z-10 flex flex-1 items-end justify-center gap-4 pt-4">
         <PlayerCutout src="/images/player-kicking.webp" className="mb-2" delay={0.1} />

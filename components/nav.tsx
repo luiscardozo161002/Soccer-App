@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Trophy, Shield, Users, MapPinned, CalendarDays, Globe, History, ShieldAlert, Settings, LogOut, PanelLeftClose, PanelLeftOpen, LoaderCircle, Award, ClipboardCheck, Menu, X } from "lucide-react";
+import { Trophy, Shield, Users, MapPinned, CalendarDays, Globe, History, ShieldAlert, Settings, LogOut, PanelLeftClose, PanelLeftOpen, ClipboardCheck, Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -18,7 +18,6 @@ const links = [
   { href: "/admin/teams", label: "Equipos", icon: Shield },
   { href: "/admin/players", label: "Jugadores", icon: Users },
   { href: "/admin/matches", label: "Partidos", icon: CalendarDays },
-  { href: "/admin/cup", label: "Copa", icon: Award },
   { href: "/admin/fields", label: "Canchas", icon: MapPinned },
   { href: "/admin/sanctions", label: "Sanciones y Tarjetas", icon: ShieldAlert },
   { href: "/admin/history", label: "Historial", icon: History },
@@ -173,7 +172,7 @@ export function Nav() {
                 />
               ) : (
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-primary-light text-xl">
-                  <LoaderCircle className="animate-spin text-white" size={24} />
+                  <Trophy className="text-primary" size={22} />
                 </span>
               )}
             </span>
@@ -218,7 +217,7 @@ export function Nav() {
             </Link>
             <div className={`rounded-lg border border-border bg-primary-light/30 p-1.5 text-[11px] text-muted ${collapsed ? "md:hidden" : ""}`}>
               Temporada activa
-              <p className="mt-0.5 font-semibold text-ink">{activeSeason?.name ?? `Liga ${new Date().getFullYear()}`}</p>
+              <p className="mt-1 text-[9px] font-light ">{activeSeason?.name ?? `Liga ${new Date().getFullYear()}`}</p>
             </div>
 
             {me && (

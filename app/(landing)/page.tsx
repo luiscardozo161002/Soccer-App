@@ -20,16 +20,30 @@ import { useTeams, teamPhotoUrl } from "@/hooks/useTeams";
 import { useMatches } from "@/hooks/useMatches";
 import { useFields, googleMapsUrl } from "@/hooks/useFields";
 import { useSettings, siteLogoUrl } from "@/hooks/useSettings";
-import { formatCalendarDate } from "@/lib/utils/date";
+import { formatCalendarDate, hasMatchStarted } from "@/lib/utils/date";
 import { LEAGUE_CATEGORIES } from "@/lib/constants/league-categories";
+import {
+  standingsZone,
+  standingsZonesForCategory,
+  STANDINGS_ZONE_BADGE_CLASSES,
+  STANDINGS_ZONE_DOT_CLASSES,
+} from "@/lib/constants/standings-zones";
 import { Avatar } from "@/components/ui/avatar";
 import { CategoryBadge, CategoryDot } from "@/components/ui/category-badge";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { LocaleProvider, useLocale } from "@/lib/i18n/LocaleContext";
+import type { dictionaries } from "@/lib/i18n/dictionaries";
 
-const navLinks = [
-  { href: "#proximos-partidos", label: "Próximos partidos" },
-  { href: "#tabla", label: "Tabla" },
-  { href: "#equipos", label: "Equipos" },
-];
+type Dictionary = (typeof dictionaries)["es-MX"];
+
+function navLinks(t: Dictionary) {
+  return [
+    { href: "#proximos-partidos", label: t.nav.upcoming },
+    { href: "#partidos-jugados", label: t.nav.played },
+    { href: "#tabla", label: t.nav.table },
+    { href: "#equipos", label: t.nav.teams },
+  ];
+}
 
 // Scroll-reveal: sections fade/slide into place the first time they enter
 // the viewport, instead of just appearing.
@@ -152,6 +166,8 @@ function Header() {
   const { data: settingsData } = useSettings();
   const siteName = settingsData?.data?.name ?? "LigA Futbolera";
   const logoUrl = siteLogoUrl(settingsData?.data);
+  const { t } = useLocale();
+  const links = navLinks(t);
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur-md">
@@ -159,7 +175,7 @@ function Header() {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          aria-label={open ? "Cerrar menú" : "Abrir menú"}
+          aria-label={open ? t.nav.closeMenu : t.nav.openMenu}
           className="text-ink dark:text-white sm:hidden"
         >
           {open ? <X size={22} /> : <Menu size={22} />}
@@ -174,7 +190,7 @@ function Header() {
         </div>
 
         <nav className="ml-10 hidden flex-1 items-center gap-8 text-xs font-bold uppercase tracking-widest sm:flex">
-          {navLinks.map((link) => (
+          {links.map((link) => (
             <a
               key={link.href}
               href={link.href}
@@ -185,17 +201,20 @@ function Header() {
           ))}
         </nav>
 
-        <Link
-          href="/admin"
-          className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:border-primary hover:text-primary dark:border-white/30 dark:text-white hover:scale-105 transition-all duration-300 "
-        >
-          Portal
-        </Link>
+        <div className="ml-auto flex shrink-0 items-center gap-3">
+          <LanguageSwitcher />
+          <Link
+            href="/admin"
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:border-primary hover:text-primary dark:border-white/30 dark:text-white hover:scale-105 transition-all duration-300 "
+          >
+            {t.nav.portal}
+          </Link>
+        </div>
       </div>
 
       {open && (
         <nav className="flex flex-col gap-1 border-t border-border px-4 py-3 dark:border-white/10 sm:hidden">
-          {navLinks.map((link) => (
+          {links.map((link) => (
             <a
               key={link.href}
               href={link.href}
@@ -215,6 +234,8 @@ function Footer() {
   const { data: settingsData } = useSettings();
   const siteName = settingsData?.data?.name ?? "Liga de Futbol";
   const slogan = settingsData?.data?.slogan;
+  const { t } = useLocale();
+  const links = navLinks(t);
 
   return (
     <footer className="relative overflow-hidden border-t border-border bg-surface">
@@ -225,24 +246,34 @@ function Footer() {
           <p className="text-sm font-black uppercase tracking-tight text-ink dark:text-white">
             {siteName} · {new Date().getFullYear()}
           </p>
-          <p className="mt-1 text-xs text-muted dark:text-white/40">
-            {slogan || "Resultados, calendario y posiciones actualizados en tiempo real."}
-          </p>
+          <p className="mt-1 text-xs text-muted dark:text-white/40">{slogan || t.footer.defaultSlogan}</p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-bold uppercase tracking-widest">
-          <a href="#proximos-partidos" className="text-muted hover:text-primary dark:text-white/50 ">Próximos partidos</a>
-          <a href="#tabla" className="text-muted hover:text-primary dark:text-white/50 ">Tabla</a>
-          <a href="#equipos" className="text-muted hover:text-primary dark:text-white/50 ">Equipos</a>
+          {links.map((link) => (
+            <a key={link.href} href={link.href} className="text-muted hover:text-primary dark:text-white/50 ">
+              {link.label}
+            </a>
+          ))}
         </div>
       </div>
       <p className="border-t border-border py-4 text-center text-[11px] text-muted dark:border-white/5 dark:text-white/30">
-        © {new Date().getFullYear()} {siteName}. Todos los derechos reservados.
+        © {new Date().getFullYear()} {siteName}. {t.footer.rights}
       </p>
     </footer>
   );
 }
 
 export default function LandingPage() {
+  return (
+    <LocaleProvider>
+      <LandingPageContent />
+    </LocaleProvider>
+  );
+}
+
+function LandingPageContent() {
+  const { t, locale } = useLocale();
+  const dateLocale = locale === "en" ? "en-US" : "es-MX";
   const { data: teamsData } = useTeams();
   const teams = teamsData?.data ?? [];
   const teamsById = Object.fromEntries(teams.map((t) => [t.id, t]));
@@ -255,8 +286,11 @@ export default function LandingPage() {
   const matches = matchesData?.data ?? [];
   const playedCount = matches.filter((m) => m.status === "played").length;
   const upcoming = matches
-    .filter((m) => m.status === "scheduled")
+    .filter((m) => m.status === "scheduled" && !hasMatchStarted(m.date, m.time))
     .sort((a, b) => `${a.date}T${a.time ?? "99:99"}`.localeCompare(`${b.date}T${b.time ?? "99:99"}`));
+  const played = matches
+    .filter((m) => m.status === "played")
+    .sort((a, b) => `${b.date}T${b.time ?? "00:00"}`.localeCompare(`${a.date}T${a.time ?? "00:00"}`));
 
   const [heroIndex, setHeroIndex] = useState(0);
   const featured = upcoming[heroIndex] ?? null;
@@ -270,6 +304,11 @@ export default function LandingPage() {
   const activeCategory = LEAGUE_CATEGORIES[categoryIndex];
   const categoryTeams = (standingsData?.data ?? []).filter((row) => row.category === activeCategory.value);
   const categoryRoster = teams.filter((team) => team.category === activeCategory.value);
+  // The hero spotlight above still pulls from the unfiltered `upcoming`/
+  // `played` lists (any category) — only these grid sections are scoped to
+  // the category tabs, same as Tabla/Equipos below.
+  const categoryUpcoming = upcoming.filter((m) => m.category === activeCategory.value);
+  const categoryPlayed = played.filter((m) => m.category === activeCategory.value);
 
   return (
     <div className="min-h-screen bg-surface text-ink">
@@ -332,7 +371,7 @@ export default function LandingPage() {
             aria-hidden
             className="pointer-events-none absolute -top-6 right-0 z-0 select-none text-[9rem] font-black leading-none text-ink/[0.04] [animation:fade-in-up_0.4s_ease] dark:text-white/[0.05] sm:text-[16rem]"
           >
-            {featured ? `J${featured.matchday}` : new Date().getFullYear()}
+            {featured ? t.hero.ghostMatchday(featured.matchday) : new Date().getFullYear()}
           </span>
 
           <div className="relative z-10 flex items-center gap-2 sm:gap-4">
@@ -340,7 +379,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={goPrev}
-                aria-label="Partido anterior"
+                aria-label={t.hero.prevMatch}
                 className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full  border-2 border-gray-400 text-muted transition-colors hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60 sm:flex hover:scale-110 transition-transform duration-200"
               >
                 <ChevronLeft size={20} className="text-gray-400 dark:text-white hover:text-primary" />
@@ -349,7 +388,7 @@ export default function LandingPage() {
 
             <div key={heroIndex} className="flex-1 py-3 text-center [animation:fade-in-up_0.4s_ease] sm:py-12">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary-light px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-primary ">
-                <Trophy size={12} /> {featured ? `Próximo partido · Jornada ${featured.matchday}` : `Temporada ${new Date().getFullYear()}`}
+                <Trophy size={12} /> {featured ? t.hero.nextMatchBadge(featured.matchday) : t.hero.seasonBadge(new Date().getFullYear())}
               </span>
 
               {featured ? (
@@ -365,7 +404,7 @@ export default function LandingPage() {
                         {teamsById[featured.homeTeamId]?.name ?? "—"}
                       </span>
                     </div>
-                    <span className="text-sm font-black uppercase tracking-widest text-muted dark:text-white/30 sm:text-base">vs</span>
+                    <span className="text-sm font-black uppercase tracking-widest text-muted dark:text-white/30 sm:text-base">{t.hero.vs}</span>
                     <div className="flex flex-col items-center gap-3 px-2 hover:scale-110 transition-transform duration-200">
                       <Avatar
                         src={teamsById[featured.awayTeamId] ? teamPhotoUrl(teamsById[featured.awayTeamId]) : null}
@@ -380,18 +419,22 @@ export default function LandingPage() {
 
                   <div className="mt-8 flex flex-col items-center gap-1 text-muted dark:text-white/70">
                     <span className="text-sm font-semibold">
-                      {formatCalendarDate(featured.date, {
-                        weekday: "long",
-                        day: "2-digit",
-                        month: "long",
-                      })}{" "}
-                      · {featured.time ?? "hora por confirmar"}
+                      {formatCalendarDate(
+                        featured.date,
+                        {
+                          weekday: "long",
+                          day: "2-digit",
+                          month: "long",
+                        },
+                        dateLocale
+                      )}{" "}
+                      · {featured.time ?? t.hero.timeTbd}
                     </span>
                     <span className="flex items-center gap-1.5 text-xs text-muted dark:text-white/40">
                       <MapPinned size={13} />
                       <FieldLink
                         location={fieldsById[featured.fieldId]?.location}
-                        name={fieldsById[featured.fieldId]?.name ?? "Cancha por confirmar"}
+                        name={fieldsById[featured.fieldId]?.name ?? t.upcoming.fieldTbd}
                       />
                     </span>
                     <CategoryBadge category={featured.category} />
@@ -402,31 +445,30 @@ export default function LandingPage() {
                       href="#proximos-partidos"
                       className="rounded-full bg-primary px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-primary-hover"
                     >
-                      Ver calendario
+                      {t.hero.viewCalendar}
                     </a>
                     <a
                       href="#tabla"
                       className="rounded-full border border-border px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:border-slate-900 hover:text-ink dark:border-white/25 dark:text-white dark:hover:border-white"
                     >
-                      Ver tabla
+                      {t.hero.viewTable}
                     </a>
                   </div>
                 </>
               ) : (
                 <>
                   <h1 className="mx-auto mt-6 max-w-xl text-3xl font-black tracking-tight text-ink dark:text-white sm:text-5xl">
-                    Todo el fútbol de la liga, en un solo lugar
+                    {t.hero.noMatchesTitle}
                   </h1>
                   <p className="mx-auto mt-3 max-w-md text-sm text-muted dark:text-white/50">
-                    No hay partidos programados por el momento. Revisa la tabla de posiciones y los equipos
-                    inscritos esta temporada.
+                    {t.hero.noMatchesBody}
                   </p>
                   <div className="mt-8">
                     <a
                       href="#tabla"
                       className="rounded-full bg-primary px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-primary-hover"
                     >
-                      Ver tabla de posiciones
+                      {t.hero.viewStandings}
                     </a>
                   </div>
                 </>
@@ -437,7 +479,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={goNext}
-                aria-label="Siguiente partido"
+                aria-label={t.hero.nextMatch}
                 className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-gray-400 text-muted transition-colors hover:border-primary hover:text-primary dark:border-white/15 dark:text-white/60 sm:flex hover:scale-110 transition-transform duration-200"
               >
                 <ChevronRight size={20} className="text-gray-400 dark:text-white hover:text-primary" />
@@ -451,23 +493,26 @@ export default function LandingPage() {
               href="#proximos-partidos"
               className="flex items-center gap-1.5 text-muted transition-colors hover:text-primary dark:text-white/50 "
             >
-              <CornerFlagGlyph className="h-3 w-3" /> Calendario
+              <CornerFlagGlyph className="h-3 w-3" /> {t.hero.quickCalendar}
             </a>
             <a
               href="#tabla"
               className="flex items-center gap-1.5 text-muted transition-colors hover:text-primary dark:text-white/50 "
             >
-              <CornerFlagGlyph className="h-3 w-3" /> Tabla
+              <CornerFlagGlyph className="h-3 w-3" /> {t.hero.quickTable}
             </a>
             <a
               href="#equipos"
               className="flex items-center gap-1.5 text-muted transition-colors hover:text-primary dark:text-white/50 "
             >
-              <CornerFlagGlyph className="h-3 w-3" /> Equipos
+              <CornerFlagGlyph className="h-3 w-3" /> {t.hero.quickTeams}
             </a>
-            <span className="flex items-center gap-1.5 text-muted dark:text-white/50">
-              <CornerFlagGlyph className="h-3 w-3" /> {playedCount} partidos jugados
-            </span>
+            <a
+              href="#partidos-jugados"
+              className="flex items-center gap-1.5 text-muted transition-colors hover:text-primary dark:text-white/50 "
+            >
+              <CornerFlagGlyph className="h-3 w-3" /> {t.hero.matchesPlayed(playedCount)}
+            </a>
           </div>
         </div>
 
@@ -491,7 +536,7 @@ export default function LandingPage() {
                     key={i}
                     type="button"
                     onClick={() => setHeroIndex(i)}
-                    aria-label={`Ver partido ${i + 1}`}
+                    aria-label={t.hero.viewMatchN(i + 1)}
                     className={`h-1.5 w-1.5 rounded-full transition-colors ${i === heroIndex % dotCount ? "bg-primary " : "bg-slate-300 dark:bg-white/20"
                       }`}
                   />
@@ -520,19 +565,23 @@ export default function LandingPage() {
 
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-ink dark:text-white">Próximos partidos</h2>
-              <p className="text-sm text-muted dark:text-white/40">Calendario de la liga ordenado por fecha.</p>
+              <h2 className="text-xl font-black uppercase tracking-tight text-ink dark:text-white">{t.upcoming.title}</h2>
+              <p className="text-sm text-muted dark:text-white/40">{t.upcoming.subtitle(activeCategory.label)}</p>
             </div>
             <CalendarDays className="hidden text-primary sm:block" size={22} />
           </div>
 
-          {upcoming.length === 0 ? (
+          {/* Shares state with Tabla/Equipos below, so every section stays
+              in sync as the visitor switches categories. */}
+          <CategoryTabs activeIndex={categoryIndex} onChange={setCategoryIndex} />
+
+          {categoryUpcoming.length === 0 ? (
             <div className="rounded-2xl p-8 text-center text-sm text-muted dark:text-white/40">
-              No hay partidos programados por el momento.
+              {t.upcoming.empty(activeCategory.label)}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {upcoming.slice(0, 6).map((match) => (
+              {categoryUpcoming.slice(0, 6).map((match) => (
                 <motion.div
                   key={match.id}
                   className="flex flex-col gap-3 rounded-2xl border border-border p-5 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.3)] transition-colors hover:border-primary/60 dark:border-white/10 dark:shadow-none "
@@ -541,11 +590,11 @@ export default function LandingPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-muted dark:bg-white/5 dark:text-white/60">
-                      Jornada {match.matchday}
+                      {t.upcoming.matchday(match.matchday)}
                     </span>
                     <span className="text-xs font-semibold text-muted dark:text-white/40">
-                      {formatCalendarDate(match.date, { day: "2-digit", month: "short" })} ·{" "}
-                      {match.time ?? "hora por confirmar"}
+                      {formatCalendarDate(match.date, { day: "2-digit", month: "short" }, dateLocale)} ·{" "}
+                      {match.time ?? t.hero.timeTbd}
                     </span>
                   </div>
                   <div className="flex items-center justify-center gap-2 py-2 text-center">
@@ -579,9 +628,82 @@ export default function LandingPage() {
                     <MapPinned size={13} />
                     <FieldLink
                       location={fieldsById[match.fieldId]?.location}
-                      name={fieldsById[match.fieldId]?.name ?? "Cancha por confirmar"}
+                      name={fieldsById[match.fieldId]?.name ?? t.upcoming.fieldTbd}
                     />
                   </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </motion.section>
+
+        <PitchDivider />
+
+        {/* Partidos jugados */}
+        <motion.section id="partidos-jugados" className="relative mt-12 scroll-mt-24 overflow-hidden" {...sectionReveal}>
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black uppercase tracking-tight text-ink dark:text-white">{t.played.title}</h2>
+              <p className="text-sm text-muted dark:text-white/40">{t.played.subtitle(activeCategory.label)}</p>
+            </div>
+            <CalendarDays className="hidden text-primary sm:block" size={22} />
+          </div>
+
+          {/* Shares state with the other sections, so every section stays
+              in sync as the visitor switches categories. */}
+          <CategoryTabs activeIndex={categoryIndex} onChange={setCategoryIndex} />
+
+          {categoryPlayed.length === 0 ? (
+            <div className="rounded-2xl p-8 text-center text-sm text-muted dark:text-white/40">
+              {t.played.empty(activeCategory.label)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {categoryPlayed.slice(0, 6).map((match) => (
+                <motion.div
+                  key={match.id}
+                  className="flex flex-col gap-3 rounded-2xl border border-border p-5 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.3)] transition-colors hover:border-primary/60 dark:border-white/10 dark:shadow-none "
+                  whileHover={{ y: -4 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-muted dark:bg-white/5 dark:text-white/60">
+                      {t.upcoming.matchday(match.matchday)}
+                    </span>
+                    <span className="text-xs font-semibold text-muted dark:text-white/40">
+                      {formatCalendarDate(match.date, { day: "2-digit", month: "short" }, dateLocale)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 py-2 text-center">
+                    <div className="flex flex-1 items-center justify-end gap-2">
+                      <span className="text-balance text-sm font-bold leading-tight text-ink dark:text-white">
+                        {teamsById[match.homeTeamId]?.name ?? "—"}
+                      </span>
+                      {teamsById[match.homeTeamId] && <CategoryDot category={teamsById[match.homeTeamId].category} />}
+                      <Avatar
+                        src={teamsById[match.homeTeamId] ? teamPhotoUrl(teamsById[match.homeTeamId]) : null}
+                        name={teamsById[match.homeTeamId]?.name ?? "?"}
+                        size={26}
+                      />
+                    </div>
+                    <span className="shrink-0 rounded-full bg-primary-light px-2.5 py-0.5 text-sm font-black text-primary ">
+                      {match.homeGoals} - {match.awayGoals}
+                    </span>
+                    <div className="flex flex-1 items-center justify-start gap-2">
+                      <Avatar
+                        src={teamsById[match.awayTeamId] ? teamPhotoUrl(teamsById[match.awayTeamId]) : null}
+                        name={teamsById[match.awayTeamId]?.name ?? "?"}
+                        size={26}
+                      />
+                      {teamsById[match.awayTeamId] && <CategoryDot category={teamsById[match.awayTeamId].category} />}
+                      <span className="text-balance text-sm font-bold leading-tight text-ink dark:text-white">
+                        {teamsById[match.awayTeamId]?.name ?? "—"}
+                      </span>
+                    </div>
+                  </div>
+                  {match.forfeit && (
+                    <p className="text-center text-xs font-semibold text-muted dark:text-white/40">{t.played.forfeit}</p>
+                  )}
                 </motion.div>
               ))}
             </div>
@@ -594,68 +716,79 @@ export default function LandingPage() {
         <motion.section id="tabla" className="relative mt-12 scroll-mt-24" {...sectionReveal}>
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-ink dark:text-white">Tabla de posiciones</h2>
+              <h2 className="text-xl font-black uppercase tracking-tight text-ink dark:text-white">{t.standings.title}</h2>
               <p className="text-sm text-muted dark:text-white/40">
-                Tabla completa · {activeCategory.label}
+                {t.standings.subtitle(activeCategory.label)}
               </p>
             </div>
             <Image
               src="/images/trophy-classic.webp"
-              alt="Trofeo de la liga"
+              alt=""
               width={600}
               height={970}
               className="hidden h-14 w-auto opacity-80 drop-shadow-[0_8px_16px_rgba(0,0,0,0.25)] dark:opacity-65 dark:drop-shadow-[0_8px_16px_rgba(0,0,0,0.5)] sm:block"
             />
           </div>
 
-          {/* Shares state with the Equipos section below, so both stay in
-              sync as the visitor switches categories. */}
+          {/* Shares state with the other sections, so every section stays
+              in sync as the visitor switches categories. */}
           <CategoryTabs activeIndex={categoryIndex} onChange={setCategoryIndex} />
 
           <div className="overflow-hidden rounded-2xl border border-border shadow-[0_16px_40px_-28px_rgba(15,23,42,0.3)] dark:border-white/10 dark:shadow-none">
             {categoryTeams.length === 0 ? (
               <p className="p-8 text-center text-sm text-muted dark:text-white/40">
-                Todavía no hay partidos jugados en {activeCategory.label}.
+                {t.standings.empty(activeCategory.label)}
               </p>
             ) : (
               <table className="w-full text-sm">
                 <thead className="border-b border-border text-left text-xs font-bold uppercase tracking-widest text-muted dark:border-white/10 dark:text-white/30">
                   <tr>
-                    <th className="px-5 py-3">#</th>
-                    <th className="px-5 py-3">Equipo</th>
-                    <th className="px-5 py-3 text-center">PJ</th>
-                    <th className="px-5 py-3 text-center">DG</th>
-                    <th className="px-5 py-3 text-center">PTS</th>
+                    <th className="px-5 py-3">{t.standings.rank}</th>
+                    <th className="px-5 py-3">{t.standings.team}</th>
+                    <th className="px-5 py-3 text-center">{t.standings.played}</th>
+                    <th className="px-5 py-3 text-center">{t.standings.goalDiff}</th>
+                    <th className="px-5 py-3 text-center">{t.standings.points}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                  {categoryTeams.map((row, index) => (
-                    <tr key={row.teamId}>
-                      <td className="px-5 py-3">
-                        <span
-                          className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${index === 0
-                            ? "bg-primary text-white"
-                            : "bg-slate-100 text-muted dark:bg-white/10 dark:text-white/50"
-                            }`}
-                        >
-                          {index + 1}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 font-bold text-ink dark:text-white">{row.name}</td>
-                      <td className="px-5 py-3 text-center text-muted dark:text-white/50">{row.played}</td>
-                      <td className="px-5 py-3 text-center text-muted dark:text-white/50">{row.goalDifference}</td>
-                      <td className="px-5 py-3 text-center">
-                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary-light px-2 text-sm font-bold text-primary ">
-                          {row.points}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {categoryTeams.map((row, index) => {
+                    const zone = standingsZone(activeCategory.value, index);
+                    return (
+                      <tr key={row.teamId}>
+                        <td className="px-5 py-3">
+                          <span
+                            className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${STANDINGS_ZONE_BADGE_CLASSES[zone]}`}
+                          >
+                            {index + 1}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 font-bold text-ink dark:text-white">{row.name}</td>
+                        <td className="px-5 py-3 text-center text-muted dark:text-white/50">{row.played}</td>
+                        <td className="px-5 py-3 text-center text-muted dark:text-white/50">{row.goalDifference}</td>
+                        <td className="px-5 py-3 text-center">
+                          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary-light px-2 text-sm font-bold text-primary ">
+                            {row.points}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
 
           </div>
+
+          {categoryTeams.length > 0 && (
+            <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted dark:text-white/40">
+              {standingsZonesForCategory(activeCategory.value).map((zone) => (
+                <span key={zone} className="flex items-center gap-1.5">
+                  <span className={`h-2.5 w-2.5 rounded-full ${STANDINGS_ZONE_DOT_CLASSES[zone]}`} />
+                  {zone === "qualified" ? t.standings.zoneQualified : zone === "contention" ? t.standings.zoneContention : t.standings.zoneRelegation}
+                </span>
+              ))}
+            </p>
+          )}
         </motion.section>
 
         <PitchDivider />
@@ -666,21 +799,21 @@ export default function LandingPage() {
 
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-ink dark:text-white">Equipos participantes</h2>
+              <h2 className="text-xl font-black uppercase tracking-tight text-ink dark:text-white">{t.teams.title}</h2>
               <p className="text-sm text-muted dark:text-white/40">
-                {categoryRoster.length} equipo(s) inscritos · {activeCategory.label}
+                {t.teams.subtitle(categoryRoster.length, activeCategory.label)}
               </p>
             </div>
             <ShieldCheck className="hidden text-primary sm:block" size={22} />
           </div>
 
-          {/* Shares state with the standings section above, so both stay in
-              sync as the visitor switches categories. */}
+          {/* Shares state with the other sections, so every section stays
+              in sync as the visitor switches categories. */}
           <CategoryTabs activeIndex={categoryIndex} onChange={setCategoryIndex} />
 
           {categoryRoster.length === 0 ? (
             <div className="rounded-2xl border border-border p-8 text-center text-sm text-muted dark:border-white/10 dark:text-white/40">
-              Todavía no hay equipos registrados en {activeCategory.label}.
+              {t.teams.empty(activeCategory.label)}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -717,10 +850,10 @@ export default function LandingPage() {
         />
         <div className="relative flex h-full flex-col items-center justify-end gap-1 pb-8 text-center">
           <span className="text-[11px] font-bold uppercase tracking-[0.3em] text-primary ">
-            Temporada {new Date().getFullYear()}
+            {t.cinematic.season(new Date().getFullYear())}
           </span>
           <p className="text-lg font-black uppercase tracking-tight text-ink dark:text-white sm:text-xl">
-            Cada jornada, en la mejor cancha
+            {t.cinematic.tagline}
           </p>
         </div>
       </motion.section>
