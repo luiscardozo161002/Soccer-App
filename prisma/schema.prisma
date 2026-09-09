@@ -38,36 +38,17 @@ enum LeagueCategory {
   segunda_division
 }
 
-enum CupStatus {
-  active
-  archived
-}
-
-enum CupEntryStatus {
-  active
-  eliminated
-  withdrawn
-}
-
-enum CupMatchStatus {
-  scheduled
-  played
-  postponed
-  cancelled
-}
-
 // Un torneo/temporada. Los partidos y ajustes de puntos pertenecen a una
 // temporada; al "reiniciar" el torneo se archiva la temporada activa (queda
 // como historial consultable) y se abre una nueva en blanco. Equipos,
 // jugadores y canchas no estan ligados a una temporada: se reutilizan entre
 // torneos.
 model Season {
-  id                 String       @id @default(uuid())
-  name               String
-  startDate          DateTime     @default(now()) @map("start_date")
-  endDate            DateTime?    @map("end_date")
-  status             SeasonStatus @default(active)
-  minMatchesPlayoffs Int?         @map("min_matches_playoffs")
+  id        String       @id @default(uuid())
+  name      String
+  startDate DateTime     @default(now()) @map("start_date")
+  endDate   DateTime?    @map("end_date")
+  status    SeasonStatus @default(active)
 
   matches          Match[]
   pointAdjustments PointAdjustment[]
@@ -89,9 +70,6 @@ model Team {
   homeMatches      Match[]           @relation("HomeTeam")
   awayMatches      Match[]           @relation("AwayTeam")
   pointAdjustments PointAdjustment[]
-  cupEntries       CupEntry[]
-  cupHomeMatches   CupMatch[]        @relation("CupHomeTeam")
-  cupAwayMatches   CupMatch[]        @relation("CupAwayTeam")
 
   @@map("teams")
 }
@@ -120,8 +98,7 @@ model Field {
   location String?
   status   Status  @default(active)
 
-  matches    Match[]
-  cupMatches CupMatch[]
+  matches Match[]
 
   @@map("fields")
 }
@@ -261,80 +238,32 @@ model CardReasonConfig {
   @@map("card_reason_configs")
 }
 
-// Ajustes manuales de puntos (ej. descuentos disciplinarios),
-// separados del calculo automatico de la tabla de posiciones.
+// Ajustes manuales a la tabla de posiciones (ej. corregir un marcador
+// histórico que nunca se cargó como partido real, o un descuento
+// disciplinario de puntos) — cada fila es un delta que se SUMA encima de lo
+// calculado a partir de partidos reales (ver la vista `standings`), nunca
+// un valor absoluto que la reemplace. Registro tipo bitácora: varios ajustes
+// para el mismo equipo se acumulan, cada uno con su propio motivo.
 model PointAdjustment {
-  id       String   @id @default(uuid())
-  seasonId String   @map("season_id")
-  teamId   String   @map("team_id")
-  points   Int
-  reason   String
-  date     DateTime @default(now())
-  status   Status   @default(active)
+  id                String   @id @default(uuid())
+  seasonId          String   @map("season_id")
+  teamId            String   @map("team_id")
+  playedDelta       Int      @default(0) @map("played_delta")
+  pendingDelta      Int      @default(0) @map("pending_delta")
+  wonDelta          Int      @default(0) @map("won_delta")
+  drawnDelta        Int      @default(0) @map("drawn_delta")
+  lostDelta         Int      @default(0) @map("lost_delta")
+  goalsForDelta     Int      @default(0) @map("goals_for_delta")
+  goalsAgainstDelta Int      @default(0) @map("goals_against_delta")
+  pointsDelta       Int      @default(0) @map("points_delta")
+  reason            String
+  date              DateTime @default(now())
+  status            Status   @default(active)
 
   season Season @relation(fields: [seasonId], references: [id])
   team   Team   @relation(fields: [teamId], references: [id])
 
   @@map("point_adjustments")
-}
-
-// Torneo de Copa por eliminación directa — separado por completo de Season/
-// Match/la vista de posiciones. Mezcla equipos de cualquier categoría y los
-// cruces se arman a mano por el admin (sin sorteo automático).
-model Cup {
-  id        String    @id @default(uuid())
-  name      String
-  status    CupStatus @default(active)
-  createdAt DateTime  @default(now()) @map("created_at")
-
-  entries CupEntry[]
-  matches CupMatch[]
-
-  @@map("cups")
-}
-
-// Un equipo inscrito en una Copa. Independiente de Team.status (ese es
-// global/de la Liga); eliminated/withdrawn son estados propios del bracket.
-model CupEntry {
-  id               String         @id @default(uuid())
-  cupId            String         @map("cup_id")
-  teamId           String         @map("team_id")
-  status           CupEntryStatus @default(active)
-  eliminatedReason String?        @map("eliminated_reason")
-  eliminatedAt     DateTime?      @map("eliminated_at")
-
-  cup  Cup  @relation(fields: [cupId], references: [id])
-  team Team @relation(fields: [teamId], references: [id])
-
-  @@unique([cupId, teamId])
-  @@map("cup_entries")
-}
-
-// Un cruce del bracket. fieldId es opcional a propósito: un equipo puede
-// retirarse antes de que se le asigne cancha real ("default" sin jugarse).
-model CupMatch {
-  id            String         @id @default(uuid())
-  cupId         String         @map("cup_id")
-  round         String
-  createdAt     DateTime       @default(now()) @map("created_at")
-  homeTeamId    String         @map("home_team_id")
-  awayTeamId    String         @map("away_team_id")
-  fieldId       String?        @map("field_id")
-  date          DateTime
-  time          String?
-  homeGoals     Int?           @map("home_goals")
-  awayGoals     Int?           @map("away_goals")
-  forfeit       Boolean        @default(false)
-  forfeitReason String?        @map("forfeit_reason")
-  resultLocked  Boolean        @default(false) @map("result_locked")
-  status        CupMatchStatus @default(scheduled)
-
-  cup      Cup    @relation(fields: [cupId], references: [id])
-  homeTeam Team   @relation("CupHomeTeam", fields: [homeTeamId], references: [id])
-  awayTeam Team   @relation("CupAwayTeam", fields: [awayTeamId], references: [id])
-  field    Field? @relation(fields: [fieldId], references: [id])
-
-  @@map("cup_matches")
 }
 
 // Singleton row (always the same seeded id) holding site branding/theme.
