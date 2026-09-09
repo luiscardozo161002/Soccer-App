@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useUpdateUser, adminPhotoUrl, type AdminUser } from "@/hooks/useUsers";
-import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { withSanitizer, sanitizePhone } from "@/lib/utils/forms";
 import { Field, Input } from "@/components/ui/field";
@@ -33,8 +32,6 @@ export function EditUserModal({ user, onClose }: { user: AdminUser | null; onClo
     reset,
     formState: { errors, isDirty },
   } = useForm<EditUserForm>({ resolver: zodResolver(editUserSchema) });
-
-  useUnsavedChangesWarning(isEditing && (isDirty || photoRemoved));
 
   useEffect(() => {
     if (user) {

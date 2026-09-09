@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useUpdateTeam, teamPhotoUrl, type Team } from "@/hooks/useTeams";
-import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -37,8 +36,6 @@ export function EditTeamModal({ team, onClose }: { team: Team | null; onClose: (
     reset,
     formState: { errors, isDirty },
   } = useForm<TeamForm>({ resolver: zodResolver(teamSchema) });
-
-  useUnsavedChangesWarning(isEditing && (isDirty || photoRemoved));
 
   useEffect(() => {
     if (team) {

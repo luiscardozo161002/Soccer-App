@@ -7,7 +7,6 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser, adminPhotoUrl, type AdminUser } from "@/hooks/useUsers";
-import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { withSanitizer, sanitizePhone } from "@/lib/utils/forms";
 import { passwordSchema } from "@/lib/validation/password";
@@ -53,10 +52,8 @@ export function AdminUsersTable({ currentUserId }: { currentUserId: string }) {
     control,
     handleSubmit,
     reset,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema), defaultValues: { role: "admin" } });
-
-  useUnsavedChangesWarning(isDirty);
 
   const onSubmit = handleSubmit((values) => {
     createUser.mutate(values, {

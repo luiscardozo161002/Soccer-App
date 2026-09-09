@@ -9,7 +9,6 @@ import { useCreateSanction, useSanctions, activeSanctionsByPlayer, sanctionMatch
 import { usePlayers } from "@/hooks/usePlayers";
 import { useMatchEvidence } from "@/hooks/useMatchEvidence";
 import { useCardReasonConfigs } from "@/hooks/useCardReasonConfigs";
-import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { onlyDigits } from "@/lib/utils/forms";
 import { Modal } from "@/components/ui/modal";
@@ -235,15 +234,6 @@ export function RegisterResultForm({
 
   const { data: playersData } = usePlayers();
   const playersById = Object.fromEntries((playersData?.data ?? []).map((p) => [p.id, p.name]));
-
-  useUnsavedChangesWarning(
-    isEditing
-      ? homeGoals !== String(initialResult.homeGoals) ||
-          awayGoals !== String(initialResult.awayGoals) ||
-          forfeit !== initialResult.forfeit ||
-          forfeitReason !== (initialResult.forfeitReason ?? "")
-      : homeGoals !== "0" || awayGoals !== "0" || forfeit || forfeitReason.trim().length > 0
-  );
 
   const applyForfeitScore = (winner: "home" | "away") => {
     setHomeGoals(winner === "home" ? "3" : "0");

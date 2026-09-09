@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useTeams, useCreateTeam, useDeleteTeam, teamPhotoUrl, type Team } from "@/hooks/useTeams";
-import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
 import { Card } from "@/components/ui/card";
@@ -55,13 +54,11 @@ export default function TeamsPage() {
     control,
     handleSubmit,
     reset,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<TeamForm>({
     resolver: zodResolver(teamSchema),
     defaultValues: { category: "primera_division" },
   });
-
-  useUnsavedChangesWarning(showCreate && isDirty);
 
   const onSubmit = handleSubmit((values) => {
     createTeam.mutate(

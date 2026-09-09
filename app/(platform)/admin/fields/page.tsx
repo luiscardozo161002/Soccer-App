@@ -12,7 +12,6 @@ import {
   googleMapsUrl,
   type Field as FieldType,
 } from "@/hooks/useFields";
-import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { Card } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
@@ -45,10 +44,8 @@ export default function FieldsPage() {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<FieldForm>({ resolver: zodResolver(fieldSchema) });
-
-  useUnsavedChangesWarning(showCreate && isDirty);
 
   const onSubmit = handleSubmit((values) => {
     createField.mutate(

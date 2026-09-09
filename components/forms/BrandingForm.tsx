@@ -3,11 +3,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useUpdateSettings, siteLogoUrl, type SiteSettings } from "@/hooks/useSettings";
-import {
-  useUnsavedChangesWarning,
-  suppressUnsavedChangesWarningOnce,
-  resumeUnsavedChangesWarning,
-} from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { onlyHexColor } from "@/lib/utils/forms";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
@@ -78,13 +73,6 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
     primaryColor.toLowerCase() !== settings.primaryColor.toLowerCase() ||
     backgroundColor.toLowerCase() !== settings.backgroundColor.toLowerCase();
 
-  // Each section only arms the native "leave site?" prompt while it's the
-  // one actively being edited with unsaved changes — not just because a
-  // field somewhere on the page differs from what's saved.
-  useUnsavedChangesWarning(isEditingName && isDirtyName);
-  useUnsavedChangesWarning(isEditingLogo && isDirtyLogo);
-  useUnsavedChangesWarning(isEditingColors && isDirtyColors);
-
   const handleCancelName = () => {
     setName(settings.name);
     setSlogan(settings.slogan ?? "");
@@ -104,12 +92,6 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
   };
 
   const handleSaveBranding = () => {
-    // Suppressed from the moment the save starts, not just on success — a
-    // dev-mode Fast Refresh reload landing while the request is still in
-    // flight was still tripping the native "leave site?" prompt otherwise.
-    // Released again once the request settles either way, so it never
-    // outlives this one save.
-    suppressUnsavedChangesWarningOnce();
     updateSettings.mutate(
       { name, slogan },
       {
@@ -118,7 +100,6 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
           window.location.reload();
         },
         onError: (error) => {
-          resumeUnsavedChangesWarning();
           toast.error(error instanceof ApiError ? error.message : "No se pudo actualizar el nombre");
         },
       }
@@ -127,7 +108,6 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
 
   const handleSaveLogo = () => {
     if (!isDirtyLogo) return;
-    suppressUnsavedChangesWarningOnce();
     updateSettings.mutate(
       { logo: logoRemoved ? null : logo },
       {
@@ -136,7 +116,6 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
           window.location.reload();
         },
         onError: (error) => {
-          resumeUnsavedChangesWarning();
           toast.error(error instanceof ApiError ? error.message : "No se pudo actualizar el logo");
         },
       }
@@ -144,7 +123,6 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
   };
 
   const handleSaveColors = () => {
-    suppressUnsavedChangesWarningOnce();
     updateSettings.mutate(
       { primaryColor, backgroundColor },
       {
@@ -153,7 +131,6 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
           window.location.reload();
         },
         onError: (error) => {
-          resumeUnsavedChangesWarning();
           toast.error(error instanceof ApiError ? error.message : "No se pudieron actualizar los colores");
         },
       }

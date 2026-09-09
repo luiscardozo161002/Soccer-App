@@ -10,7 +10,6 @@ import { useMatches, useCreateMatch, type MatchStatus, type Match } from "@/hook
 import { useTeams } from "@/hooks/useTeams";
 import { useFields } from "@/hooks/useFields";
 import { useCards } from "@/hooks/useCards";
-import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { formatCalendarDate, todayLocalISODate } from "@/lib/utils/date";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
@@ -142,12 +141,10 @@ export default function MatchesPage() {
     reset,
     setValue,
     watch,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<CreateMatchFormInput, unknown, CreateMatchFormOutput>({
     resolver: zodResolver(createMatchSchema),
   });
-
-  useUnsavedChangesWarning(showCreate && isDirty);
 
   const selectedHomeTeamId = watch("homeTeamId");
   const selectedAwayTeamId = watch("awayTeamId");
