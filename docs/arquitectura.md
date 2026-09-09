@@ -60,7 +60,6 @@ app/
     layout.tsx                Shell del panel (sidebar + área de contenido)
     page.tsx                  Tabla de posiciones
     teams/ players/ matches/ fields/ sanctions/ settings/ history/
-    cup/  cup/[id]/            Copa: lista de torneos y detalle de un torneo
   login/ forgot-password/ reset-password/
   api/v1/
     auth/            login, logout, me, forgot-password, reset-password
@@ -70,9 +69,6 @@ app/
     matches/          list+create, [id], [id]/result
     cards/            list+create, [id], [id]/pay, [id]/sanctions
     sanctions/        list+create, [id], [id]/pay
-    cups/             list+create, [id]
-    cup-entries/      list+create, [id]/withdraw
-    cup-matches/      list+create, [id], [id]/result, [id]/reopen
     seasons/          list+create, [id]
     standings/        GET, calculada en tiempo real (sin caché)
     settings/         GET/PATCH, settings/logo
@@ -105,9 +101,8 @@ lib/
 
 prisma/
   schema.prisma            Modelo de datos
-  seeds/                    Un seeder por recurso, orquestados desde seed.ts
-  seed-data/                JSON de datos de ejemplo consumidos por los seeders
-  bootstrap-admin.ts        Crea/asegura un usuario admin sin correr el seed completo
+  seed-card-reason-configs.ts   Catálogo de precios por motivo de tarjeta (idempotente)
+  bootstrap-admin.ts        Crea/asegura un usuario admin
 
 proxy.ts                   Sesión (redirige a /login sin sesión) + rate limiting de auth
 ```
@@ -122,11 +117,10 @@ Modelos reales (ver `prisma/schema.prisma` para el detalle completo de columnas/
 `docs/schema.sql` para el DDL):
 
 `Season` · `Team` · `Player` · `Field` · `Match` · `Card` · `Sanction` · `PointAdjustment` ·
-`Cup` · `CupEntry` · `CupMatch` · `SiteSettings` · `User`
+`SiteSettings` · `User`
 
 Enums de dominio: `Status` (active/inactive), `MatchStatus`, `CardType`, `SeasonStatus`,
-`LeagueCategory` (`primera_division` / `division_ascenso` / `segunda_division`), `CupStatus`,
-`CupEntryStatus`, `CupMatchStatus`.
+`LeagueCategory` (`primera_division` / `division_ascenso` / `segunda_division`).
 
 JSON de la API en camelCase, columnas de base de datos en snake_case — Prisma hace el mapeo con
 `@map`/`@@map`.
@@ -223,15 +217,6 @@ POST   /api/v1/cards/:id/sanctions   ← crea la sanción (no hay POST /api/v1/s
 GET    /api/v1/sanctions            ?fulfilled
 GET|PATCH  /api/v1/sanctions/:id
 POST   /api/v1/sanctions/:id/pay
-
-GET    /api/v1/cups                 POST /api/v1/cups
-GET    /api/v1/cups/:id              (sin PATCH/DELETE todavía)
-GET    /api/v1/cup-entries          POST /api/v1/cup-entries   (inscribir equipos)
-PATCH  /api/v1/cup-entries/:id/withdraw
-GET    /api/v1/cup-matches          POST /api/v1/cup-matches
-GET|PATCH|DELETE  /api/v1/cup-matches/:id
-PATCH  /api/v1/cup-matches/:id/result
-POST   /api/v1/cup-matches/:id/reopen
 
 GET    /api/v1/seasons              (sin POST — las temporadas se crean por seed/bootstrap, no por la API)
 GET    /api/v1/seasons/:id
@@ -335,7 +320,7 @@ producción.
 | Decisión | Motivo |
 |---|---|
 | `standings` calculada con SQL agregado, sin caché | Costo bajo para el volumen de datos de una liga amateur; evita desincronización manual |
-| `result` como subrecurso de `matches`/`cup-matches` (`PATCH .../result`) | Acción de negocio explícita (bloquea edición posterior), no un PATCH genérico que sobreescribe todo el partido |
+| `result` como subrecurso de `matches` (`PATCH .../result`) | Acción de negocio explícita (bloquea edición posterior), no un PATCH genérico que sobreescribe todo el partido |
 | Validación Zod separada del service | Estructura vs. negocio son preocupaciones distintas y se reutilizan distinto (Zod también corre en el cliente) |
 | `proxy.ts` único en vez de middlewares componibles por ruta | Next.js 16 solo permite un proxy raíz; auth + rate limiting son las únicas preocupaciones transversales necesarias hoy |
 | Rate limiting con fallback a memoria si no hay Redis | Dev local no debería depender de tener Redis corriendo; producción sí debería configurar `REDIS_URL` para que el límite se comparta entre instancias |

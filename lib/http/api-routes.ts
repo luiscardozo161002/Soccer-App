@@ -17,7 +17,6 @@ export const API_ROUTES = {
     list: "/api/v1/players",
     byId: (id: string) => `/api/v1/players/${id}`,
     photo: (id: string) => `/api/v1/players/${id}/photo`,
-    eligibility: (id: string) => `/api/v1/players/${id}/eligibility`,
   },
   fields: {
     list: "/api/v1/fields",
@@ -64,19 +63,5 @@ export const API_ROUTES = {
     list: "/api/v1/users",
     byId: (id: string) => `/api/v1/users/${id}`,
     photo: (id: string) => `/api/v1/users/${id}/photo`,
-  },
-  cups: {
-    list: "/api/v1/cups",
-    byId: (id: string) => `/api/v1/cups/${id}`,
-  },
-  cupEntries: {
-    list: "/api/v1/cup-entries",
-    withdraw: (id: string) => `/api/v1/cup-entries/${id}/withdraw`,
-  },
-  cupMatches: {
-    list: "/api/v1/cup-matches",
-    byId: (id: string) => `/api/v1/cup-matches/${id}`,
-    result: (id: string) => `/api/v1/cup-matches/${id}/result`,
-    reopen: (id: string) => `/api/v1/cup-matches/${id}/reopen`,
   },
 } as const;
