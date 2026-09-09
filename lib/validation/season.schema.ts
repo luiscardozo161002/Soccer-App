@@ -1,6 +1,6 @@
 import { z } from "zod";
 
 export const updateSeasonSchema = z.object({
-  minMatchesPlayoffs: z.number().int().min(1).nullable().optional(),
+  name: z.string().trim().min(1, "El nombre es obligatorio").max(150).optional(),
 });
 export type UpdateSeasonDto = z.infer<typeof updateSeasonSchema>;

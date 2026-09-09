@@ -65,17 +65,6 @@ export const matchRepository = {
     return prisma.match.count({ where: { fieldId } });
   },
 
-  countPlayedSince(teamId: string, seasonId: string, since: Date) {
-    return prisma.match.count({
-      where: {
-        seasonId,
-        status: "played",
-        date: { gt: since },
-        OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
-      },
-    });
-  },
-
   // Scoped to matchday: the same field/date/time slot is reused week after
   // week for different jornadas (that's expected), but a field can't be
   // double-booked within the same jornada.

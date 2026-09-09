@@ -9,13 +9,11 @@ import {
   usePlayers,
   useCreatePlayer,
   useDeletePlayer,
-  usePlayerEligibility,
   playerPhotoUrl,
   type Player,
 } from "@/hooks/usePlayers";
 import { useSanctions, activeSanctionsByPlayer, sanctionMatchesRemaining, type Sanction } from "@/hooks/useSanctions";
 import { useTeams } from "@/hooks/useTeams";
-import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ApiError } from "@/lib/errors";
 import { formatCalendarDate } from "@/lib/utils/date";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
@@ -32,19 +30,6 @@ import { PlayerPhotoModal, type PlayerPhotoModalTarget } from "@/components/ui/p
 import { EmptyOptionsHint } from "@/components/ui/empty-options-hint";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { EditPlayerModal, playerSchema, type PlayerForm } from "@/components/forms/EditPlayerModal";
-
-// Isolated so each row's eligibility query is independent of the others and
-// of the surrounding table re-rendering.
-function RecentPlayerBadge({ playerId }: { playerId: string }) {
-  const { data } = usePlayerEligibility(playerId);
-  const eligibility = data?.data;
-  if (!eligibility?.isRecent) return null;
-  return (
-    <Badge tone="recent">
-      {`Jugador reciente · Alta ${formatCalendarDate(eligibility.registeredAt)} · ${eligibility.matchesPlayedSinceRegistration}/${eligibility.minMatchesPlayoffs} partidos`}
-    </Badge>
-  );
-}
 
 // Suspended until their team plays enough matches to clear it — see
 // matchService.registerResult(), which is the only place that advances or
@@ -104,10 +89,8 @@ export default function PlayersPage() {
     control,
     handleSubmit,
     reset,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<PlayerForm>({ resolver: zodResolver(playerSchema) });
-
-  useUnsavedChangesWarning(showCreate && isDirty);
 
   const onSubmit = handleSubmit((values) => {
     createPlayer.mutate(
@@ -269,7 +252,6 @@ export default function PlayersPage() {
                     <Avatar src={playerPhotoUrl(player)} name={player.name} />
                     <div className="flex flex-col gap-1">
                       <span className="font-semibold text-ink hover:text-primary">{player.name}</span>
-                      <RecentPlayerBadge playerId={player.id} />
                       {sanctionsByPlayer.has(player.id) && (
                         <SuspendedPlayerBadge sanction={sanctionsByPlayer.get(player.id)!} />
                       )}

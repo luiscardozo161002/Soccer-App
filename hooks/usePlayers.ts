@@ -19,13 +19,6 @@ export interface Player {
   status: EntityStatus;
 }
 
-export interface PlayerEligibility {
-  registeredAt: string;
-  matchesPlayedSinceRegistration: number;
-  minMatchesPlayoffs: number | null;
-  isRecent: boolean;
-}
-
 // birthDate is `Date` in the server DTO (zod coerces the incoming string),
 // but over JSON the wire shape is always a string — override just that
 // field rather than aliasing the DTO type as-is.
@@ -53,13 +46,6 @@ export function usePlayers({
       get<ListResponse<Player>>(
         `${API_ROUTES.players.list}?page=${page}&pageSize=${pageSize}${teamId ? `&teamId=${teamId}` : ""}${category ? `&category=${category}` : ""}`
       ),
-  });
-}
-
-export function usePlayerEligibility(playerId: string) {
-  return useQuery({
-    queryKey: ["players", playerId, "eligibility"],
-    queryFn: () => get<ItemResponse<PlayerEligibility>>(API_ROUTES.players.eligibility(playerId)),
   });
 }
 

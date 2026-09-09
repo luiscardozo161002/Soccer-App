@@ -14,7 +14,6 @@ export interface Season {
   startDate: string;
   endDate: string | null;
   status: SeasonStatus;
-  minMatchesPlayoffs: number | null;
 }
 
 export type UpdateSeasonInput = UpdateSeasonDto;

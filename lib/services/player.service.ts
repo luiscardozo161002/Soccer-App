@@ -2,8 +2,6 @@ import { ApiError, notFoundError } from "@/lib/errors";
 import { optimizeImageFromDataUrl } from "@/lib/utils/images";
 import { playerRepository } from "@/lib/repositories/player.repository";
 import { teamRepository } from "@/lib/repositories/team.repository";
-import { matchRepository } from "@/lib/repositories/match.repository";
-import { seasonService } from "@/lib/services/season.service";
 import type { Prisma, LeagueCategory } from "@/app/generated/prisma/client";
 import type { CreatePlayerDto, UpdatePlayerDto } from "@/lib/validation/player.schema";
 
@@ -100,31 +98,5 @@ export const playerService = {
   async remove(id: string) {
     await this.getById(id);
     await playerRepository.delete(id);
-  },
-
-  // Eligibility is derived on every read, never persisted — a player's
-  // "recent" status can't drift out of sync with matches played since alta.
-  async getEligibility(id: string) {
-    const player = await this.getById(id);
-    const season = await seasonService.getActive();
-    const [matchesPlayedSinceRegistration, teamTotalPlayed] = await Promise.all([
-      matchRepository.countPlayedSince(player.teamId, season.id, player.registeredAt),
-      // Whether the TEAM has any match history yet at all, independent of
-      // this player's own registeredAt. Every player registered before a
-      // brand-new team's first match shares the same "0 partidos" baseline
-      // — that's the whole roster being new, not this player specifically
-      // — so the badge stays off until the team has actually played, and
-      // only then does it mean something to single out a later addition.
-      matchRepository.countPlayedSince(player.teamId, season.id, new Date(0)),
-    ]);
-    return {
-      registeredAt: player.registeredAt,
-      matchesPlayedSinceRegistration,
-      minMatchesPlayoffs: season.minMatchesPlayoffs,
-      isRecent:
-        teamTotalPlayed > 0 &&
-        season.minMatchesPlayoffs != null &&
-        matchesPlayedSinceRegistration < season.minMatchesPlayoffs,
-    };
   },
 };
