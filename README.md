@@ -1,8 +1,8 @@
 # Liga de Fútbol — Plataforma de gestión
 
 Aplicación web para administrar una liga de fútbol amateur: equipos, jugadores, calendario de
-partidos, tabla de posiciones por categoría, torneos de Copa (eliminación directa), tarjetas y
-sanciones, canchas, temporadas, y un sitio público de solo lectura con la información de la liga.
+partidos, tabla de posiciones por categoría, tarjetas y sanciones, canchas, temporadas, y un sitio
+público de solo lectura con la información de la liga.
 
 ## Stack
 
@@ -28,7 +28,7 @@ app/
   (landing)/            Sitio público (calendario, tabla de posiciones, equipos)
   (platform)/admin/      Panel de administración (requiere sesión)
     page.tsx              Tabla de posiciones
-    teams/ players/ matches/ fields/ sanctions/ cup/ history/ settings/
+    teams/ players/ matches/ fields/ sanctions/ history/ settings/
   api/v1/                 Route handlers REST (ver docs/arquitectura.md para el listado completo)
   login/ forgot-password/ reset-password/   Flujo de autenticación
   generated/prisma/       Cliente de Prisma generado (no editar a mano)
@@ -78,24 +78,28 @@ negocio, lanza `ApiError` con el código/status correctos) → el service llama 
    pnpm exec prisma dev
    ```
 
-   Copia la cadena de conexión que imprime a `DATABASE_URL` en tu `.env`, luego aplica el schema:
+   Copia la cadena de conexión que imprime a `DATABASE_URL` en tu `.env`. No hace falta aplicar el
+   schema a mano — `pnpm dev` lo hace por ti (ver el script `predev` más abajo).
+
+3. **Datos iniciales**: no hay semillas genéricas de ejemplo. Este proyecto trae un seed real con
+   los datos del torneo actual, más un script aparte para el usuario admin:
 
    ```bash
-   pnpm exec prisma migrate dev
-   ```
-
-3. **Datos de ejemplo** (equipos, jugadores, canchas, partidos, temporada activa, un usuario
-   admin — ver `prisma/seed-data/`):
-
-   ```bash
-   pnpm db:seed
-   ```
-
-   Si solo necesitas un usuario admin sin el resto de los datos de ejemplo:
-
-   ```bash
+   pnpm db:seed-clausura-caliope
    pnpm db:bootstrap-admin
    ```
+
+   El primero carga la temporada activa, los 48 equipos, las 20 canchas y los ajustes de tabla de
+   posiciones del Torneo de Clausura "Caliope" 2026 (`prisma/seeds/seed-clausura-caliope.ts`) — es
+   idempotente, se puede volver a correr sin duplicar nada, y sirve como referencia si necesitas
+   migrar datos reales de otra fuente. **No cubre jugadores, partidos, tarjetas ni sanciones** — esos
+   se cargan a mano desde el panel una vez que hay equipos, y no se recuperan solos si se borra la
+   base de datos.
+
+   El segundo (`prisma/bootstrap-admin.ts`) crea el usuario admin con contraseña fija en el propio
+   archivo. A diferencia del seed anterior, **no es idempotente**: no verifica si el usuario ya
+   existe, así que solo debe correrse una vez por base de datos — volver a correrlo lanza un error
+   de restricción única (`P2002`).
 
 4. **Levantar el servidor**:
 
@@ -106,24 +110,35 @@ negocio, lanza `ApiError` con el código/status correctos) → el service llama 
    Sitio público en [http://localhost:3000](http://localhost:3000), panel admin en
    `http://localhost:3000/admin` (redirige a `/login` si no hay sesión).
 
+**Nota sobre migraciones**: `pnpm dev` corre `prisma migrate deploy` automáticamente antes de
+arrancar (script `predev` en `package.json`) — aplica cualquier migración pendiente contra
+`DATABASE_URL`, pero **nunca crea una migración nueva** (eso solo pasa con
+`pnpm exec prisma migrate dev`, al cambiar `schema.prisma`). Si en algún momento tu base local
+queda sin tablas (por ejemplo, si reseteas el contenedor de Postgres), basta con volver a correr
+`pnpm dev` — no hace falta ningún paso manual extra. Eso sí, `predev` solo recrea las **tablas**,
+no los datos: para recuperar el torneo/equipos/canchas y el usuario admin hay que volver a correr
+los dos comandos del paso 3, y cualquier jugador, partido, tarjeta/sanción o personalización del
+sitio (nombre, logo, colores) que se haya cargado desde el panel **no está en ningún seed** y se
+pierde para siempre con la base de datos — conviene respaldarla (`pg_dump`) antes de borrarla si ya
+hay datos reales de ese tipo.
+
 ## Scripts
 
 | Script | Qué hace |
 |---|---|
-| `pnpm dev` | Servidor de desarrollo |
+| `pnpm dev` | Aplica migraciones pendientes (`predev`) y levanta el servidor de desarrollo |
 | `pnpm build` | Build de producción |
 | `pnpm start` | Sirve el build de producción |
 | `pnpm lint` | ESLint |
-| `pnpm db:seed` | Carga los datos de ejemplo (`prisma/seed.ts`) |
-| `pnpm db:bootstrap-admin` | Crea/asegura un usuario admin |
+| `pnpm db:bootstrap-admin` | Crea el usuario admin con contraseña fija — no idempotente, solo correr una vez por base |
+| `pnpm db:seed-clausura-caliope` | Ejemplo de seed idempotente real (equipos/canchas/temporada de un torneo específico) |
 
 ## Funcionalidad
 
 - **Panel admin** (sesión requerida): equipos, jugadores y partidos organizados por categoría
   (Primera División / División de Ascenso / Segunda División), tabla de posiciones calculada en
-  tiempo real, torneos de Copa con bracket de eliminación directa, tarjetas/sanciones, canchas,
-  temporadas, historial, configuración del sitio (nombre, logo, slogan) y gestión de usuarios
-  admin.
+  tiempo real, tarjetas/sanciones, canchas, temporadas, historial, configuración del sitio (nombre,
+  logo, slogan) y gestión de usuarios admin.
 - **Sitio público**: calendario de próximos partidos, tabla de posiciones completa por categoría y
   equipos participantes — sin necesidad de iniciar sesión.
 - **Seguridad**: sesión por cookie JWT httpOnly validada en `proxy.ts` para `/admin/*` y para

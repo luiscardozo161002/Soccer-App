@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "prisma migrate deploy",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "db:seed": "tsx prisma/seed.ts",
     "db:bootstrap-admin": "tsx prisma/bootstrap-admin.ts",
-    "db:seed-card-reasons": "tsx prisma/seed-card-reason-configs.ts"
+    "db:seed-clausura-caliope": "tsx prisma/seeds/seed-clausura-caliope.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",
