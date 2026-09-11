@@ -1,5 +1,6 @@
 import { ApiError, notFoundError } from "@/lib/errors";
 import { optimizeImageFromDataUrl } from "@/lib/utils/images";
+import { nextPlayerFolio } from "@/lib/utils/folio";
 import { playerRepository } from "@/lib/repositories/player.repository";
 import { teamRepository } from "@/lib/repositories/team.repository";
 import type { Prisma, LeagueCategory } from "@/app/generated/prisma/client";
@@ -12,7 +13,6 @@ async function toWriteData(
     teamId: dto.teamId,
     name: dto.name,
     birthDate: dto.birthDate,
-    registrationNumber: dto.registrationNumber,
   };
   if (dto.photo) {
     const { buffer, type } = await optimizeImageFromDataUrl(dto.photo);
@@ -49,22 +49,26 @@ export const playerService = {
     if (!team) {
       throw notFoundError("TEAM_NOT_FOUND", "el equipo", dto.teamId);
     }
-
-    const duplicated = await playerRepository.findByRegistrationNumber(dto.registrationNumber);
-    if (duplicated) {
+    if (!team.folioPrefix) {
       throw new ApiError(
         409,
-        "REGISTRATION_NUMBER_DUPLICATED",
-        `A player with registration number "${dto.registrationNumber}" already exists`
+        "TEAM_MISSING_FOLIO_PREFIX",
+        `El equipo "${team.name}" todavía no tiene un prefijo de folio asignado — configúralo antes de registrar jugadores`
       );
     }
+
+    const issued = await playerRepository.findRegistrationNumbersByPrefix(team.folioPrefix);
+    const registrationNumber = nextPlayerFolio(
+      team.folioPrefix,
+      issued.map((p) => p.registrationNumber)
+    );
 
     const data = await toWriteData(dto);
     return playerRepository.create({
       ...data,
       teamId: dto.teamId,
       name: dto.name,
-      registrationNumber: dto.registrationNumber,
+      registrationNumber,
       // Explicit even though Prisma's @default(now()) already covers it —
       // makes clear this is server-authoritative, never client-suppliable.
       registeredAt: new Date(),
@@ -81,6 +85,7 @@ export const playerService = {
       }
     }
 
+    const data = await toWriteData(dto);
     if (dto.registrationNumber) {
       const duplicated = await playerRepository.findByRegistrationNumber(dto.registrationNumber);
       if (duplicated && duplicated.id !== id) {
@@ -90,9 +95,10 @@ export const playerService = {
           `A player with registration number "${dto.registrationNumber}" already exists`
         );
       }
+      data.registrationNumber = dto.registrationNumber;
     }
 
-    return playerRepository.update(id, await toWriteData(dto));
+    return playerRepository.update(id, data);
   },
 
   async remove(id: string) {

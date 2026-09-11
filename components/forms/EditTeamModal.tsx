@@ -22,6 +22,11 @@ export const teamSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio").max(100),
   category: z.enum(categoryValues),
   photo: z.string().optional(),
+  folioPrefix: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{3}$/, "Debe ser exactamente 3 caracteres"),
 });
 export type TeamForm = z.infer<typeof teamSchema>;
 
@@ -39,7 +44,7 @@ export function EditTeamModal({ team, onClose }: { team: Team | null; onClose: (
 
   useEffect(() => {
     if (team) {
-      reset({ name: team.name, category: team.category, photo: undefined });
+      reset({ name: team.name, category: team.category, photo: undefined, folioPrefix: team.folioPrefix ?? "" });
       setIsEditing(false);
       setPhotoRemoved(false);
     }
@@ -53,14 +58,20 @@ export function EditTeamModal({ team, onClose }: { team: Team | null; onClose: (
   };
 
   const handleCancel = () => {
-    reset({ name: team.name, category: team.category, photo: undefined });
+    reset({ name: team.name, category: team.category, photo: undefined, folioPrefix: team.folioPrefix ?? "" });
     setIsEditing(false);
     setPhotoRemoved(false);
   };
 
   const onSubmit = handleSubmit((values) => {
     updateTeam.mutate(
-      { id: team.id, name: values.name, category: values.category, photo: photoRemoved ? null : values.photo },
+      {
+        id: team.id,
+        name: values.name,
+        category: values.category,
+        folioPrefix: values.folioPrefix,
+        photo: photoRemoved ? null : values.photo,
+      },
       {
         onSuccess: () => {
           toast.success("Equipo actualizado");
@@ -86,6 +97,13 @@ export function EditTeamModal({ team, onClose }: { team: Team | null; onClose: (
               </option>
             ))}
           </Select>
+        </Field>
+        <Field
+          label="Prefijo de folio"
+          error={errors.folioPrefix?.message}
+          hint="3 caracteres, ej. TIG. Se usa para generar el folio de cada jugador (TIG-001, TIG-002...)."
+        >
+          <Input maxLength={3} className="uppercase" disabled={!isEditing} {...register("folioPrefix")} />
         </Field>
         <Controller
           control={control}

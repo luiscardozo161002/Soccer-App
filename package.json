@@ -10,7 +10,8 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "db:bootstrap-admin": "tsx prisma/bootstrap-admin.ts",
-    "db:seed-clausura-caliope": "tsx prisma/seeds/seed-clausura-caliope.ts"
+    "db:seed-clausura-caliope": "tsx prisma/seeds/seed-clausura-caliope.ts",
+    "db:backfill-folio-prefixes": "tsx prisma/seeds/backfill-team-folio-prefixes.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",

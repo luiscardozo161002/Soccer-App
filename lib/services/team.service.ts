@@ -9,6 +9,7 @@ async function toWriteData(dto: CreateTeamDto | UpdateTeamDto): Promise<Prisma.T
     name: dto.name,
     registeredAt: dto.registeredAt,
     category: dto.category,
+    folioPrefix: dto.folioPrefix,
   };
   if (dto.photo) {
     const { buffer, type } = await optimizeImageFromDataUrl(dto.photo);
@@ -45,12 +46,30 @@ export const teamService = {
     if (existing) {
       throw new ApiError(409, "TEAM_NAME_DUPLICATED", `A team named "${dto.name}" already exists`);
     }
+    const prefixTaken = await teamRepository.findByFolioPrefix(dto.folioPrefix);
+    if (prefixTaken) {
+      throw new ApiError(
+        409,
+        "FOLIO_PREFIX_DUPLICATED",
+        `Another team ("${prefixTaken.name}") already uses the folio prefix "${dto.folioPrefix}"`
+      );
+    }
     const data = await toWriteData(dto);
     return teamRepository.create({ ...data, name: dto.name } as Prisma.TeamUncheckedCreateInput);
   },
 
   async update(id: string, dto: UpdateTeamDto) {
     await this.getById(id);
+    if (dto.folioPrefix) {
+      const prefixTaken = await teamRepository.findByFolioPrefix(dto.folioPrefix);
+      if (prefixTaken && prefixTaken.id !== id) {
+        throw new ApiError(
+          409,
+          "FOLIO_PREFIX_DUPLICATED",
+          `Another team ("${prefixTaken.name}") already uses the folio prefix "${dto.folioPrefix}"`
+        );
+      }
+    }
     return teamRepository.update(id, await toWriteData(dto));
   },
 

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useTeams, useCreateTeam, useDeleteTeam, teamPhotoUrl, type Team } from "@/hooks/useTeams";
 import { ApiError } from "@/lib/errors";
+import { suggestFolioPrefix } from "@/lib/utils/folio";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
 import { Card } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
@@ -39,6 +40,9 @@ export default function TeamsPage() {
     isSearching ? 100 : pageSize,
     categoryParam
   );
+  // Unfiltered/unpaginated, only for suggesting a folio prefix that doesn't
+  // collide with ANY team — the list above is scoped to the current page/category filter.
+  const { data: allTeamsData } = useTeams();
   const createTeam = useCreateTeam();
 
   const handleCategoryChange = (value: LeagueCategoryValue | "all") => {
@@ -54,15 +58,31 @@ export default function TeamsPage() {
     control,
     handleSubmit,
     reset,
-    formState: { errors },
+    setValue,
+    watch,
+    formState: { errors, dirtyFields },
   } = useForm<TeamForm>({
     resolver: zodResolver(teamSchema),
-    defaultValues: { category: "primera_division" },
+    defaultValues: { category: "primera_division", folioPrefix: "" },
   });
+
+  // Auto-fills the prefix as the admin types the name, skipping generic
+  // words shared by many teams here ("Deportivo", "Dep.", "Club"...) and
+  // never suggesting one already used by another team — still just a
+  // suggestion, the admin can overwrite it once they touch the field.
+  const watchedName = watch("name");
+  useEffect(() => {
+    if (dirtyFields.folioPrefix || !watchedName?.trim()) return;
+    const existingPrefixes = new Set(
+      (allTeamsData?.data ?? []).map((t) => t.folioPrefix).filter((p): p is string => !!p)
+    );
+    setValue("folioPrefix", suggestFolioPrefix(watchedName, (p) => existingPrefixes.has(p)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedName]);
 
   const onSubmit = handleSubmit((values) => {
     createTeam.mutate(
-      { name: values.name, category: values.category, photo: values.photo },
+      { name: values.name, category: values.category, folioPrefix: values.folioPrefix, photo: values.photo },
       {
         onSuccess: () => {
           toast.success(`Equipo "${values.name}" creado`);
@@ -135,6 +155,13 @@ export default function TeamsPage() {
                 </option>
               ))}
             </Select>
+          </Field>
+          <Field
+            label="Prefijo de folio"
+            error={errors.folioPrefix?.message}
+            hint="3 caracteres, ej. TIG. Se sugiere solo al escribir el nombre — lo puedes corregir."
+          >
+            <Input maxLength={3} className="uppercase" {...register("folioPrefix")} />
           </Field>
           <Controller
             control={control}

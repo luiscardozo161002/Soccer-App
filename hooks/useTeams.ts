@@ -17,6 +17,7 @@ export interface Team {
   registeredAt: string;
   category: LeagueCategoryValue;
   status: EntityStatus;
+  folioPrefix: string | null;
 }
 
 export type CreateTeamInput = CreateTeamDto;

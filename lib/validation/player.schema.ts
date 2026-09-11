@@ -7,17 +7,20 @@ const photoDataUrl = z
   .string()
   .startsWith("data:image/", "La foto debe ser una imagen codificada en base64");
 
+// registrationNumber (folio) is server-generated on create from the team's
+// folioPrefix (ej. "TIG-001") — never accepted from the client there. It
+// stays editable on update, for the rare manual correction.
 export const createPlayerSchema = z.object({
   teamId: z.string().uuid(),
   name: z.string().trim().min(1).max(100),
   photo: photoDataUrl.optional(),
   birthDate: z.coerce.date().optional(),
-  registrationNumber: z.string().trim().min(1).max(30),
 });
 export type CreatePlayerDto = z.infer<typeof createPlayerSchema>;
 
 export const updatePlayerSchema = createPlayerSchema.partial().extend({
   photo: photoDataUrl.nullable().optional(),
+  registrationNumber: z.string().trim().min(1).max(30).optional(),
 });
 export type UpdatePlayerDto = z.infer<typeof updatePlayerSchema>;
 

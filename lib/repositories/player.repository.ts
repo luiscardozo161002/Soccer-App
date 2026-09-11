@@ -43,6 +43,17 @@ export const playerRepository = {
     return prisma.player.findUnique({ where: { registrationNumber } });
   },
 
+  // Every folio already issued under this team's prefix (ej. "TIG-003"),
+  // used to compute the next sequence number. Scoped by a startsWith on the
+  // indexed unique column rather than a regex, since this table has no
+  // separate team+sequence columns to query directly.
+  findRegistrationNumbersByPrefix(prefix: string) {
+    return prisma.player.findMany({
+      where: { registrationNumber: { startsWith: `${prefix}-` } },
+      select: { registrationNumber: true },
+    });
+  },
+
   findPhoto(id: string) {
     return prisma.player.findUnique({ where: { id }, select: { photo: true, photoType: true } });
   },

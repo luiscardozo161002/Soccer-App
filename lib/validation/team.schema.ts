@@ -7,11 +7,21 @@ const photoDataUrl = z
 
 const leagueCategoryValues = ["primera_division", "division_ascenso", "segunda_division"] as const;
 
+// Almost always 3 letters (ej. "TIG"); a trailing digit is only allowed as a
+// last-resort disambiguator when two teams' names would otherwise collide
+// (see lib/utils/folio.ts's suggestFolioPrefix).
+const folioPrefixSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z0-9]{3}$/, "Debe ser exactamente 3 caracteres (letras, sin acentos ni espacios)");
+
 export const createTeamSchema = z.object({
   name: z.string().trim().min(1).max(100),
   registeredAt: z.coerce.date().optional(),
   category: z.enum(leagueCategoryValues).optional(),
   photo: photoDataUrl.optional(),
+  folioPrefix: folioPrefixSchema,
 });
 export type CreateTeamDto = z.infer<typeof createTeamSchema>;
 

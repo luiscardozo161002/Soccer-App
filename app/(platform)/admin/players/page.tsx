@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -29,7 +30,17 @@ import { Modal } from "@/components/ui/modal";
 import { PlayerPhotoModal, type PlayerPhotoModalTarget } from "@/components/ui/player-photo-modal";
 import { EmptyOptionsHint } from "@/components/ui/empty-options-hint";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { EditPlayerModal, playerSchema, type PlayerForm } from "@/components/forms/EditPlayerModal";
+import { EditPlayerModal } from "@/components/forms/EditPlayerModal";
+
+// The folio isn't captured here — the server generates it from the chosen
+// team's folioPrefix (ej. "TIG-004"), see playerService.create.
+const createPlayerFormSchema = z.object({
+  teamId: z.string().uuid("Selecciona un equipo"),
+  name: z.string().trim().min(1, "El nombre es obligatorio").max(100),
+  birthDate: z.string().optional().or(z.literal("")),
+  photo: z.string().optional(),
+});
+type CreatePlayerForm = z.infer<typeof createPlayerFormSchema>;
 
 // Suspended until their team plays enough matches to clear it — see
 // matchService.registerResult(), which is the only place that advances or
@@ -55,12 +66,14 @@ export default function PlayersPage() {
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [viewingPlayer, setViewingPlayer] = useState<PlayerPhotoModalTarget | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [newPlayerCategory, setNewPlayerCategory] = useState<LeagueCategoryValue>(LEAGUE_CATEGORIES[0].value);
   const { confirm, dialog } = useConfirm();
 
   const { data: teamsData } = useTeams();
   const teams = teamsData?.data ?? [];
   const teamsById = Object.fromEntries(teams.map((t) => [t.id, t.name]));
   const teamsInCategoryFilter = categoryFilter === "all" ? teams : teams.filter((t) => t.category === categoryFilter);
+  const teamsInNewPlayerCategory = teams.filter((t) => t.category === newPlayerCategory);
 
   const isSearching = search.trim().length > 0;
   const { data, isLoading, isError } = usePlayers({
@@ -89,21 +102,29 @@ export default function PlayersPage() {
     control,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
-  } = useForm<PlayerForm>({ resolver: zodResolver(playerSchema) });
+  } = useForm<CreatePlayerForm>({ resolver: zodResolver(createPlayerFormSchema) });
+
+  const handleNewPlayerCategoryChange = (category: LeagueCategoryValue) => {
+    setNewPlayerCategory(category);
+    setValue("teamId", "");
+  };
+  const selectedTeamId = watch("teamId");
+  const selectedTeam = teamsInNewPlayerCategory.find((t) => t.id === selectedTeamId);
 
   const onSubmit = handleSubmit((values) => {
     createPlayer.mutate(
       {
         teamId: values.teamId,
         name: values.name,
-        registrationNumber: values.registrationNumber,
         birthDate: values.birthDate || undefined,
         photo: values.photo,
       },
       {
-        onSuccess: () => {
-          toast.success(`Jugador "${values.name}" creado`);
+        onSuccess: (response) => {
+          toast.success(`Jugador "${values.name}" creado con folio ${response.data.registrationNumber}`);
           reset();
           setShowCreate(false);
         },
@@ -184,17 +205,29 @@ export default function PlayersPage() {
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo jugador">
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <Field label="Categoría">
+            <Select
+              value={newPlayerCategory}
+              onChange={(e) => handleNewPlayerCategoryChange(e.target.value as LeagueCategoryValue)}
+            >
+              {LEAGUE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <Field label="Equipo" error={errors.teamId?.message}>
-            {teams.length === 0 ? (
+            {teamsInNewPlayerCategory.length === 0 ? (
               <EmptyOptionsHint
-                message="No hay equipos registrados."
+                message="No hay equipos registrados en esta categoría."
                 href="/admin/teams"
                 linkLabel="Crea uno primero"
               />
             ) : (
               <Select {...register("teamId")}>
                 <option value="">Selecciona...</option>
-                {teams.map((team) => (
+                {teamsInNewPlayerCategory.map((team) => (
                   <option key={team.id} value={team.id}>
                     {team.name}
                   </option>
@@ -205,8 +238,17 @@ export default function PlayersPage() {
           <Field label="Nombre" error={errors.name?.message}>
             <Input placeholder="Carlos Ramírez" maxLength={100} {...register("name")} />
           </Field>
-          <Field label="Folio" error={errors.registrationNumber?.message}>
-            <Input placeholder="TIG-004" maxLength={30} {...register("registrationNumber")} />
+          <Field
+            label="Folio"
+            hint={
+              selectedTeam?.folioPrefix
+                ? `Se genera automáticamente al guardar (ej. ${selectedTeam.folioPrefix}-004).`
+                : selectedTeam
+                  ? "Este equipo no tiene un prefijo de folio — asígnale uno en /admin/teams antes de registrar jugadores."
+                  : "Se genera automáticamente al guardar, según el equipo elegido."
+            }
+          >
+            <Input disabled value="Se genera automáticamente" />
           </Field>
           <Field label="Nacimiento (opcional)" error={errors.birthDate?.message}>
             <Input type="date" {...register("birthDate")} />
@@ -219,7 +261,7 @@ export default function PlayersPage() {
             )}
           />
           <div className="flex justify-end">
-            <Button type="submit" disabled={createPlayer.isPending}>
+            <Button type="submit" disabled={createPlayer.isPending || (!!selectedTeam && !selectedTeam.folioPrefix)}>
               {createPlayer.isPending ? "Creando..." : "Crear jugador"}
             </Button>
           </div>
