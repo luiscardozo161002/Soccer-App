@@ -65,6 +65,17 @@ export const matchRepository = {
     return prisma.match.count({ where: { fieldId } });
   },
 
+  // The latest jornada registered for a season, and the date its matches
+  // were scheduled for — the create-match form uses this to suggest the
+  // next jornada from the date the admin picks (see matchService.getLatestMatchday).
+  findLatestMatchday(seasonId: string) {
+    return prisma.match.findFirst({
+      where: { seasonId },
+      orderBy: { matchday: "desc" },
+      select: { matchday: true, date: true },
+    });
+  },
+
   // Scoped to matchday: the same field/date/time slot is reused week after
   // week for different jornadas (that's expected), but a field can't be
   // double-booked within the same jornada.

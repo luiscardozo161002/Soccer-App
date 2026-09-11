@@ -37,6 +37,11 @@ function toDateTime(date: Date, time: string) {
 }
 
 export const matchService = {
+  async getLatestMatchday() {
+    const activeSeason = await seasonService.getActive();
+    return matchRepository.findLatestMatchday(activeSeason.id);
+  },
+
   async list(query: ListMatchesQuery) {
     const seasonId = query.seasonId ?? (await seasonService.getActive()).id;
     const resolvedQuery = { ...query, seasonId };

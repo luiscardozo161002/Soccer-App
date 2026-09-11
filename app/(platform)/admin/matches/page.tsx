@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Pencil, Lock, Plus, Images, PencilLine } from "lucide-react";
 import { toast } from "sonner";
-import { useMatches, useCreateMatch, type MatchStatus, type Match } from "@/hooks/useMatches";
+import { useMatches, useCreateMatch, useLatestMatchday, type MatchStatus, type Match } from "@/hooks/useMatches";
 import { useTeams } from "@/hooks/useTeams";
 import { useFields } from "@/hooks/useFields";
 import { useCards } from "@/hooks/useCards";
@@ -141,7 +141,7 @@ export default function MatchesPage() {
     reset,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, dirtyFields },
   } = useForm<CreateMatchFormInput, unknown, CreateMatchFormOutput>({
     resolver: zodResolver(createMatchSchema),
   });
@@ -156,6 +156,23 @@ export default function MatchesPage() {
   const watchedMatchday = Number(watch("matchday"));
   const watchedDate = watch("date");
   const watchedTime = watch("time");
+
+  // Auto-fills the jornada from the chosen date: matches sharing the same
+  // date belong to the same jornada, a later date starts the next one. Only
+  // while the admin hasn't touched the field themselves — this is a
+  // suggestion, still freely editable for edge cases (ej. reprogramaciones).
+  const { data: latestMatchdayData } = useLatestMatchday();
+  useEffect(() => {
+    if (dirtyFields.matchday || !watchedDate) return;
+    const latest = latestMatchdayData?.data;
+    if (!latest) {
+      setValue("matchday", 1);
+      return;
+    }
+    const latestDate = latest.date.slice(0, 10);
+    setValue("matchday", watchedDate > latestDate ? latest.matchday + 1 : latest.matchday);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedDate, latestMatchdayData]);
   const { data: matchdayMatchesData } = useMatches({
     matchday: watchedMatchday > 0 ? watchedMatchday : undefined,
     pageSize: 100,
@@ -325,7 +342,11 @@ export default function MatchesPage() {
             )}
           </Field>
           <div className="grid grid-cols-3 gap-4">
-            <Field label="Jornada" error={errors.matchday?.message}>
+            <Field
+              label="Jornada"
+              error={errors.matchday?.message}
+              hint={!dirtyFields.matchday ? "Sugerida según la fecha — editable." : undefined}
+            >
               <Input type="number" min={1} onKeyDown={blockNonIntegerKeys} {...register("matchday")} />
             </Field>
             <Field label="Fecha" error={errors.date?.message}>

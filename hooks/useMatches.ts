@@ -66,6 +66,17 @@ export function useMatches(filters: MatchFilters = {}) {
   });
 }
 
+// The highest jornada registered so far in the active season, plus the date
+// its matches were scheduled for — used to suggest the jornada for a new
+// match from the date the admin picks (same date -> same jornada, later
+// date -> next jornada).
+export function useLatestMatchday() {
+  return useQuery({
+    queryKey: ["matches", "latest-matchday"],
+    queryFn: () => get<ItemResponse<{ matchday: number; date: string } | null>>(API_ROUTES.matches.latestMatchday),
+  });
+}
+
 export function useCreateMatch() {
   const queryClient = useQueryClient();
   return useMutation({
