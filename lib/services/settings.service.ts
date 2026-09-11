@@ -20,6 +20,7 @@ export const settingsService = {
       slogan: dto.slogan,
       primaryColor: dto.primaryColor,
       backgroundColor: dto.backgroundColor,
+      locale: dto.locale,
     };
     if (dto.logo === null) {
       data.logo = null;

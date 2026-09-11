@@ -47,6 +47,13 @@ export async function generateMetadata(): Promise<Metadata> {
     title: name,
     description,
     alternates: { canonical: "/" },
+    // Team/field/player names are real data, not UI copy — Chrome/Brave's
+    // own page-translate feature doesn't know that and mangles them (ej.
+    // "ATM San Marcos" -> "cajero automático"). This opts the whole site out
+    // of that browser-level auto-translate; the language toggle in
+    // /admin/settings (SiteSettings.locale) is the only translation that
+    // should ever touch this page.
+    other: { google: "notranslate" },
     openGraph: {
       title: name,
       description,
@@ -102,7 +109,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      translate="no"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased notranslate`}
       suppressHydrationWarning
     >
       <body className="min-h-full">

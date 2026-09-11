@@ -18,6 +18,7 @@ const DEFAULTS = {
   logoUpdatedAt: null,
   primaryColor: "#0d9488",
   backgroundColor: "#eef3f1",
+  locale: "es-MX",
 } as const;
 
 export const settingsRepository = {

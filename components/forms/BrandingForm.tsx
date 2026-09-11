@@ -6,7 +6,7 @@ import { useUpdateSettings, siteLogoUrl, type SiteSettings } from "@/hooks/useSe
 import { ApiError } from "@/lib/errors";
 import { onlyHexColor } from "@/lib/utils/forms";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, Select } from "@/components/ui/field";
 import { PhotoInput } from "@/components/ui/photo-input";
 import { EditFormFooter } from "@/components/ui/edit-form-footer";
 
@@ -51,20 +51,24 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
   const [backgroundColor, setBackgroundColor] = useState("#eef3f1");
   const [logo, setLogo] = useState<string | undefined>(undefined);
   const [logoRemoved, setLogoRemoved] = useState(false);
+  const [locale, setLocale] = useState<SiteSettings["locale"]>("es-MX");
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingLogo, setIsEditingLogo] = useState(false);
   const [isEditingColors, setIsEditingColors] = useState(false);
+  const [isEditingLocale, setIsEditingLocale] = useState(false);
 
   useEffect(() => {
     setName(settings.name);
     setSlogan(settings.slogan ?? "");
     setPrimaryColor(settings.primaryColor);
     setBackgroundColor(settings.backgroundColor);
+    setLocale(settings.locale);
     setLogo(undefined);
     setLogoRemoved(false);
     setIsEditingName(false);
     setIsEditingLogo(false);
     setIsEditingColors(false);
+    setIsEditingLocale(false);
   }, [settings]);
 
   const isDirtyName = name !== settings.name || slogan !== (settings.slogan ?? "");
@@ -72,6 +76,7 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
   const isDirtyColors =
     primaryColor.toLowerCase() !== settings.primaryColor.toLowerCase() ||
     backgroundColor.toLowerCase() !== settings.backgroundColor.toLowerCase();
+  const isDirtyLocale = locale !== settings.locale;
 
   const handleCancelName = () => {
     setName(settings.name);
@@ -89,6 +94,11 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
     setPrimaryColor(settings.primaryColor);
     setBackgroundColor(settings.backgroundColor);
     setIsEditingColors(false);
+  };
+
+  const handleCancelLocale = () => {
+    setLocale(settings.locale);
+    setIsEditingLocale(false);
   };
 
   const handleSaveBranding = () => {
@@ -132,6 +142,21 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
         },
         onError: (error) => {
           toast.error(error instanceof ApiError ? error.message : "No se pudieron actualizar los colores");
+        },
+      }
+    );
+  };
+
+  const handleSaveLocale = () => {
+    updateSettings.mutate(
+      { locale },
+      {
+        onSuccess: () => {
+          toast.success("Idioma del sitio actualizado");
+          window.location.reload();
+        },
+        onError: (error) => {
+          toast.error(error instanceof ApiError ? error.message : "No se pudo actualizar el idioma");
         },
       }
     );
@@ -261,6 +286,44 @@ export function BrandingForm({ settings }: { settings: SiteSettings }) {
               onCancel={handleCancelColors}
               editLabel="Editar colores"
               submitLabel="Guardar colores"
+            />
+          </form>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Idioma del sitio"
+          description="En qué idioma ve el sitio público cualquier visitante. El panel de administración siempre se queda en español."
+        />
+        <CardBody>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveLocale();
+            }}
+            className="flex flex-col gap-4"
+          >
+            <div className="w-56">
+              <Field label="Idioma">
+                <Select
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value as SiteSettings["locale"])}
+                  disabled={!isEditingLocale}
+                >
+                  <option value="es-MX">Español</option>
+                  <option value="en">Inglés</option>
+                </Select>
+              </Field>
+            </div>
+            <EditFormFooter
+              isEditing={isEditingLocale}
+              isDirty={isDirtyLocale}
+              submitting={updateSettings.isPending}
+              onEdit={() => setIsEditingLocale(true)}
+              onCancel={handleCancelLocale}
+              editLabel="Editar idioma"
+              submitLabel="Guardar idioma"
             />
           </form>
         </CardBody>

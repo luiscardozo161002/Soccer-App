@@ -30,7 +30,6 @@ import {
 } from "@/lib/constants/standings-zones";
 import { Avatar } from "@/components/ui/avatar";
 import { CategoryBadge, CategoryDot } from "@/components/ui/category-badge";
-import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { LocaleProvider, useLocale } from "@/lib/i18n/LocaleContext";
 import type { dictionaries } from "@/lib/i18n/dictionaries";
 
@@ -202,7 +201,6 @@ function Header() {
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-3">
-          <LanguageSwitcher />
           <Link
             href="/admin"
             className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:border-primary hover:text-primary dark:border-white/30 dark:text-white hover:scale-105 transition-all duration-300 "
@@ -264,8 +262,12 @@ function Footer() {
 }
 
 export default function LandingPage() {
+  // Site-wide, admin-controlled language (SiteSettings.locale) — same for
+  // every visitor. Defaults to es-MX for the brief moment before settings load.
+  const { data: settingsData } = useSettings();
+  const locale = settingsData?.data.locale ?? "es-MX";
   return (
-    <LocaleProvider>
+    <LocaleProvider locale={locale}>
       <LandingPageContent />
     </LocaleProvider>
   );

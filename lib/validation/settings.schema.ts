@@ -7,6 +7,9 @@ export const updateSettingsSchema = z.object({
   slogan: z.string().trim().max(200).optional().or(z.literal("")),
   primaryColor: hexColor.optional(),
   backgroundColor: hexColor.optional(),
+  // Site-wide language for the public site — one value for every visitor,
+  // set by the admin. The admin panel itself stays Spanish-only regardless.
+  locale: z.enum(["es-MX", "en"]).optional(),
   logo: z
     .string()
     .startsWith("data:image/", "El logo debe ser una imagen codificada en base64")

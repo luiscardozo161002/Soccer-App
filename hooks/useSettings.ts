@@ -14,6 +14,7 @@ export interface SiteSettings {
   logoUpdatedAt: string | null;
   primaryColor: string;
   backgroundColor: string;
+  locale: "es-MX" | "en";
 }
 
 export type UpdateSettingsInput = UpdateSettingsDto;
