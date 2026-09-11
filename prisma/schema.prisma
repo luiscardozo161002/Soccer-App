@@ -65,6 +65,10 @@ model Team {
   registeredAt   DateTime       @default(now()) @map("registered_at")
   category     LeagueCategory @default(primera_division)
   status       Status         @default(active)
+  // 3-letter prefix used to build player folios (ej. "TIG-001"). Nullable at
+  // the DB level so existing teams can be backfilled by a script instead of
+  // a migration — required at the app layer for every new team.
+  folioPrefix  String?        @unique @map("folio_prefix")
 
   players          Player[]
   homeMatches      Match[]           @relation("HomeTeam")
@@ -277,6 +281,9 @@ model SiteSettings {
   logoUpdatedAt   DateTime? @map("logo_updated_at")
   primaryColor    String    @default("#0d9488") @map("primary_color")
   backgroundColor String    @default("#eef3f1") @map("background_color")
+  // Site-wide language for the public site (not the admin panel, which is
+  // always Spanish) — one value for every visitor, set by the admin.
+  locale          String    @default("es-MX")
 
   @@map("site_settings")
 }
