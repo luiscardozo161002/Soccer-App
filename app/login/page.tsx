@@ -5,23 +5,15 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
-import { useLogin } from "@/hooks/useAuth";
+import { useLogin } from "@/modules/auth/hooks/useAuth";
+import { loginSchema, type LoginDto } from "@/modules/auth/auth.schema";
 import { ApiError } from "@/lib/errors";
 import { Field, Input } from "@/components/ui/field";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
 import { AuthShell } from "@/components/auth/auth-shell";
 
-const loginSchema = z.object({
-  username: z.string().trim().min(1, "Ingresa tu usuario o correo"),
-  password: z.string().min(1, "Ingresa tu contraseña"),
-});
-type LoginForm = z.infer<typeof loginSchema>;
-
-// `next` is untrusted (comes from the URL) — only allow an in-app path, or
-// a crafted link could redirect a freshly logged-in user off-site (CWE-601).
 function safeNextPath(next: string | null) {
   if (!next) return "/admin";
   if (!next.startsWith("/") || next.startsWith("//")) return "/admin";
@@ -35,17 +27,12 @@ function LoginFormCard() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  } = useForm<LoginDto>({ resolver: zodResolver(loginSchema) });
 
   const onSubmit = handleSubmit((values) => {
     login.mutate(values, {
       onSuccess: () => {
         toast.success("Bienvenido");
-        // A hard navigation instead of router.push — this runs once per
-        // login, so reliability matters more than an SPA transition, and
-        // push()+refresh() back-to-back is a known Next.js race (refresh
-        // can interrupt the pending push) that showed up as "login works
-        // but never redirects" specifically on mobile timing.
         window.location.href = safeNextPath(searchParams.get("next"));
       },
       onError: (error) =>
@@ -82,7 +69,7 @@ function LoginFormCard() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<p className="p-6 text-sm text-muted">Cargando acceso...</p>}>
       <LoginFormCard />
     </Suspense>
   );

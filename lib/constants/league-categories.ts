@@ -5,6 +5,7 @@ export const LEAGUE_CATEGORIES = [
 ] as const;
 
 export type LeagueCategoryValue = (typeof LEAGUE_CATEGORIES)[number]["value"];
+export type LeagueCategory = (typeof LEAGUE_CATEGORIES)[number];
 
 export const CATEGORY_BADGE_CLASSES: Record<LeagueCategoryValue, string> = {
   primera_division: "bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300",

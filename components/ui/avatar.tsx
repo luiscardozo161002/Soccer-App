@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export function Avatar({ src, name, size = 26 }: { src: string | null; name: string; size?: number }) {
-  const [status, setStatus] = useState<"loading" | "loaded" | "error">(src ? "loading" : "error");
+  return <AvatarContent key={src ?? "fallback"} src={src} name={name} size={size} />;
+}
 
-  // Re-sync on a changed src without remounting (e.g. photo just uploaded).
-  useEffect(() => {
-    setStatus(src ? "loading" : "error");
-  }, [src]);
+function AvatarContent({ src, name, size }: { src: string | null; name: string; size: number }) {
+  const [status, setStatus] = useState<"loading" | "loaded" | "error">(src ? "loading" : "error");
   const initials = name
     .split(" ")
     .filter(Boolean)
@@ -37,9 +36,8 @@ export function Avatar({ src, name, size = 26 }: { src: string | null; name: str
       <img
         src={src}
         alt={name}
-        className={`h-full w-full rounded-full object-contain transition-opacity duration-300 ${
-          status === "loaded" ? "opacity-100" : "opacity-0"
-        }`}
+        className={`h-full w-full rounded-full object-contain transition-opacity duration-300 ${status === "loaded" ? "opacity-100" : "opacity-0"
+          }`}
         onLoad={() => setStatus("loaded")}
         onError={() => setStatus("error")}
       />

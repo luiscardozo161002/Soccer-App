@@ -1,16 +1,12 @@
 import Redis from "ioredis";
 
-// Optional: without REDIS_URL, falls back to an in-memory counter (fine for
-// a single local dev process, not for sharing counts across instances).
 const redisUrl = process.env.REDIS_URL;
 const redis = redisUrl
   ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1, retryStrategy: () => null })
   : null;
 
 if (redis) {
-  // Never let a Redis connection error crash the request path — checkRateLimit
-  // already falls back to memory on any failure below.
-  redis.on("error", () => {});
+  redis.on("error", () => { });
 }
 
 interface MemoryEntry {
@@ -38,8 +34,6 @@ function checkMemory(key: string, limit: number, windowSeconds: number): RateLim
   return { allowed: true, retryAfterSeconds: 0 };
 }
 
-// Fixed-window counter. Falls open to memory if Redis is configured but
-// unreachable — a rate limiter that blocks /login on a Redis hiccup is worse.
 export async function checkRateLimit(
   key: string,
   limit: number,

@@ -3,16 +3,15 @@ import { withErrorHandling } from "@/lib/middleware/error-handler";
 import { ok } from "@/lib/http/api-response";
 import { getSession } from "@/lib/auth/session";
 import { assertAdmin } from "@/lib/auth/match-access";
-import { matchService } from "@/lib/services/match.service";
-import { createMatchSchema, listMatchesQuerySchema } from "@/lib/validation/match.schema";
+import { matchService } from "@/modules/matches/server/match.service";
+import { createMatchSchema, listMatchesQuerySchema } from "@/modules/matches/match.schema";
 
 export const GET = withErrorHandling(async (req) => {
   const query = listMatchesQuerySchema.parse(
     Object.fromEntries(req.nextUrl.searchParams)
   );
   const session = await getSession(req);
-  // A referee only ever sees their own assigned matches — the client's
-  // refereeId (if any) is discarded, not merely validated.
+
   if (session?.role === "arbitro") {
     query.refereeId = session.sub;
   }

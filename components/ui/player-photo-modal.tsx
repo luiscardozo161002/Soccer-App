@@ -7,8 +7,6 @@ export interface PlayerPhotoModalTarget {
   photoUrl: string | null;
 }
 
-// Shared lightbox for "click a player's avatar/name to see it large" —
-// used from the Jugadores table and from Sanciones so both stay consistent.
 export function PlayerPhotoModal({ player, onClose }: { player: PlayerPhotoModalTarget | null; onClose: () => void }) {
   const initials = player?.name
     .split(" ")

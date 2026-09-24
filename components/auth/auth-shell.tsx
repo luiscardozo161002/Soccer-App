@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ChevronLeft, Trophy } from "lucide-react";
-import { useSettings, siteLogoUrl } from "@/hooks/useSettings";
+import { useSettings, siteLogoUrl } from "@/modules/settings/hooks/useSettings";
 import { BrandPanel } from "@/components/auth/brand-panel";
 
 export function AuthShell({
@@ -28,7 +28,6 @@ export function AuthShell({
               {isLoading ? (
                 <span className="block h-11 w-11 shrink-0 animate-pulse rounded-full bg-primary-light" />
               ) : logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={logoUrl}
                   alt="Logo"

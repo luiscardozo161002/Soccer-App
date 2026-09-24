@@ -3,9 +3,9 @@
 Stack: Next.js 16 (App Router, frontend + backend) · TypeScript · PostgreSQL + Prisma 7 · JWT
 (cookie de sesión) · Redis (opcional) · Resend · Tailwind CSS v4 · TanStack Query
 
-> Este documento describe la implementación **actual** del repositorio. Para el volcado completo
-> del esquema de base de datos ver [`docs/schema.sql`](./schema.sql); para cómo levantar el
-> proyecto en local ver el [README](../README.md).
+> Este documento describe la implementación **actual** del repositorio. El modelo completo vive
+> en [`prisma/schema.prisma`](../prisma/schema.prisma); para levantar el proyecto en local ver el
+> [README](../README.md).
 
 ## 1. Vista general de capas
 
@@ -56,11 +56,11 @@ llegue a cualquier route handler.
 ```
 app/
   (landing)/page.tsx        Sitio público: calendario, tabla de posiciones, equipos
+  login/ forgot-password/ reset-password/   Acceso y recuperación públicos
   (platform)/admin/
     layout.tsx                Shell del panel (sidebar + área de contenido)
     page.tsx                  Tabla de posiciones
     teams/ players/ matches/ fields/ sanctions/ settings/ history/
-  login/ forgot-password/ reset-password/
   api/v1/
     auth/            login, logout, me, forgot-password, reset-password
     teams/            list+create, [id] (get/patch/delete), [id]/photo
@@ -74,26 +74,35 @@ app/
     settings/         GET/PATCH, settings/logo
     users/            list+create, [id], [id]/photo   (admins del panel)
     tournament/reset/ POST — reinicia una temporada
+  api/health/         readiness de aplicación y PostgreSQL
   generated/prisma/    Cliente de Prisma generado — no editar a mano
   not-found.tsx        404 (comparte contenedor visual con login)
 
 components/
   ui/                Primitivas compartidas: Table, Modal, Field/Select, Pagination,
                       CategoryBadge, EmptyOptionsHint, confirm-dialog, etc.
-  forms/              Modales de edición por recurso (EditTeamModal, EditMatchModal, ...)
-  tables/             Tablas con su propio estado de listado/paginación/filtros
+  fields/ matches/ players/ sanctions/ settings/ teams/ users/
+                     Componentes visuales agrupados por dominio
   auth/               AuthShell + BrandPanel — contenedor visual de login/forgot/reset/404
 
-hooks/                Un hook TanStack Query por recurso (useTeams, usePlayers, useMatches, ...)
+modules/
+  matches/
+    client/           Cliente HTTP del dominio
+    hooks/            TanStack Query
+    server/           Reglas de negocio y persistencia
+    match.schema.ts   Contratos Zod
+    match.types.ts    Tipos compartidos del dominio
+  auth/ cards/ fields/ health/ matches/ players/
+  sanctions/ seasons/ settings/ standings/ teams/ users/
+                     Dominios encapsulados con el mismo patrón
 
 lib/
   auth/session.ts         Firma/verifica el JWT de sesión (jose)
   http/                    http-client.ts (fetch + ApiError), endpoints.ts (get/post/patch/remove),
                            api-routes.ts (rutas de la API como constantes)
   middleware/error-handler.ts   withErrorHandling — envelope de error uniforme
-  repositories/            Un archivo por recurso, único lugar que importa Prisma
-  services/                Reglas de negocio, un archivo por recurso
-  validation/               Schemas Zod por recurso (se reutilizan en cliente y servidor)
+  query/query-keys.ts      Factories de query keys e invalidación
+  observability/logger.ts  Logs JSON con contexto y request id
   security/rate-limit.ts   Rate limiting: Redis (INCR + EXPIRE) con fallback a Map en memoria
   constants/                Categorías de liga, motivos de tarjeta, etc.
   email/resend.ts          Envío del correo de restablecimiento de contraseña
@@ -107,14 +116,13 @@ prisma/
 proxy.ts                   Sesión (redirige a /login sin sesión) + rate limiting de auth
 ```
 
-No existe (a pesar de tenerlo como devDependency) una suite de tests con Vitest todavía, ni
-endpoints de health check, ni documentación OpenAPI/Swagger generada — si se agregan, actualizar
-esta sección.
+Vitest cubre reglas puras, schemas y serialización de clientes en los módulos principales. El
+workflow de CI ejecuta TypeScript, ESLint, pruebas y build. `GET /api/health` comprueba PostgreSQL
+y los route handlers instrumentados devuelven `x-request-id` para correlacionar logs.
 
 ## 3. Modelo de datos (Prisma)
 
-Modelos reales (ver `prisma/schema.prisma` para el detalle completo de columnas/relaciones y
-`docs/schema.sql` para el DDL):
+Modelos reales (ver `prisma/schema.prisma` para el detalle completo de columnas y relaciones):
 
 `Season` · `Team` · `Player` · `Field` · `Match` · `Card` · `Sanction` · `PointAdjustment` ·
 `SiteSettings` · `User`
@@ -126,7 +134,7 @@ JSON de la API en camelCase, columnas de base de datos en snake_case — Prisma 
 `@map`/`@@map`.
 
 **Tabla de posiciones**: no es una tabla con datos propios — se calcula con una consulta SQL
-agregada (`lib/repositories/standings.repository.ts`, `prisma.$queryRaw` con `Prisma.sql`
+agregada (`modules/standings/server/standings.repository.ts`, `prisma.$queryRaw` con `Prisma.sql`
 parametrizado) sobre `Match` para la temporada activa, en cada request. No hay caché: es
 suficientemente barata para el volumen de datos de una liga amateur.
 
@@ -208,13 +216,13 @@ POST   /api/v1/matches
 GET|PATCH|DELETE  /api/v1/matches/:id
 PATCH  /api/v1/matches/:id/result    ← registrar marcador (subrecurso, no PATCH genérico)
 
-GET    /api/v1/cards                ?matchId&playerId&type
-POST   /api/v1/cards
+GET    /api/v1/cards                ?page&pageSize&matchId&playerId&type&paid&category&search
+POST   /api/v1/cards                ← una roja con matchesSuspended crea su sanción en la misma transacción
 GET|PATCH|DELETE  /api/v1/cards/:id
 POST   /api/v1/cards/:id/pay
-POST   /api/v1/cards/:id/sanctions   ← crea la sanción (no hay POST /api/v1/sanctions suelto)
+POST   /api/v1/cards/:id/sanctions   ← crea una sanción para una roja existente, si aún no tiene una
 
-GET    /api/v1/sanctions            ?fulfilled
+GET    /api/v1/sanctions            ?page&pageSize&fulfilled&category&search
 GET|PATCH  /api/v1/sanctions/:id
 POST   /api/v1/sanctions/:id/pay
 
@@ -232,6 +240,11 @@ GET|PATCH|DELETE  /api/v1/users/:id
 GET    /api/v1/users/:id/photo
 ```
 
+Una tarjeta roja tiene a lo sumo una sanción. Pagar la multa desde cualquiera de las dos vistas
+actualiza tarjeta y sanción en una transacción; revertir el pago reactiva la suspensión solo si aún
+quedan partidos por cumplir. La sanción avanza con partidos efectivamente jugados por el equipo en
+la misma temporada, aunque haya jornadas sin partido. `matchdayEnd` se amplía cuando corresponde.
+
 Filtros como query params sobre el recurso (`?status=played`), no endpoints por combinación.
 Enums de dominio en vez de booleans.
 
@@ -241,14 +254,14 @@ Enums de dominio en vez de booleans.
 envuelve `get/post/patch/remove`; `lib/http/api-routes.ts` centraliza las rutas como constantes
 (`API_ROUTES.teams.list`, etc.) para no repetir strings `"/api/v1/..."` por todo el código.
 
-Cada recurso tiene su propio hook en `hooks/` que combina ambos con TanStack Query:
+Cada recurso tiene cliente y hooks dentro de su módulo; las keys se obtienen de la factory central:
 
 ```ts
-// hooks/useMatches.ts (forma real, simplificada)
+// modules/matches/hooks/useMatches.ts (forma simplificada)
 export function useMatches(filters: MatchFilters = {}) {
   return useQuery({
-    queryKey: ["matches", filters],
-    queryFn: () => get<ListResponse<Match>>(`${API_ROUTES.matches.list}?${toQueryString(filters)}`),
+    queryKey: queryKeys.matches.list(filters),
+    queryFn: () => matchApi.list(filters),
   });
 }
 
@@ -258,8 +271,8 @@ export function useRegisterResult() {
     mutationFn: ({ id, ...input }: RegisterResultInput & { id: string }) =>
       patch<ItemResponse<Match>>(API_ROUTES.matches.result(id), input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["matches"] });
-      queryClient.invalidateQueries({ queryKey: ["standings"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.matches.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.standings.all });
     },
   });
 }
@@ -271,7 +284,7 @@ además de la suya propia — no hay un mecanismo automático de invalidación c
 ## 6. Validación (Zod) — separada de reglas de negocio
 
 ```ts
-// lib/validation/match.schema.ts (real)
+// modules/matches/match.schema.ts
 export const registerResultSchema = z.object({
   homeGoals: z.number().int().min(0),
   awayGoals: z.number().int().min(0),

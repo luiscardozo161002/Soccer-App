@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth/session";
-import { userRepository } from "@/lib/repositories/user.repository";
+import { getSession } from "@/lib/auth/session";
+import { userRepository } from "@/modules/users/server/user.repository";
 
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = token ? await verifySessionToken(token) : null;
+  const session = await getSession(req);
 
   if (!session) {
     return NextResponse.json(
@@ -14,15 +13,21 @@ export async function GET(req: NextRequest) {
   }
 
   const user = await userRepository.findById(session.sub);
+  if (!user || user.status !== "active") {
+    return NextResponse.json(
+      { success: false, error: { code: "SESSION_EXPIRED", message: "Tu sesión terminó. Inicia sesión nuevamente.", details: null } },
+      { status: 401, headers: { "Cache-Control": "no-store" } }
+    );
+  }
 
   return NextResponse.json({
     success: true,
     data: {
       id: session.sub,
-      username: session.username,
-      role: session.role,
+      username: user.username,
+      role: user.role,
       photoType: user?.photoType ?? null,
       photoUpdatedAt: user?.photoUpdatedAt ?? null,
     },
-  });
+  }, { headers: { "Cache-Control": "no-store" } });
 }

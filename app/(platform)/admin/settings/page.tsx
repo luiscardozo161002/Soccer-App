@@ -1,22 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { History, RotateCcw } from "lucide-react";
-import { useSettings } from "@/hooks/useSettings";
-import { useResetTournament } from "@/hooks/useTournament";
-import { useSeasons, useUpdateSeason } from "@/hooks/useSeasons";
-import { useMe } from "@/hooks/useAuth";
+import { useSettings } from "@/modules/settings/hooks/useSettings";
+import { useResetTournament, useSeasons, useUpdateSeason, type Season } from "@/modules/seasons/hooks/useSeasons";
+import { useMe } from "@/modules/auth/hooks/useAuth";
 import { ApiError } from "@/lib/errors";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { EditFormFooter } from "@/components/ui/edit-form-footer";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { BrandingForm } from "@/components/forms/BrandingForm";
-import { MyProfileForm } from "@/components/forms/MyProfileForm";
-import { AdminUsersTable } from "@/components/tables/AdminUsersTable";
+import { BrandingForm } from "@/components/settings/BrandingForm";
+import { MyProfileForm } from "@/components/users/MyProfileForm";
+import { AdminUsersTable } from "@/components/users/AdminUsersTable";
 
 export default function SettingsPage() {
   const { data, isLoading } = useSettings();
@@ -28,37 +27,6 @@ export default function SettingsPage() {
 
   const { data: seasonsData } = useSeasons();
   const activeSeason = seasonsData?.data.find((s) => s.status === "active");
-  const updateSeason = useUpdateSeason();
-  const [seasonName, setSeasonName] = useState("");
-  const [isEditingSeason, setIsEditingSeason] = useState(false);
-
-  useEffect(() => {
-    setSeasonName(activeSeason?.name ?? "");
-    setIsEditingSeason(false);
-  }, [activeSeason]);
-
-  const isDirtySeason = seasonName !== (activeSeason?.name ?? "");
-
-  const handleCancelSeason = () => {
-    setSeasonName(activeSeason?.name ?? "");
-    setIsEditingSeason(false);
-  };
-
-  const handleSaveSeason = () => {
-    if (!activeSeason) return;
-    updateSeason.mutate(
-      { id: activeSeason.id, name: seasonName.trim() },
-      {
-        onSuccess: () => {
-          toast.success("Temporada actualizada");
-          setIsEditingSeason(false);
-        },
-        onError: (error) =>
-          toast.error(error instanceof ApiError ? error.message : "No se pudo actualizar la temporada"),
-      }
-    );
-  };
-
   const handleReset = async () => {
     const ok = await confirm({
       title: "¿Reiniciar el torneo?",
@@ -104,35 +72,7 @@ export default function SettingsPage() {
             </Button>
           </div>
 
-          {activeSeason && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSaveSeason();
-              }}
-              className="mt-4 flex flex-col gap-4 border-t border-border pt-4"
-            >
-              <div className="w-full sm:w-96">
-                <Field label="Nombre de la temporada">
-                  <Input
-                    maxLength={150}
-                    disabled={!isEditingSeason}
-                    value={seasonName}
-                    onChange={(e) => setSeasonName(e.target.value)}
-                  />
-                </Field>
-              </div>
-              <EditFormFooter
-                isEditing={isEditingSeason}
-                isDirty={isDirtySeason && !!seasonName.trim()}
-                submitting={updateSeason.isPending}
-                onEdit={() => setIsEditingSeason(true)}
-                onCancel={handleCancelSeason}
-                editLabel="Editar temporada"
-                submitLabel="Guardar temporada"
-              />
-            </form>
-          )}
+          {activeSeason && <SeasonNameForm key={`${activeSeason.id}:${activeSeason.name}`} season={activeSeason} />}
         </CardBody>
       </Card>
 
@@ -141,5 +81,60 @@ export default function SettingsPage() {
 
       {dialog}
     </div>
+  );
+}
+
+function SeasonNameForm({ season }: { season: Season }) {
+  const updateSeason = useUpdateSeason();
+  const [seasonName, setSeasonName] = useState(season.name);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleCancel = () => {
+    setSeasonName(season.name);
+    setIsEditing(false);
+  };
+
+  const handleSave = () => {
+    updateSeason.mutate(
+      { id: season.id, name: seasonName.trim() },
+      {
+        onSuccess: () => {
+          toast.success("Temporada actualizada");
+          setIsEditing(false);
+        },
+        onError: (error) =>
+          toast.error(error instanceof ApiError ? error.message : "No se pudo actualizar la temporada"),
+      }
+    );
+  };
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        handleSave();
+      }}
+      className="mt-4 flex flex-col gap-4 border-t border-border pt-4"
+    >
+      <div className="w-full sm:w-96">
+        <Field label="Nombre de la temporada">
+          <Input
+            maxLength={150}
+            disabled={!isEditing}
+            value={seasonName}
+            onChange={(event) => setSeasonName(event.target.value)}
+          />
+        </Field>
+      </div>
+      <EditFormFooter
+        isEditing={isEditing}
+        isDirty={seasonName !== season.name && !!seasonName.trim()}
+        submitting={updateSeason.isPending}
+        onEdit={() => setIsEditing(true)}
+        onCancel={handleCancel}
+        editLabel="Editar temporada"
+        submitLabel="Guardar temporada"
+      />
+    </form>
   );
 }

@@ -10,7 +10,6 @@ function toHex({ r, g, b }: { r: number; g: number; b: number }) {
   return `#${[r, g, b].map((c) => clamp(c).toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** Mixes `hex` toward black (ratio > 0) or white (ratio < 0). */
 export function shade(hex: string, ratio: number) {
   const { r, g, b } = hexToRgb(hex);
   const target = ratio >= 0 ? 0 : 255;
@@ -36,13 +35,6 @@ function relativeLuminance(hex: string) {
   return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
 }
 
-/**
- * An admin can pick any accent color, including a very dark one — fine as a
- * button fill, but nearly invisible as `text-primary` against a dark-mode
- * background (contrast ratios well under 2:1 measured in practice). Lightens
- * the color just enough to clear a legibility floor for dark surfaces,
- * leaving colors that are already light enough untouched.
- */
 export function ensureDarkModeLegible(hex: string, minLuminance = 0.35) {
   let current = hex;
   for (let ratio = 0.05; relativeLuminance(current) < minLuminance && ratio <= 1; ratio += 0.05) {

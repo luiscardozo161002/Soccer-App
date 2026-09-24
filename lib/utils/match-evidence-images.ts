@@ -5,9 +5,6 @@ import { decodeImageDataUrl, type OptimizedImage } from "@/lib/utils/images";
 const MAX_DIMENSION = 1600;
 const OUTPUT_TYPE = "image/webp";
 
-// Evidence photos (scoreboards, the field) shouldn't be force-cropped to a
-// square like an avatar — this preserves aspect ratio, only capping the
-// longest side.
 export async function optimizeEvidenceImageFromDataUrl(dataUrl: string): Promise<OptimizedImage> {
   const raw = decodeImageDataUrl(dataUrl);
   try {

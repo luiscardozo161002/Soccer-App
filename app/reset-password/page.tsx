@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
-import { useResetPassword } from "@/hooks/useAuth";
+import { useResetPassword } from "@/modules/auth/hooks/useAuth";
 import { ApiError } from "@/lib/errors";
 import { passwordSchema } from "@/lib/validation/password";
 import { Field } from "@/components/ui/field";
@@ -95,7 +95,7 @@ function ResetPasswordFormCard() {
 export default function ResetPasswordPage() {
   return (
     <AuthShell backLink={{ href: "/login", label: "Volver a iniciar sesión" }}>
-      <Suspense fallback={null}>
+      <Suspense fallback={<p className="text-sm text-muted">Cargando formulario...</p>}>
         <ResetPasswordFormCard />
       </Suspense>
     </AuthShell>

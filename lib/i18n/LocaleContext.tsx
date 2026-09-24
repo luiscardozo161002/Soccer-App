@@ -10,8 +10,6 @@ interface LocaleContextValue {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
-// The site's language is a single admin-controlled setting (SiteSettings.locale)
-// — every visitor sees the same one, there's no per-viewer override anymore.
 export function LocaleProvider({ locale, children }: { locale: Locale; children: ReactNode }) {
   return <LocaleContext.Provider value={{ locale, t: dictionaries[locale] }}>{children}</LocaleContext.Provider>;
 }

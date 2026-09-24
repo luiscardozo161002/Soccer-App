@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { withErrorHandling } from "@/lib/middleware/error-handler";
 import { ok } from "@/lib/http/api-response";
-import { seasonService } from "@/lib/services/season.service";
-import { updateSeasonSchema } from "@/lib/validation/season.schema";
+import { seasonService } from "@/modules/seasons/server/season.service";
+import { updateSeasonSchema } from "@/modules/seasons/season.schema";
 
 export const GET = withErrorHandling(async (_req, { params }) => {
   const { id } = await params;

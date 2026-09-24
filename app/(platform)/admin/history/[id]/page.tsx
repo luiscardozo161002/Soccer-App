@@ -3,8 +3,8 @@
 import { use } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { useSeason } from "@/hooks/useSeasons";
-import { useStandings } from "@/hooks/useStandings";
+import { useSeason } from "@/modules/seasons/hooks/useSeasons";
+import { useStandings } from "@/modules/standings/hooks/useStandings";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";

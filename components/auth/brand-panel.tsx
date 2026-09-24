@@ -16,14 +16,14 @@ export function BrandLogo({
   return (
     <div className="relative z-10 flex items-center gap-3">
       {isLoading ? (
-        // Skeleton only while actually loading — once settings have
-        // resolved with no logo, that's a final state, not a spinner.
         <span className="block h-12 w-12 shrink-0 animate-pulse rounded-full border-2 border-white/40 bg-white/10" />
       ) : logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={logoUrl}
           alt="Logo"
+          width={48}
+          height={48}
+          unoptimized
           className="h-12 w-12 shrink-0 rounded-full border-2 border-white/40 bg-white object-cover p-1"
         />
       ) : (
@@ -46,7 +46,7 @@ function PlayerCutout({ src, className, delay }: { src: string; className?: stri
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7, delay, ease: "easeOut" }}
     >
-      {/* Contact shadow — kept outside the fade mask below so it isn't dimmed. */}
+
       <div className="absolute inset-x-10 bottom-1 z-0 h-3 rounded-full bg-black/50 blur-md" />
 
       <div className="absolute inset-0" style={{ maskImage: bottomFadeMask, WebkitMaskImage: bottomFadeMask }}>
@@ -59,7 +59,6 @@ function PlayerCutout({ src, className, delay }: { src: string; className?: stri
 const cornerVignette =
   "radial-gradient(ellipse 85% 75% at 0% 100%, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.68) 22%, rgba(0,0,0,0.4) 42%, rgba(0,0,0,0.18) 60%, transparent 80%)";
 
-// Softly darkens the whole photo's edges/highlights, independent of the stronger bottom-left corner shadow.
 const edgeVignette =
   "radial-gradient(ellipse 90% 80% at 50% 40%, transparent 40%, rgba(0,0,0,0.32) 75%, rgba(0,0,0,0.55) 100%)";
 
@@ -74,7 +73,7 @@ export function BrandPanel({
 }) {
   return (
     <div className="relative hidden w-1/2 shrink-0 overflow-hidden lg:flex lg:flex-col lg:p-12">
-      {/* Slightly scaled up so the blur filter never reveals a sharp edge. */}
+
       <Image
         src="/images/background_image_login.jpg"
         alt=""
@@ -105,7 +104,7 @@ export function BrandPanel({
         </p>
       </div>
 
-      {/* Netflix-style corner shadow — darkens the bottom-left so the pitch and players fade into it there, staying clear everywhere else. */}
+
       <div className="pointer-events-none absolute inset-0 z-20" style={{ background: cornerVignette }} />
     </div>
   );

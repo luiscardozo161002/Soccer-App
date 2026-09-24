@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 import { Images, Lock } from "lucide-react";
-import { useMatches, type Match } from "@/hooks/useMatches";
-import { useTeams } from "@/hooks/useTeams";
-import { useFields } from "@/hooks/useFields";
+import { useMatches, type Match } from "@/modules/matches/hooks/useMatches";
+import { useTeams } from "@/modules/teams/hooks/useTeams";
+import { useFields } from "@/modules/fields/hooks/useFields";
 import { formatCalendarDate } from "@/lib/utils/date";
 import { Card } from "@/components/ui/card";
 import { Table, Thead, Th, Tbody, Td, EmptyRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CategoryDot } from "@/components/ui/category-badge";
-import { RegisterResultForm } from "@/components/register-result-form";
-import { MatchEvidenceViewerModal } from "@/components/forms/MatchEvidenceViewerModal";
-import { statusLabels } from "@/components/forms/EditMatchModal";
+import { RegisterResultForm } from "@/components/matches/RegisterResultForm";
+import { MatchEvidenceViewerModal } from "@/components/matches/MatchEvidenceViewerModal";
+import { statusLabels } from "@/components/matches/EditMatchModal";
 
 function toDateTime(date: string, time: string) {
   return new Date(`${date.slice(0, 10)}T${time}:00`);
@@ -26,8 +26,7 @@ function canRegisterResult(match: Match) {
   return match.status === "scheduled" && toDateTime(match.date, match.time) <= new Date();
 }
 
-// The API already scopes the response to this referee's own assigned
-// matches for an "arbitro" session — no client-side filtering needed.
+
 export default function MyMatchesPage() {
   const [registeringMatch, setRegisteringMatch] = useState<Match | null>(null);
   const [viewingEvidenceMatch, setViewingEvidenceMatch] = useState<Match | null>(null);

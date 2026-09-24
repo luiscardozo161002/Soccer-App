@@ -8,6 +8,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit --incremental false",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:watch": "vitest",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test",
+    "ci": "pnpm verify && pnpm build",
     "postinstall": "prisma generate",
     "db:bootstrap-admin": "tsx prisma/bootstrap-admin.ts",
     "db:seed-clausura-caliope": "tsx prisma/seeds/seed-clausura-caliope.ts",
@@ -33,8 +39,10 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.5",
@@ -47,16 +55,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.11",
     "typescript": "^5",
-    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10"
   },
-  "packageManager": "pnpm@10.29.2",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@prisma/client",
-      "@prisma/engines",
-      "esbuild",
-      "prisma"
-    ]
-  }
+  "packageManager": "pnpm@10.29.2"
 }

@@ -8,6 +8,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  distDir: process.env.SOCCER_E2E === "1" ? ".next-e2e" : ".next",
   async headers() {
     return [
       {

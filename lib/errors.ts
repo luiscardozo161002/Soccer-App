@@ -10,8 +10,6 @@ export class ApiError extends Error {
   }
 }
 
-// Shared "does this id exist?" 404 — message reaches the browser as-is,
-// so it's Spanish like the rest of the UI, not per-service English/Spanish.
 export function notFoundError(code: string, label: string, id: string) {
   return new ApiError(404, code, `No existe ${label} con id ${id}`);
 }

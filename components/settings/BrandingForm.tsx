@@ -1,0 +1,333 @@
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import { useUpdateSettings, siteLogoUrl, type SiteSettings } from "@/modules/settings/hooks/useSettings";
+import { ApiError } from "@/lib/errors";
+import { onlyHexColor } from "@/lib/utils/forms";
+import { Card, CardHeader, CardBody } from "@/components/ui/card";
+import { Field, Input, Select } from "@/components/ui/field";
+import { PhotoInput } from "@/components/ui/photo-input";
+import { EditFormFooter } from "@/components/ui/edit-form-footer";
+
+function ColorField({
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  onChange: (hex: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Field label={label}>
+      <div className="flex items-center gap-3">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-border bg-surface p-1 disabled:cursor-not-allowed disabled:opacity-60"
+        />
+        <Input
+          value={value}
+          onChange={(e) => onChange(onlyHexColor(e.target.value))}
+          disabled={disabled}
+          maxLength={7}
+          className="uppercase"
+        />
+      </div>
+    </Field>
+  );
+}
+
+export function BrandingForm({ settings }: { settings: SiteSettings }) {
+  const settingsKey = [
+    settings.id,
+    settings.name,
+    settings.slogan,
+    settings.primaryColor,
+    settings.backgroundColor,
+    settings.locale,
+    settings.logoUpdatedAt,
+  ].join(":");
+
+  return <BrandingFormContent key={settingsKey} settings={settings} />;
+}
+
+function BrandingFormContent({ settings }: { settings: SiteSettings }) {
+  const updateSettings = useUpdateSettings();
+  const [name, setName] = useState(settings.name);
+  const [slogan, setSlogan] = useState(settings.slogan ?? "");
+  const [primaryColor, setPrimaryColor] = useState(settings.primaryColor);
+  const [backgroundColor, setBackgroundColor] = useState(settings.backgroundColor);
+  const [logo, setLogo] = useState<string | undefined>(undefined);
+  const [logoRemoved, setLogoRemoved] = useState(false);
+  const [locale, setLocale] = useState<SiteSettings["locale"]>(settings.locale);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingLogo, setIsEditingLogo] = useState(false);
+  const [isEditingColors, setIsEditingColors] = useState(false);
+  const [isEditingLocale, setIsEditingLocale] = useState(false);
+
+  const isDirtyName = name !== settings.name || slogan !== (settings.slogan ?? "");
+  const isDirtyLogo = !!logo || logoRemoved;
+  const isDirtyColors =
+    primaryColor.toLowerCase() !== settings.primaryColor.toLowerCase() ||
+    backgroundColor.toLowerCase() !== settings.backgroundColor.toLowerCase();
+  const isDirtyLocale = locale !== settings.locale;
+
+  const handleCancelName = () => {
+    setName(settings.name);
+    setSlogan(settings.slogan ?? "");
+    setIsEditingName(false);
+  };
+
+  const handleCancelLogo = () => {
+    setLogo(undefined);
+    setLogoRemoved(false);
+    setIsEditingLogo(false);
+  };
+
+  const handleCancelColors = () => {
+    setPrimaryColor(settings.primaryColor);
+    setBackgroundColor(settings.backgroundColor);
+    setIsEditingColors(false);
+  };
+
+  const handleCancelLocale = () => {
+    setLocale(settings.locale);
+    setIsEditingLocale(false);
+  };
+
+  const handleSaveBranding = () => {
+    updateSettings.mutate(
+      { name, slogan },
+      {
+        onSuccess: () => {
+          toast.success("Nombre actualizado");
+          window.location.reload();
+        },
+        onError: (error) => {
+          toast.error(error instanceof ApiError ? error.message : "No se pudo actualizar el nombre");
+        },
+      }
+    );
+  };
+
+  const handleSaveLogo = () => {
+    if (!isDirtyLogo) return;
+    updateSettings.mutate(
+      { logo: logoRemoved ? null : logo },
+      {
+        onSuccess: () => {
+          toast.success(logoRemoved ? "Logo eliminado" : "Logo actualizado");
+          window.location.reload();
+        },
+        onError: (error) => {
+          toast.error(error instanceof ApiError ? error.message : "No se pudo actualizar el logo");
+        },
+      }
+    );
+  };
+
+  const handleSaveColors = () => {
+    updateSettings.mutate(
+      { primaryColor, backgroundColor },
+      {
+        onSuccess: () => {
+          toast.success("Colores actualizados");
+          window.location.reload();
+        },
+        onError: (error) => {
+          toast.error(error instanceof ApiError ? error.message : "No se pudieron actualizar los colores");
+        },
+      }
+    );
+  };
+
+  const handleSaveLocale = () => {
+    updateSettings.mutate(
+      { locale },
+      {
+        onSuccess: () => {
+          toast.success("Idioma del sitio actualizado");
+          window.location.reload();
+        },
+        onError: (error) => {
+          toast.error(error instanceof ApiError ? error.message : "No se pudo actualizar el idioma");
+        },
+      }
+    );
+  };
+
+  return (
+    <>
+      <Card>
+        <CardHeader title="Nombre y eslogan" description="Se muestran en el menú del admin y en el sitio público." />
+        <CardBody>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveBranding();
+            }}
+            className="flex flex-col gap-4"
+          >
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="w-72">
+                <Field label="Nombre">
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Liga de Futbol"
+                    maxLength={80}
+                    disabled={!isEditingName}
+                  />
+                </Field>
+              </div>
+              <div className="w-full sm:w-96">
+                <Field label="Eslogan (opcional)">
+                  <Input
+                    value={slogan}
+                    onChange={(e) => setSlogan(e.target.value)}
+                    placeholder="¡Di no a la violencia, sí a la sana convivencia!"
+                    maxLength={200}
+                    disabled={!isEditingName}
+                  />
+                </Field>
+              </div>
+            </div>
+            <EditFormFooter
+              isEditing={isEditingName}
+              isDirty={isDirtyName && !!name.trim()}
+              submitting={updateSettings.isPending}
+              onEdit={() => setIsEditingName(true)}
+              onCancel={handleCancelName}
+              editLabel="Editar nombre y eslogan"
+              submitLabel="Guardar nombre"
+            />
+          </form>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader title="Logo" description="Se usa en el menú del admin y el sitio público." />
+        <CardBody>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveLogo();
+            }}
+            className="flex flex-col gap-4"
+          >
+            <PhotoInput
+              value={logoRemoved ? undefined : logo ?? siteLogoUrl(settings) ?? undefined}
+              onChange={(dataUrl) => {
+                setLogo(dataUrl);
+                setLogoRemoved(false);
+              }}
+              onRemove={() => {
+                setLogo(undefined);
+                setLogoRemoved(true);
+              }}
+              label="Logo"
+              disabled={!isEditingLogo}
+              uploading={updateSettings.isPending}
+            />
+            <EditFormFooter
+              isEditing={isEditingLogo}
+              isDirty={isDirtyLogo}
+              submitting={updateSettings.isPending}
+              onEdit={() => setIsEditingLogo(true)}
+              onCancel={handleCancelLogo}
+              editLabel="Editar logo"
+              submitLabel="Guardar logo"
+            />
+          </form>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Colores del tema"
+          description="Color de botones/acentos y color de fondo del panel de administración."
+        />
+        <CardBody>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveColors();
+            }}
+            className="flex flex-col gap-4"
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <ColorField
+                label="Color de botones (acento)"
+                value={primaryColor}
+                onChange={setPrimaryColor}
+                disabled={!isEditingColors}
+              />
+              <ColorField
+                label="Color de fondo"
+                value={backgroundColor}
+                onChange={setBackgroundColor}
+                disabled={!isEditingColors}
+              />
+            </div>
+            <p className="text-xs text-muted">
+              Estos colores aplican al panel de administración y al sitio público.
+            </p>
+            <EditFormFooter
+              isEditing={isEditingColors}
+              isDirty={isDirtyColors}
+              submitting={updateSettings.isPending}
+              onEdit={() => setIsEditingColors(true)}
+              onCancel={handleCancelColors}
+              editLabel="Editar colores"
+              submitLabel="Guardar colores"
+            />
+          </form>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Idioma del sitio"
+          description="En qué idioma ve el sitio público cualquier visitante. El panel de administración siempre se queda en español."
+        />
+        <CardBody>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveLocale();
+            }}
+            className="flex flex-col gap-4"
+          >
+            <div className="w-56">
+              <Field label="Idioma">
+                <Select
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value as SiteSettings["locale"])}
+                  disabled={!isEditingLocale}
+                >
+                  <option value="es-MX">Español</option>
+                  <option value="en">Inglés</option>
+                </Select>
+              </Field>
+            </div>
+            <EditFormFooter
+              isEditing={isEditingLocale}
+              isDirty={isDirtyLocale}
+              submitting={updateSettings.isPending}
+              onEdit={() => setIsEditingLocale(true)}
+              onCancel={handleCancelLocale}
+              editLabel="Editar idioma"
+              submitLabel="Guardar idioma"
+            />
+          </form>
+        </CardBody>
+      </Card>
+    </>
+  );
+}

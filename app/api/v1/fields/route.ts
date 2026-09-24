@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { withErrorHandling } from "@/lib/middleware/error-handler";
 import { ok } from "@/lib/http/api-response";
-import { fieldService } from "@/lib/services/field.service";
-import { createFieldSchema, listFieldsQuerySchema } from "@/lib/validation/field.schema";
+import { fieldService } from "@/modules/fields/server/field.service";
+import { createFieldSchema, listFieldsQuerySchema } from "@/modules/fields/field.schema";
 
 export const GET = withErrorHandling(async (req) => {
   const query = listFieldsQuerySchema.parse(

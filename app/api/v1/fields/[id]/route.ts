@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { withErrorHandling } from "@/lib/middleware/error-handler";
 import { ok, noContent } from "@/lib/http/api-response";
-import { fieldService } from "@/lib/services/field.service";
-import { updateFieldSchema } from "@/lib/validation/field.schema";
+import { fieldService } from "@/modules/fields/server/field.service";
+import { updateFieldSchema } from "@/modules/fields/field.schema";
 
 export const GET = withErrorHandling(async (_req, { params }) => {
   const { id } = await params;

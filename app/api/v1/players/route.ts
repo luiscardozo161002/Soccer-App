@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { withErrorHandling } from "@/lib/middleware/error-handler";
 import { ok } from "@/lib/http/api-response";
-import { playerService } from "@/lib/services/player.service";
-import { createPlayerSchema, listPlayersQuerySchema } from "@/lib/validation/player.schema";
+import { playerService } from "@/modules/players/server/player.service";
+import { createPlayerSchema, listPlayersQuerySchema } from "@/modules/players/player.schema";
 
 export const GET = withErrorHandling(async (req) => {
   const query = listPlayersQuerySchema.parse(

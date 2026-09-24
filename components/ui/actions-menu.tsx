@@ -15,9 +15,7 @@ export interface ActionsMenuItem {
 
 const MENU_WIDTH = 176;
 
-// Renders its menu through a portal so it isn't clipped by a scrolling
-// Table or an overflow-hidden Card — both are common ancestors for a
-// per-row actions button.
+
 export function ActionsMenu({ items, label }: { items: ActionsMenuItem[]; label: string }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
@@ -91,11 +89,10 @@ export function ActionsMenu({ items, label }: { items: ActionsMenuItem[]; label:
                       setOpen(false);
                       item.onClick();
                     }}
-                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                      item.tone === "danger"
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${item.tone === "danger"
                         ? "text-red-600 hover:bg-red-50 dark:hover:bg-red-400/10"
                         : "text-ink hover:bg-primary-light"
-                    }`}
+                      }`}
                   >
                     {item.icon}
                     {item.label}

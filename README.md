@@ -26,28 +26,33 @@ público de solo lectura con la información de la liga.
 ```
 app/
   (landing)/            Sitio público (calendario, tabla de posiciones, equipos)
+  login/ forgot-password/ reset-password/   Acceso y recuperación públicos
   (platform)/admin/      Panel de administración (requiere sesión)
     page.tsx              Tabla de posiciones
     teams/ players/ matches/ fields/ sanctions/ history/ settings/
   api/v1/                 Route handlers REST (ver docs/arquitectura.md para el listado completo)
-  login/ forgot-password/ reset-password/   Flujo de autenticación
+  api/health/             Readiness de aplicación y PostgreSQL
   generated/prisma/       Cliente de Prisma generado (no editar a mano)
 
 components/
   ui/                    Primitivas de UI compartidas (Table, Modal, Field, Pagination, ...)
-  forms/                 Modales de edición por recurso (EditTeamModal, EditMatchModal, ...)
-  tables/                Tablas con su propia lógica de listado/paginación
+  fields/ matches/       Componentes visuales agrupados por dominio
+  players/ teams/
+  sanctions/ settings/ users/
   auth/                  Contenedor visual compartido por login/forgot/reset/404 (AuthShell)
 
-hooks/                   Un hook TanStack Query por recurso (useTeams, useMatches, ...)
+modules/
+  auth/ cards/ fields/ health/ matches/ players/
+  sanctions/ seasons/ settings/ standings/ teams/ users/
+                         Dominios encapsulados: cliente, hooks, schemas,
+                         reglas, services y repositories según corresponda
 
 lib/
   auth/                  Firma/verificación de la sesión JWT
   http/                  Cliente fetch genérico + rutas de la API
   middleware/            withErrorHandling (envelope de error uniforme para las route handlers)
-  repositories/          Acceso a datos vía Prisma
-  services/               Reglas de negocio (llaman al repository, nunca al revés)
-  validation/            Schemas Zod por recurso (también consumidos desde el cliente)
+  query/                 Factories compartidas de query keys
+  observability/         Logging estructurado JSON
   security/              Rate limiting (Redis + fallback en memoria)
   constants/              Categorías de liga, motivos de tarjeta, etc.
 
@@ -57,13 +62,13 @@ prisma/
   bootstrap-admin.ts      Crea/asegura un usuario admin sin depender del seed completo
 
 docs/
-  arquitectura.md          Arquitectura, contrato de la API y decisiones de diseño
-  schema.sql               Volcado del esquema de base de datos
+  arquitectura.md          Arquitectura y contrato de la API
+  coding-standards.md      Reglas para desarrollar y migrar features
 ```
 
-Patrón de capas en el backend: `route.ts` valida el DTO con Zod → llama al **service** (reglas de
-negocio, lanza `ApiError` con el código/status correctos) → el service llama al **repository**
-(la única capa que toca Prisma). El route handler nunca accede a Prisma directamente.
+El proyecto es un monolito modular por dominio. En backend cada módulo conserva el flujo
+`route → service → repository → Prisma`; cada dominio encapsula además su cliente HTTP, hooks,
+tipos y schemas. Ver [docs/coding-standards.md](docs/coding-standards.md).
 
 ## Empezar en local
 
@@ -130,8 +135,17 @@ hay datos reales de ese tipo.
 | `pnpm build` | Build de producción |
 | `pnpm start` | Sirve el build de producción |
 | `pnpm lint` | ESLint |
+| `pnpm typecheck` | Genera tipos de rutas y valida TypeScript |
+| `pnpm test` | Ejecuta las pruebas unitarias con Vitest |
+| `pnpm verify` | Ejecuta typecheck, lint y pruebas |
+| `pnpm ci` | Ejecuta `verify` y el build de producción |
 | `pnpm db:bootstrap-admin` | Crea el usuario admin con contraseña fija — no idempotente, solo correr una vez por base |
 | `pnpm db:seed-clausura-caliope` | Ejemplo de seed idempotente real (equipos/canchas/temporada de un torneo específico) |
+
+`GET /api/health` comprueba la disponibilidad de PostgreSQL y responde `503` cuando la aplicación
+no está lista. Los route handlers instrumentados emiten logs JSON e incluyen `x-request-id` en la
+respuesta. El workflow `.github/workflows/ci.yml` ejecuta `pnpm verify` y `pnpm build` en pushes a
+`main` y pull requests.
 
 ## Funcionalidad
 

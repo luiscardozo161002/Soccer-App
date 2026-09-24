@@ -1,8 +1,5 @@
 import { ReactNode } from "react";
 
-// Capped height + internal scroll: the table stays put on screen and only
-// its rows scroll once there are more than fit, instead of pushing the
-// whole page taller as more rows get added.
 export function Table({ children }: { children: ReactNode }) {
   return (
     <div className="scrollbar-modern max-h-[65vh] w-full overflow-auto">

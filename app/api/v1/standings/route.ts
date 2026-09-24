@@ -1,6 +1,6 @@
 import { withErrorHandling } from "@/lib/middleware/error-handler";
 import { ok } from "@/lib/http/api-response";
-import { standingsService } from "@/lib/services/standings.service";
+import { standingsService } from "@/modules/standings/server/standings.service";
 
 export const GET = withErrorHandling(async (req) => {
   const seasonId = req.nextUrl.searchParams.get("seasonId") ?? undefined;

@@ -3,8 +3,6 @@ import { HTMLMotionProps, motion } from "framer-motion";
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 type Size = "md" | "icon";
 
-// A soft, color-matched shadow under each variant so buttons read as
-// physically "raised" surfaces, not just colored text/backgrounds.
 const variantClasses: Record<Variant, string> = {
   primary: "bg-primary text-white shadow-md shadow-primary/30 hover:bg-primary-hover hover:shadow-lg hover:shadow-primary/40",
   secondary: "bg-primary-light text-ink shadow-sm shadow-primary/15 hover:bg-primary/20 hover:shadow-md hover:shadow-primary/25",

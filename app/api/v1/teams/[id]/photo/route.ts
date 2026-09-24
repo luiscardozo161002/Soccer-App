@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { teamRepository } from "@/lib/repositories/team.repository";
+import { teamRepository } from "@/modules/teams/server/team.repository";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,9 +15,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   return new NextResponse(new Uint8Array(record.photo), {
     headers: {
       "Content-Type": record.photoType,
-      // Safe to cache forever: the URL includes `?v=<photoUpdatedAt>` (see
-      // teamPhotoUrl), so a new upload produces a new URL instead of this
-      // one's bytes ever changing.
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   });

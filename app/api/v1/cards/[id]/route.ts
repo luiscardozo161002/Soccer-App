@@ -3,8 +3,8 @@ import { withErrorHandling } from "@/lib/middleware/error-handler";
 import { ok, noContent } from "@/lib/http/api-response";
 import { getSession } from "@/lib/auth/session";
 import { assertAdmin } from "@/lib/auth/match-access";
-import { cardService } from "@/lib/services/card.service";
-import { updateCardSchema } from "@/lib/validation/card.schema";
+import { cardService } from "@/modules/cards/server/card.service";
+import { updateCardSchema } from "@/modules/cards/card.schema";
 
 export const GET = withErrorHandling(async (_req, { params }) => {
   const { id } = await params;

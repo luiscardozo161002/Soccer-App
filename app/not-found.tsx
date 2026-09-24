@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Home } from "lucide-react";
-import { useMe } from "@/hooks/useAuth";
+import { useMe } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { AuthShell } from "@/components/auth/auth-shell";
 

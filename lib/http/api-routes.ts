@@ -1,9 +1,9 @@
-// Single source of truth for every API path — hooks build on these instead
-// of writing "/api/v1/..." literals, so a typo breaks the build, not runtime.
+
 export const API_ROUTES = {
   auth: {
     login: "/api/v1/auth/login",
     logout: "/api/v1/auth/logout",
+    refresh: "/api/v1/auth/refresh",
     me: "/api/v1/auth/me",
     forgotPassword: "/api/v1/auth/forgot-password",
     resetPassword: "/api/v1/auth/reset-password",

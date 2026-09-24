@@ -11,9 +11,6 @@ export interface OptimizedImage {
   type: string;
 }
 
-// Shared by every image-upload flow (avatars, logos, evidence): decodes and
-// size-checks a base64 data URL, leaving the resize/encode strategy to the
-// caller since that differs (square avatar crop vs. full-aspect evidence).
 export function decodeImageDataUrl(dataUrl: string): Buffer {
   const match = dataUrl.match(DATA_URL_RE);
   if (!match) {
@@ -31,8 +28,6 @@ export function decodeImageDataUrl(dataUrl: string): Buffer {
   return raw;
 }
 
-// Resizes to a square thumbnail and re-encodes as webp so every stored
-// avatar/logo is small and consistent regardless of what the client uploaded.
 export async function optimizeImageFromDataUrl(dataUrl: string): Promise<OptimizedImage> {
   const raw = decodeImageDataUrl(dataUrl);
   try {

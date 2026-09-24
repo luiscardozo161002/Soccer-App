@@ -4,18 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { ExternalLink } from "lucide-react";
-import { useForgotPassword } from "@/hooks/useAuth";
+import { useForgotPassword } from "@/modules/auth/hooks/useAuth";
+import { forgotPasswordSchema, type ForgotPasswordDto } from "@/modules/auth/auth.schema";
 import { ApiError } from "@/lib/errors";
 import { Field, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { AuthShell } from "@/components/auth/auth-shell";
-
-const schema = z.object({
-  identifier: z.string().trim().min(1, "Ingresa tu usuario o correo"),
-});
-type Form = z.infer<typeof schema>;
 
 export default function ForgotPasswordPage() {
   const forgotPassword = useForgotPassword();
@@ -24,7 +19,7 @@ export default function ForgotPasswordPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<Form>({ resolver: zodResolver(schema) });
+  } = useForm<ForgotPasswordDto>({ resolver: zodResolver(forgotPasswordSchema) });
 
   const onSubmit = handleSubmit((values) => {
     forgotPassword.mutate(values, {

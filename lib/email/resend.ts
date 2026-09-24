@@ -1,7 +1,5 @@
 import { Resend } from "resend";
 
-// No provider configured (local dev) is a valid state, not an error —
-// callers fall back to a dev-only delivery path instead of failing.
 const apiKey = process.env.RESEND_API_KEY;
 const fromAddress = process.env.EMAIL_FROM;
 
@@ -14,14 +12,9 @@ const LOGO_CONTENT_ID = "logo";
 export interface EmailBranding {
   siteName: string;
   primaryColor: string;
-  // CID attachment, not a data: URI or app URL: Gmail strips data: URIs,
-  // and APP_URL may not be reachable by the recipient (e.g. localhost).
   logo: { content: string; contentType: string } | null;
 }
 
-// Table-based layout with every style inline: email clients (Outlook,
-// Gmail) strip <style> blocks and don't support flexbox/backdrop-blur, so
-// this can't reuse the app's Tailwind classes the way the login page does.
 function passwordResetEmailHtml(resetUrl: string, { siteName, primaryColor, logo }: EmailBranding) {
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5; padding:32px 16px; font-family:Arial, Helvetica, sans-serif;">
@@ -30,11 +23,10 @@ function passwordResetEmailHtml(resetUrl: string, { siteName, primaryColor, logo
           <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background-color:#ffffff; border-radius:16px; overflow:hidden;">
             <tr>
               <td align="center" style="background-color:#f1f5f9; padding:28px 24px;">
-                ${
-                  logo
-                    ? `<img src="cid:${LOGO_CONTENT_ID}" alt="${siteName}" width="48" height="48" style="border-radius:9999px; border:2px solid rgba(15,23,42,0.1); background-color:#ffffff; object-fit:cover; margin-bottom:10px;" />`
-                    : ""
-                }
+                ${logo
+      ? `<img src="cid:${LOGO_CONTENT_ID}" alt="${siteName}" width="48" height="48" style="border-radius:9999px; border:2px solid rgba(15,23,42,0.1); background-color:#ffffff; object-fit:cover; margin-bottom:10px;" />`
+      : ""
+    }
                 <div style="color:#334155; font-size:16px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em;">${siteName}</div>
               </td>
             </tr>
@@ -80,15 +72,14 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string, brand
     html: passwordResetEmailHtml(resetUrl, branding),
     attachments: logo
       ? [
-          {
-            content: logo.content,
-            filename: `logo.${logo.contentType.split("/")[1] ?? "png"}`,
-            contentId: LOGO_CONTENT_ID,
-          },
-        ]
+        {
+          content: logo.content,
+          filename: `logo.${logo.contentType.split("/")[1] ?? "png"}`,
+          contentId: LOGO_CONTENT_ID,
+        },
+      ]
       : undefined,
   });
-  // The Resend SDK reports API-level failures (e.g. unverified sender domain) via
-  // this `error` field instead of throwing, so callers must check it explicitly.
+
   if (error) throw new Error(`Resend error: ${error.message}`);
 }

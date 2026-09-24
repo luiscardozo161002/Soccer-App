@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { History, ChevronRight } from "lucide-react";
-import { useSeasons } from "@/hooks/useSeasons";
+import { useSeasons } from "@/modules/seasons/hooks/useSeasons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
+import { getSession, REFRESH_COOKIE_NAME } from "@/lib/auth/session";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { refreshSessionRepository } from "@/modules/auth/server/refresh-session.repository";
 
 // GET on /api/v1/* stays public (the landing page needs it); only writes
 // require a session. /api/v1/users is the exception — it lists admin
@@ -10,9 +11,10 @@ const ALWAYS_PROTECTED_API_PREFIXES = ["/api/v1/users"];
 // A referee is scoped to matches (result registration) and match evidence
 // only — every other write endpoint (teams, players, users, settings,
 // sanctions, ...) is off-limits regardless of the fine-grained per-match
-// check those two routes also do. role comes from the verified JWT, so this
-// needs no DB lookup and is safe to do at the edge.
+// check those two routes also do. getSession checks the current user role in
+// the database, so a role change takes effect on the next request.
 const ARBITRO_WRITE_PREFIX = "/api/v1/matches/";
+const ARBITRO_PAGE_PREFIX = "/admin/my-matches";
 
 function envInt(name: string, fallback: number) {
   const value = Number(process.env[name]);
@@ -66,10 +68,21 @@ export async function proxy(req: NextRequest) {
 
   if (pathname.startsWith("/admin")) {
     const session = await getSession(req);
-    if (!session) {
+    const refreshToken = req.cookies.get(REFRESH_COOKIE_NAME)?.value;
+    const refreshUser = !session && refreshToken
+      ? await refreshSessionRepository.findActiveUser(refreshToken)
+      : null;
+    if (!session && !refreshUser) {
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
+    }
+    const role = session?.role ?? refreshUser?.role;
+    if (role !== "admin" && role !== "arbitro") {
+      return new NextResponse(null, { status: 403 });
+    }
+    if (role === "arbitro" && pathname !== ARBITRO_PAGE_PREFIX && !pathname.startsWith(`${ARBITRO_PAGE_PREFIX}/`)) {
+      return NextResponse.redirect(new URL(ARBITRO_PAGE_PREFIX, req.url));
     }
     return NextResponse.next();
   }
@@ -82,6 +95,12 @@ export async function proxy(req: NextRequest) {
         return NextResponse.json(
           { success: false, error: { code: "UNAUTHORIZED", message: "Inicia sesión para continuar", details: null } },
           { status: 401 }
+        );
+      }
+      if (session.role !== "admin" && session.role !== "arbitro") {
+        return NextResponse.json(
+          { success: false, error: { code: "FORBIDDEN", message: "No tienes permiso para esta acción", details: null } },
+          { status: 403 }
         );
       }
       if (session.role === "arbitro" && req.method !== "GET" && !pathname.startsWith(ARBITRO_WRITE_PREFIX)) {

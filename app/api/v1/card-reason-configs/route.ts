@@ -3,12 +3,10 @@ import { withErrorHandling } from "@/lib/middleware/error-handler";
 import { ok } from "@/lib/http/api-response";
 import { getSession } from "@/lib/auth/session";
 import { assertAdmin } from "@/lib/auth/match-access";
-import { cardReasonConfigService } from "@/lib/services/card-reason-config.service";
-import { createCardReasonConfigSchema, listCardReasonConfigsQuerySchema } from "@/lib/validation/card-reason-config.schema";
+import { cardReasonConfigService } from "@/modules/cards/server/card-reason-config.service";
+import { createCardReasonConfigSchema, listCardReasonConfigsQuerySchema } from "@/modules/cards/card-reason-config.schema";
 
-// GET stays public, like most read endpoints — the card-creation form
-// (used by both admin and arbitro sessions) needs the current prices.
-// Only POST (managing the catalog) is admin-only.
+
 export const GET = withErrorHandling(async (req) => {
   const query = listCardReasonConfigsQuerySchema.parse(Object.fromEntries(req.nextUrl.searchParams));
   const { items, totalItems, totalPages } = await cardReasonConfigService.list(query);

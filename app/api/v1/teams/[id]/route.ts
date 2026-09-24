@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { withErrorHandling } from "@/lib/middleware/error-handler";
 import { ok, noContent } from "@/lib/http/api-response";
-import { teamService } from "@/lib/services/team.service";
-import { updateTeamSchema } from "@/lib/validation/team.schema";
+import { teamService } from "@/modules/teams/server/team.service";
+import { updateTeamSchema } from "@/modules/teams/team.schema";
 
 export const GET = withErrorHandling(async (_req, { params }) => {
   const { id } = await params;

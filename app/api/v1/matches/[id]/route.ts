@@ -3,8 +3,8 @@ import { withErrorHandling } from "@/lib/middleware/error-handler";
 import { ok, noContent } from "@/lib/http/api-response";
 import { getSession } from "@/lib/auth/session";
 import { assertMatchAccess, assertAdmin } from "@/lib/auth/match-access";
-import { matchService } from "@/lib/services/match.service";
-import { updateMatchSchema } from "@/lib/validation/match.schema";
+import { matchService } from "@/modules/matches/server/match.service";
+import { updateMatchSchema } from "@/modules/matches/match.schema";
 
 export const GET = withErrorHandling(async (req: NextRequest, { params }) => {
   const { id } = await params;
@@ -14,9 +14,6 @@ export const GET = withErrorHandling(async (req: NextRequest, { params }) => {
   return ok(match);
 });
 
-// General editing (reschedule, postpone, cancel) stays admin-only — an
-// assigned referee may only register a result via /result, not reshape
-// the match itself.
 export const PATCH = withErrorHandling(async (req: NextRequest, { params }) => {
   const session = await getSession(req);
   assertAdmin(session);

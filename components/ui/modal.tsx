@@ -10,9 +10,6 @@ const sizeClasses = {
   lg: "w-full max-w-3xl",
 } as const;
 
-// Closes only via the header's X or the caller's own Cancelar/Guardar
-// buttons — never on a backdrop click or Escape, so an in-progress edit
-// can't be lost by an accidental click or keypress.
 export function Modal({
   open,
   onClose,

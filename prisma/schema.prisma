@@ -53,6 +53,7 @@ model Season {
   matches          Match[]
   pointAdjustments PointAdjustment[]
 
+  @@index([status, startDate])
   @@map("seasons")
 }
 
@@ -75,6 +76,7 @@ model Team {
   awayMatches      Match[]           @relation("AwayTeam")
   pointAdjustments PointAdjustment[]
 
+  @@index([category, name])
   @@map("teams")
 }
 
@@ -93,6 +95,7 @@ model Player {
   team  Team   @relation(fields: [teamId], references: [id])
   cards Card[]
 
+  @@index([teamId, name])
   @@map("players")
 }
 
@@ -104,6 +107,7 @@ model Field {
 
   matches Match[]
 
+  @@index([name])
   @@map("fields")
 }
 
@@ -140,6 +144,10 @@ model Match {
   sanctionMatches SanctionMatch[]
 
   @@index([refereeId])
+  @@index([seasonId, status, matchday, date])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@index([fieldId, date, time, matchday])
   @@map("matches")
 }
 
@@ -186,15 +194,17 @@ model Card {
 
   player    Player     @relation(fields: [playerId], references: [id])
   match     Match      @relation(fields: [matchId], references: [id])
-  sanctions Sanction[]
+  sanction  Sanction?
 
+  @@index([matchId, recordedAt])
+  @@index([playerId, recordedAt])
   @@map("cards")
 }
 
 // Suspension derivada de una tarjeta (no toda tarjeta genera una).
 model Sanction {
   id               String  @id @default(uuid())
-  cardId           String  @map("card_id")
+  cardId           String  @unique @map("card_id")
   matchdayStart    Int     @map("matchday_start")
   matchdayEnd      Int     @map("matchday_end")
   matchesSuspended Int     @map("matches_suspended")
@@ -205,6 +215,7 @@ model Sanction {
   card           Card            @relation(fields: [cardId], references: [id])
   appliedMatches SanctionMatch[]
 
+  @@index([fulfilled, matchdayStart, matchdayEnd])
   @@map("sanctions")
 }
 
@@ -239,6 +250,7 @@ model CardReasonConfig {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([cardType, reason])
+  @@index([cardType, active])
   @@map("card_reason_configs")
 }
 
@@ -267,6 +279,7 @@ model PointAdjustment {
   season Season @relation(fields: [seasonId], references: [id])
   team   Team   @relation(fields: [teamId], references: [id])
 
+  @@index([seasonId, teamId])
   @@map("point_adjustments")
 }
 
@@ -306,6 +319,23 @@ model User {
   refereeMatches   Match[]         @relation("MatchReferee")
   editedResults    Match[]         @relation("MatchResultEditor")
   uploadedEvidence MatchEvidence[]
+  refreshSessions  RefreshSession[]
 
+  @@index([role, createdAt])
+  @@index([status, role])
   @@map("users")
+}
+
+model RefreshSession {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("refresh_sessions")
 }

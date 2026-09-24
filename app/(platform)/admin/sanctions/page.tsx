@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { SuspensionsTable } from "@/components/tables/SuspensionsTable";
-import { CardsTable } from "@/components/tables/CardsTable";
-import { CardReasonConfigTable } from "@/components/tables/CardReasonConfigTable";
+import { SuspensionsTable } from "@/components/sanctions/SuspensionsTable";
+import { CardsTable } from "@/components/sanctions/CardsTable";
+import { CardReasonConfigTable } from "@/components/sanctions/CardReasonConfigTable";
 import { Field, Select } from "@/components/ui/field";
 
 type View = "suspensiones" | "tarjetas" | "config-tarjetas";

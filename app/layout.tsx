@@ -4,12 +4,18 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { ThemeProvider } from "@/context/theme-context";
-import { settingsService } from "@/lib/services/settings.service";
+import { settingsService } from "@/modules/settings/server/settings.service";
+import { logger } from "@/lib/observability/logger";
 import { shade, hexToRgba, ensureDarkModeLegible } from "@/lib/utils/color";
 
-// Deduped so generateMetadata and RootLayout share one query per request
-// instead of two.
-const getSettings = cache(() => settingsService.get());
+const getSettings = cache(async () => {
+  try {
+    return await settingsService.get();
+  } catch (error) {
+    logger.error("settings.load.failed", { error });
+    return null;
+  }
+});
 
 const themeInitScript = `
 (function () {
@@ -47,12 +53,6 @@ export async function generateMetadata(): Promise<Metadata> {
     title: name,
     description,
     alternates: { canonical: "/" },
-    // Team/field/player names are real data, not UI copy — Chrome/Brave's
-    // own page-translate feature doesn't know that and mangles them (ej.
-    // "ATM San Marcos" -> "cajero automático"). This opts the whole site out
-    // of that browser-level auto-translate; the language toggle in
-    // /admin/settings (SiteSettings.locale) is the only translation that
-    // should ever touch this page.
     other: { google: "notranslate" },
     openGraph: {
       title: name,
@@ -70,18 +70,12 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// Branding (primaryColor/background) is admin-editable at runtime and read
-// from the DB on every render — prerendering this layout would both fail at
-// build time (no DB access there) and bake in stale colors permanently.
 export const dynamic = "force-dynamic";
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const settings = await getSettings();
   const primary = settings?.primaryColor ?? "#0d9488";
   const background = settings?.backgroundColor ?? "#eef3f1";
-  // A color picked for light backgrounds can be too dark to read as text
-  // against a dark-mode surface, so dark mode gets its own legible variant
-  // instead of reusing the raw admin-picked hex unmodified.
   const primaryDark = ensureDarkModeLegible(primary);
   const structuredData = {
     "@context": "https://schema.org",

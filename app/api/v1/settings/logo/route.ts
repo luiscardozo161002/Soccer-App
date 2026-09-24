@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { settingsRepository } from "@/lib/repositories/settings.repository";
+import { settingsRepository } from "@/modules/settings/server/settings.repository";
 
 export async function GET() {
   const record = await settingsRepository.getLogo();
@@ -14,9 +14,6 @@ export async function GET() {
   return new NextResponse(new Uint8Array(record.logo), {
     headers: {
       "Content-Type": record.logoType,
-      // Safe to cache forever: the URL includes `?v=<logoUpdatedAt>` (see
-      // siteLogoUrl), so a new upload produces a new URL instead of this
-      // one's bytes ever changing.
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   });
