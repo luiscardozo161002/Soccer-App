@@ -1,6 +1,6 @@
 import { ApiError, notFoundError } from "@/lib/errors";
 import type { LeagueCategoryValue } from "@/lib/constants/league-categories";
-import { optimizeImageFromDataUrl } from "@/lib/utils/images";
+import { resolveImageUpdate } from "@/lib/utils/images";
 import { teamRepository } from "@/modules/teams/server/team.repository";
 import type { CreatePlayerDto, UpdatePlayerDto } from "../player.schema";
 import { playerRepository, type PlayerWriteData } from "./player.repository";
@@ -12,15 +12,11 @@ async function toWriteData(dto: CreatePlayerDto | UpdatePlayerDto): Promise<Play
     birthDate: dto.birthDate,
   };
 
-  if (dto.photo) {
-    const { buffer, type } = await optimizeImageFromDataUrl(dto.photo);
-    data.photo = Uint8Array.from(buffer);
-    data.photoType = type;
-    data.photoUpdatedAt = new Date();
-  } else if (dto.photo === null) {
-    data.photo = null;
-    data.photoType = null;
-    data.photoUpdatedAt = new Date();
+  const photoUpdate = await resolveImageUpdate(dto.photo);
+  if (photoUpdate) {
+    data.photo = photoUpdate.bytes;
+    data.photoType = photoUpdate.type;
+    data.photoUpdatedAt = photoUpdate.updatedAt;
   }
 
   return data;
@@ -90,16 +86,18 @@ export const playerService = {
     const player = await getPlayerById(id);
     if (dto.name !== undefined) await ensureAvailableName(dto.name, id);
 
+    const currentFolioNumber = player.registrationNumber.match(/^[A-Z0-9]{3}-(\d+)$/)?.[1];
     const teamChanged = dto.teamId !== undefined && dto.teamId !== player.teamId;
+    const folioNumberChanged = dto.folioNumber !== undefined && dto.folioNumber !== currentFolioNumber;
     let folio: string | undefined;
-    if (teamChanged || dto.folioNumber !== undefined) {
+    if (teamChanged || folioNumberChanged) {
       const teamId = dto.teamId ?? player.teamId;
       const team = await teamRepository.findById(teamId);
       if (!team) throw notFoundError("TEAM_NOT_FOUND", "el equipo", teamId);
       if (!team.folioPrefix) {
         throw new ApiError(409, "TEAM_MISSING_FOLIO_PREFIX", `El equipo "${team.name}" no tiene prefijo de folio`);
       }
-      const number = dto.folioNumber ?? player.registrationNumber.match(/^[A-Z0-9]{3}-(\d+)$/)?.[1];
+      const number = dto.folioNumber ?? currentFolioNumber;
       if (!number) {
         throw new ApiError(422, "INVALID_FOLIO_NUMBER", "Ingresa los dígitos del folio para cambiar de equipo");
       }

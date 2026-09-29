@@ -1,6 +1,6 @@
 import { ApiError, notFoundError } from "@/lib/errors";
 import type { LeagueCategoryValue } from "@/lib/constants/league-categories";
-import { optimizeImageFromDataUrl } from "@/lib/utils/images";
+import { resolveImageUpdate } from "@/lib/utils/images";
 import type { CreateTeamDto, UpdateTeamDto } from "../team.schema";
 import { teamRepository, type TeamWriteData } from "./team.repository";
 
@@ -12,15 +12,11 @@ async function toWriteData(dto: CreateTeamDto | UpdateTeamDto): Promise<TeamWrit
     folioPrefix: dto.folioPrefix,
   };
 
-  if (dto.photo) {
-    const { buffer, type } = await optimizeImageFromDataUrl(dto.photo);
-    data.photo = Uint8Array.from(buffer);
-    data.photoType = type;
-    data.photoUpdatedAt = new Date();
-  } else if (dto.photo === null) {
-    data.photo = null;
-    data.photoType = null;
-    data.photoUpdatedAt = new Date();
+  const photoUpdate = await resolveImageUpdate(dto.photo);
+  if (photoUpdate) {
+    data.photo = photoUpdate.bytes;
+    data.photoType = photoUpdate.type;
+    data.photoUpdatedAt = photoUpdate.updatedAt;
   }
 
   return data;

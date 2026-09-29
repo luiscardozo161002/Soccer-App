@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useUpdateMatch, type MatchStatus, type Match } from "@/modules/matches/hooks/useMatches";
-import { useUsers } from "@/modules/users/hooks/useUsers";
 import type { Team } from "@/modules/teams/team.types";
 import { ApiError } from "@/lib/errors";
 import { todayLocalISODate } from "@/lib/utils/date";
@@ -75,32 +74,35 @@ export function EditMatchModal({
   match,
   fields,
   teams,
+  referees,
   onClose,
 }: {
   match: Match | null;
   fields: { id: string; name: string }[];
   teams: Team[];
+  referees: { id: string; username: string }[];
   onClose: () => void;
 }) {
   if (!match) return null;
 
   const matchKey = [match.id, match.homeTeamId, match.awayTeamId, match.fieldId, match.refereeId, match.matchday, match.date, match.time, match.status].join(":");
-  return <EditMatchFormContent key={matchKey} match={match} fields={fields} teams={teams} onClose={onClose} />;
+  return <EditMatchFormContent key={matchKey} match={match} fields={fields} teams={teams} referees={referees} onClose={onClose} />;
 }
 
 function EditMatchFormContent({
   match,
   fields,
   teams,
+  referees,
   onClose,
 }: {
   match: Match;
   fields: { id: string; name: string }[];
   teams: Team[];
+  referees: { id: string; username: string }[];
   onClose: () => void;
 }) {
   const updateMatch = useUpdateMatch();
-  const { data: referees } = useUsers(1, 100, "arbitro");
   const { confirm, dialog } = useConfirm();
   const [isEditing, setIsEditing] = useState(false);
   const {
@@ -212,7 +214,7 @@ function EditMatchFormContent({
           <Field label="Árbitro asignado (opcional)" error={errors.refereeId?.message}>
             <Select disabled={!isEditing} {...register("refereeId")}>
               <option value="">Sin asignar</option>
-              {(referees?.data ?? []).map((r) => (
+              {referees.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.username}
                 </option>

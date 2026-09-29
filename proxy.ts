@@ -8,10 +8,10 @@ import { refreshSessionRepository } from "@/modules/auth/server/refresh-session.
 // accounts, so it needs a session even for GET.
 const ALWAYS_PROTECTED_API_PREFIXES = ["/api/v1/users"];
 
-// A referee is scoped to matches (result registration) and match evidence
-// only — every other write endpoint (teams, players, users, settings,
-// sanctions, ...) is off-limits regardless of the fine-grained per-match
-// check those two routes also do. getSession checks the current user role in
+// A referee can write match results/evidence and create/edit/delete match cards.
+// Every other write endpoint (teams, players, users, settings, sanctions, ...)
+// is off-limits. The routes verify assignment to the individual match.
+// getSession checks the current user role in
 // the database, so a role change takes effect on the next request.
 const ARBITRO_WRITE_PREFIX = "/api/v1/matches/";
 const ARBITRO_PAGE_PREFIX = "/admin/my-matches";
@@ -103,7 +103,10 @@ export async function proxy(req: NextRequest) {
           { status: 403 }
         );
       }
-      if (session.role === "arbitro" && req.method !== "GET" && !pathname.startsWith(ARBITRO_WRITE_PREFIX)) {
+      const refereeCardWrite = (req.method === "POST" && pathname === "/api/v1/cards") ||
+        (["PATCH", "DELETE"].includes(req.method) && /^\/api\/v1\/cards\/[^/]+$/.test(pathname));
+      if (session.role === "arbitro" && req.method !== "GET" &&
+          !pathname.startsWith(ARBITRO_WRITE_PREFIX) && !refereeCardWrite) {
         return NextResponse.json(
           { success: false, error: { code: "FORBIDDEN", message: "No tienes permiso para esta acción", details: null } },
           { status: 403 }

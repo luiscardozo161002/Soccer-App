@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   findReason: vi.fn(),
   createCard: vi.fn(),
   deleteCard: vi.fn(),
+  updateDetails: vi.fn(),
 }));
 
 vi.mock("@/modules/players/server/player.repository", () => ({
@@ -19,7 +20,7 @@ vi.mock("./card-reason-config.repository", () => ({
   cardReasonConfigRepository: { findActiveByTypeAndReason: mocks.findReason },
 }));
 vi.mock("./card.repository", () => ({
-  cardRepository: { findById: mocks.findCard, create: mocks.createCard, delete: mocks.deleteCard },
+  cardRepository: { findById: mocks.findCard, create: mocks.createCard, delete: mocks.deleteCard, updateDetails: mocks.updateDetails },
 }));
 
 import { cardService } from "./card.service";
@@ -43,20 +44,38 @@ describe("card service", () => {
     });
   });
 
-  it("cannot add cards to a confirmed match", async () => {
+  it("allows adding cards after the score is confirmed", async () => {
     mocks.findMatch.mockResolvedValue({ id: matchId, homeTeamId: "home-1", awayTeamId: "away-1", resultLocked: true });
 
-    await expect(cardService.create({ playerId, matchId, type: "yellow", detail: "Amarilla" })).rejects.toMatchObject({
-      status: 409,
-      code: "MATCH_RESULT_LOCKED",
-    });
-    expect(mocks.createCard).not.toHaveBeenCalled();
+    await cardService.create({ playerId, matchId, type: "yellow", detail: "Amarilla" });
+    expect(mocks.createCard).toHaveBeenCalledOnce();
   });
 
-  it("cannot remove cards from a confirmed match", async () => {
+  it("allows removing cards after the score is confirmed", async () => {
     mocks.findCard.mockResolvedValue({ id: "card-1", match: { resultLocked: true } });
 
-    await expect(cardService.remove("card-1")).rejects.toMatchObject({ status: 409, code: "MATCH_RESULT_LOCKED" });
-    expect(mocks.deleteCard).not.toHaveBeenCalled();
+    await cardService.remove("card-1");
+    expect(mocks.deleteCard).toHaveBeenCalledWith("card-1");
+  });
+
+  it("recalculates a corrected card using its configured fine and matchday", async () => {
+    mocks.findCard.mockResolvedValue({
+      id: "card-1",
+      match: { matchday: 4, homeTeam: { id: "home-1" }, awayTeam: { id: "away-1" } },
+    });
+    const details = { playerId, type: "red" as const, detail: "Roja", matchesSuspended: 2 };
+    await cardService.updateDetails("card-1", details);
+    expect(mocks.updateDetails).toHaveBeenCalledWith("card-1", { ...details, amount: 100, matchday: 4 });
+  });
+
+  it("rejects changing a card to a player outside the match", async () => {
+    mocks.findCard.mockResolvedValue({
+      id: "card-1",
+      match: { matchday: 4, homeTeam: { id: "home-1" }, awayTeam: { id: "away-1" } },
+    });
+    mocks.findPlayer.mockResolvedValue({ id: playerId, teamId: "other-1" });
+    await expect(cardService.updateDetails("card-1", { playerId, type: "yellow", detail: "Falta" }))
+      .rejects.toMatchObject({ code: "PLAYER_NOT_IN_MATCH" });
+    expect(mocks.updateDetails).not.toHaveBeenCalled();
   });
 });

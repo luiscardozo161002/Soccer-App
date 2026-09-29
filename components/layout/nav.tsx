@@ -2,7 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Trophy, Shield, Users, MapPinned, CalendarDays, Globe, History, ShieldAlert, Settings, LogOut, PanelLeftClose, PanelLeftOpen, ClipboardCheck, Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
@@ -54,7 +54,6 @@ function desktopSnapshot() {
 
 export function Nav() {
   const pathname = usePathname();
-  const router = useRouter();
   const collapsed = useSyncExternalStore(subscribeToSidebar, sidebarSnapshot, () => false);
   const [mobileMenuPath, setMobileMenuPath] = useState<string | null>(null);
   const mobileOpen = mobileMenuPath === pathname;
@@ -64,11 +63,14 @@ export function Nav() {
   const { data: settingsData, isLoading: isSettingsLoading } = useSettings();
   const settings = settingsData?.data;
   const logoUrl = siteLogoUrl(settings);
-  const { data: meData } = useMe();
+  const { data: meData, isLoading: isMeLoading } = useMe();
   const me = meData?.data;
   const logout = useLogout();
   const { confirm, dialog } = useConfirm();
-  const navLinks = me?.role === "arbitro" ? refereeLinks : links;
+  // While the role is still loading, show no links at all rather than
+  // defaulting to the full admin set — a referee must never see (even for a
+  // frame) links to sections they don't have access to.
+  const navLinks = isMeLoading ? [] : me?.role === "arbitro" ? refereeLinks : links;
 
   const toggleCollapsed = () => {
     window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(!collapsed));
@@ -85,8 +87,7 @@ export function Nav() {
     if (!ok) return;
     logout.mutate(undefined, {
       onSuccess: () => {
-        router.push("/login");
-        router.refresh();
+        window.location.replace("/login");
       },
     });
   };

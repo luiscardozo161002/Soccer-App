@@ -1,5 +1,5 @@
 import { API_ROUTES } from "@/lib/http/api-routes";
-import { get, patch, post } from "@/lib/http/endpoints";
+import { get, patch, post, remove } from "@/lib/http/endpoints";
 import type { ItemResponse, ListResponse } from "@/lib/http/types";
 import type {
   CreateMatchInput,
@@ -20,6 +20,7 @@ export function buildMatchQueryString(filters: MatchFilters) {
   if (filters.status) params.set("status", filters.status);
   if (filters.category) params.set("category", filters.category);
   if (filters.refereeId) params.set("refereeId", filters.refereeId);
+  if (filters.archived !== undefined) params.set("archived", String(filters.archived));
 
   return params.toString();
 }
@@ -43,5 +44,13 @@ export const matchApi = {
 
   registerResult({ id, ...input }: RegisterResultInput & { id: string }) {
     return patch<ItemResponse<Match>, RegisterResultInput>(API_ROUTES.matches.result(id), input);
+  },
+
+  archive({ id, archived }: { id: string; archived: boolean }) {
+    return patch<ItemResponse<Match>, { archived: boolean }>(API_ROUTES.matches.archive(id), { archived });
+  },
+
+  remove(id: string) {
+    return remove<void>(API_ROUTES.matches.byId(id));
   },
 };

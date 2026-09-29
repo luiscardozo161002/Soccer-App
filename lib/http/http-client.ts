@@ -1,5 +1,5 @@
 import { ApiError } from "@/lib/errors";
-import { redirectToLogin, requestSessionRenewal } from "@/lib/auth/client-session";
+import { redirectToLogin, requestSessionRenewal, isLoggingOut } from "@/lib/auth/client-session";
 
 interface RequestOptions extends RequestInit {
   timeout?: number;
@@ -26,7 +26,7 @@ export async function http<T>(url: string, options: RequestOptions = {}): Promis
   };
   const isAuthAction = url.startsWith("/api/v1/auth/") && !url.endsWith("/me");
   let response = await perform();
-  if (response.status === 401 && !isAuthAction && typeof window !== "undefined") {
+  if (response.status === 401 && !isAuthAction && typeof window !== "undefined" && !isLoggingOut()) {
     if (await requestSessionRenewal()) {
       response = await perform();
       if (response.status === 401) redirectToLogin();

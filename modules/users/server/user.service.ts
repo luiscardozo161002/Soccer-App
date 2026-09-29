@@ -1,7 +1,7 @@
 import { hashPassword } from "@/lib/auth/password";
 import type { Role } from "@/lib/auth/roles";
 import { ApiError, notFoundError } from "@/lib/errors";
-import { optimizeImageFromDataUrl } from "@/lib/utils/images";
+import { resolveImageUpdate } from "@/lib/utils/images";
 import type { CreateUserDto, ListUsersQuery, UpdateUserDto } from "../user.schema";
 import { userRepository, type UserWriteData } from "./user.repository";
 
@@ -32,11 +32,11 @@ export const userService = {
       passwordHash: hashPassword(dto.password),
       role: dto.role,
     };
-    if (dto.photo) {
-      const { buffer, type } = await optimizeImageFromDataUrl(dto.photo);
-      data.photo = Uint8Array.from(buffer);
-      data.photoType = type;
-      data.photoUpdatedAt = new Date();
+    const createPhotoUpdate = await resolveImageUpdate(dto.photo);
+    if (createPhotoUpdate) {
+      data.photo = createPhotoUpdate.bytes;
+      data.photoType = createPhotoUpdate.type;
+      data.photoUpdatedAt = createPhotoUpdate.updatedAt;
     }
     return userRepository.create(data);
   },
@@ -70,15 +70,11 @@ export const userService = {
       role: dto.role,
       status: dto.status,
     };
-    if (dto.photo) {
-      const { buffer, type } = await optimizeImageFromDataUrl(dto.photo);
-      data.photo = Uint8Array.from(buffer);
-      data.photoType = type;
-      data.photoUpdatedAt = new Date();
-    } else if (dto.photo === null) {
-      data.photo = null;
-      data.photoType = null;
-      data.photoUpdatedAt = new Date();
+    const updatePhotoUpdate = await resolveImageUpdate(dto.photo);
+    if (updatePhotoUpdate) {
+      data.photo = updatePhotoUpdate.bytes;
+      data.photoType = updatePhotoUpdate.type;
+      data.photoUpdatedAt = updatePhotoUpdate.updatedAt;
     }
     return userRepository.update(id, data);
   },

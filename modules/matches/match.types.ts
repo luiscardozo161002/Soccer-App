@@ -21,6 +21,7 @@ export interface Match {
   resultEditedAt: string | null;
   resultEditedById: string | null;
   status: MatchStatus;
+  archived: boolean;
   category: LeagueCategoryValue;
 }
 
@@ -34,6 +35,7 @@ export interface MatchFilters {
   status?: MatchStatus;
   category?: LeagueCategoryValue;
   refereeId?: string;
+  archived?: boolean;
   page?: number;
   pageSize?: number;
 }

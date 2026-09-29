@@ -11,6 +11,6 @@ export const DELETE = withErrorHandling(async (req: NextRequest, { params }) => 
   const match = await matchService.getById(id);
   const session = await getSession(req);
   assertEvidenceAccess(session, match);
-  await matchEvidenceService.remove(id, evidenceId, session.role === "admin");
+  await matchEvidenceService.remove(id, evidenceId);
   return noContent();
 });

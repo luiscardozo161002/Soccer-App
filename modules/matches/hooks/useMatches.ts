@@ -62,3 +62,19 @@ export function useRegisterResult() {
     },
   });
 }
+
+export function useArchiveMatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; archived: boolean }) => matchApi.archive(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.matches.all }),
+  });
+}
+
+export function useDeleteMatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: matchApi.remove,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.matches.all }),
+  });
+}

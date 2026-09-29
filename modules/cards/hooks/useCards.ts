@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/query-keys";
 import { cardApi, cardReasonConfigApi } from "../client/card.api";
-import type { CardFilters, CardReasonConfigFilters, CreateCardInput, CreateCardReasonConfigInput, UpdateCardReasonConfigInput } from "../card.types";
+import type { CardFilters, CardReasonConfigFilters, CreateCardInput, CreateCardReasonConfigInput, UpdateCardDetailsInput, UpdateCardReasonConfigInput } from "../card.types";
 
 export type { CardReasonConfig, CardType, MatchCard } from "../card.types";
 
@@ -18,6 +18,17 @@ export function useCreateCard() {
     queryClient.invalidateQueries({ queryKey: queryKeys.cards.all });
     queryClient.invalidateQueries({ queryKey: queryKeys.sanctions.all });
   } });
+}
+
+export function useUpdateCardDetails() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateCardDetailsInput & { id: string }) => cardApi.updateDetails(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.cards.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sanctions.all });
+    },
+  });
 }
 
 export function useDeleteCard() {

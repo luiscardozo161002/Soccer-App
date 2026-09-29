@@ -135,7 +135,7 @@ export function MatchEvidenceUploader({ matchId }: { matchId: string }) {
           ))}
         </div>
       )}
-      <p className="text-xs text-muted">Sube el anverso y el reverso antes de guardar el resultado.</p>
+      <p className="text-xs text-muted">Puedes subir o reemplazar el anverso y el reverso después de guardar el marcador.</p>
     </div>
   );
 }

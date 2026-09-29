@@ -4,12 +4,22 @@ import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Pencil, Lock, Plus, Images, PencilLine } from "lucide-react";
+import { Pencil, Lock, Plus, Images, PencilLine, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import { toast } from "sonner";
-import { useMatches, useCreateMatch, useLatestMatchday, type MatchStatus, type Match } from "@/modules/matches/hooks/useMatches";
+import {
+  useMatches,
+  useCreateMatch,
+  useLatestMatchday,
+  useArchiveMatch,
+  useDeleteMatch,
+  type MatchStatus,
+  type Match,
+} from "@/modules/matches/hooks/useMatches";
 import { useTeams } from "@/modules/teams/hooks/useTeams";
 import { useFields } from "@/modules/fields/hooks/useFields";
 import { useCards } from "@/modules/cards/hooks/useCards";
+import { useUsers } from "@/modules/users/hooks/useUsers";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { ApiError } from "@/lib/errors";
 import { formatCalendarDate, todayLocalISODate } from "@/lib/utils/date";
 import { LEAGUE_CATEGORIES, type LeagueCategoryValue } from "@/lib/constants/league-categories";
@@ -49,6 +59,7 @@ const createMatchSchema = z
     homeTeamId: z.string().uuid("Selecciona el equipo local"),
     awayTeamId: z.string().uuid("Selecciona el equipo visitante"),
     fieldId: z.string().uuid("Selecciona la cancha"),
+    refereeId: z.string().uuid().optional().or(z.literal("")),
     matchday: z.coerce.number().int().min(1, "Jornada inválida"),
     date: z.string().min(1, "La fecha es obligatoria"),
     time: timeFieldSchema,
@@ -91,6 +102,7 @@ export function MatchesTable() {
 
   const [categoryFilter, setCategoryFilter] = useState<LeagueCategoryValue | "all">(LEAGUE_CATEGORIES[0].value);
   const [statusFilter, setStatusFilter] = useState<MatchStatus | "">("");
+  const [showArchived, setShowArchived] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [registeringMatch, setRegisteringMatch] = useState<Match | null>(null);
@@ -111,15 +123,47 @@ export function MatchesTable() {
   const fields = fieldsData?.data ?? [];
   const fieldsById = Object.fromEntries(fields.map((f) => [f.id, f.name]));
 
+  const { data: refereesData } = useUsers(1, 100, "arbitro");
+  const referees = refereesData?.data ?? [];
+
   const isSearching = search.trim().length > 0;
   const { data, isLoading, isError } = useMatches({
     status: statusFilter || undefined,
     category: categoryFilter === "all" ? undefined : categoryFilter,
+    archived: showArchived,
     page: isSearching ? 1 : page,
     pageSize: isSearching ? 100 : pageSize,
   });
   const matches = data?.data ?? [];
   const createMatch = useCreateMatch();
+  const archiveMatch = useArchiveMatch();
+  const deleteMatch = useDeleteMatch();
+  const { confirm, dialog } = useConfirm();
+
+  const handleArchiveMatch = (match: Match, archived: boolean) => {
+    archiveMatch.mutate(
+      { id: match.id, archived },
+      {
+        onSuccess: () => toast.success(archived ? "Partido archivado" : "Partido restaurado"),
+        onError: (error) =>
+          toast.error(error instanceof ApiError ? error.message : "No se pudo actualizar el partido"),
+      }
+    );
+  };
+
+  const handleDeleteMatch = async (match: Match) => {
+    const ok = await confirm({
+      title: `¿Eliminar el partido de la jornada ${match.matchday}?`,
+      description: "Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
+    deleteMatch.mutate(match.id, {
+      onSuccess: () => toast.success("Partido eliminado"),
+      onError: (error) =>
+        toast.error(error instanceof ApiError ? error.message : "No se pudo eliminar el partido"),
+    });
+  };
 
   const handleListCategoryChange = (value: LeagueCategoryValue | "all") => {
     setCategoryFilter(value);
@@ -187,7 +231,7 @@ export function MatchesTable() {
 
   const onSubmit = handleSubmit((values) => {
     createMatch.mutate(
-      { ...values, time: values.time || undefined },
+      { ...values, refereeId: values.refereeId || undefined, time: values.time || undefined },
       {
         onSuccess: () => {
           toast.success("Partido creado");
@@ -267,6 +311,17 @@ export function MatchesTable() {
               </Select>
             </Field>
           </div>
+          <label className="flex items-center gap-2 pb-2.5 text-sm font-semibold text-ink">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => {
+                setShowArchived(e.target.checked);
+                setPage(1);
+              }}
+            />
+            Mostrar archivados
+          </label>
           <Button onClick={() => setShowCreate(true)}>
             <Plus size={16} />
             Nuevo partido
@@ -339,6 +394,16 @@ export function MatchesTable() {
                 ))}
               </Select>
             )}
+          </Field>
+          <Field label="Árbitro asignado (opcional)" error={errors.refereeId?.message}>
+            <Select {...register("refereeId")}>
+              <option value="">Sin asignar</option>
+              {referees.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.username}
+                </option>
+              ))}
+            </Select>
           </Field>
           <div className="grid grid-cols-3 gap-4">
             <Field
@@ -438,7 +503,10 @@ export function MatchesTable() {
                   <CardsIndicator matchId={match.id} cardsByMatch={cardsByMatch} />
                 </Td>
                 <Td>
-                  <Badge tone={match.status}>{statusLabels[match.status]}</Badge>
+                  <div className="flex flex-col items-start gap-1">
+                    <Badge tone={match.status}>{statusLabels[match.status]}</Badge>
+                    {match.archived && <Badge tone="inactive">Archivado</Badge>}
+                  </div>
                 </Td>
                 <Td className="text-right">
                   <div className="flex justify-end gap-1">
@@ -448,17 +516,40 @@ export function MatchesTable() {
                       </Button>
                     )}
                     {!match.resultLocked && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Editar partido jornada ${match.matchday}`}
-                        onClick={() => setEditingMatch(match)}
-                      >
-                        <Pencil size={16} />
-                      </Button>
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Editar partido jornada ${match.matchday}`}
+                          onClick={() => setEditingMatch(match)}
+                        >
+                          <Pencil size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Eliminar partido jornada ${match.matchday}`}
+                          onClick={() => handleDeleteMatch(match)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </>
                     )}
                     {match.resultLocked && (
                       <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={
+                            match.archived
+                              ? `Restaurar partido jornada ${match.matchday}`
+                              : `Archivar partido jornada ${match.matchday}`
+                          }
+                          title={match.archived ? "Quitar de archivados" : "Archivar (dejar de mostrar en Partidos)"}
+                          onClick={() => handleArchiveMatch(match, !match.archived)}
+                        >
+                          {match.archived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -472,7 +563,7 @@ export function MatchesTable() {
                           variant="ghost"
                           size="icon"
                           aria-label={`Corregir resultado de la jornada ${match.matchday}`}
-                          title="Corregir marcador, tarjetas o evidencia (por si el árbitro se equivocó)"
+                          title="Corregir marcador, cédula o tarjetas"
                           onClick={() => setEditingResultMatch(match)}
                         >
                           <PencilLine size={16} />
@@ -482,11 +573,11 @@ export function MatchesTable() {
                           title={
                             match.resultEditedAt
                               ? `Confirmado — corregido el ${new Date(match.resultEditedAt).toLocaleString("es-MX")}`
-                              : "Resultado confirmado"
+                              : "Marcador confirmado; cédula y tarjetas editables"
                           }
                         >
                           <Lock size={12} />
-                          Confirmado
+                          Marcador confirmado
                         </span>
                       </>
                     )}
@@ -506,7 +597,13 @@ export function MatchesTable() {
         />
       </Card>
 
-      <EditMatchModal match={editingMatch} fields={fields} teams={teams} onClose={() => setEditingMatch(null)} />
+      <EditMatchModal
+        match={editingMatch}
+        fields={fields}
+        teams={teams}
+        referees={referees}
+        onClose={() => setEditingMatch(null)}
+      />
       {registeringMatch && (
         <RegisterResultForm
           match={{
@@ -550,6 +647,7 @@ export function MatchesTable() {
         }
         onClose={() => setViewingEvidenceMatch(null)}
       />
+      {dialog}
     </div>
   );
 }

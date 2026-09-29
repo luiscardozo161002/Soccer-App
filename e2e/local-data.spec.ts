@@ -2,6 +2,7 @@ import "dotenv/config";
 import { randomBytes, randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import pg from "pg";
+import sharp from "sharp";
 import { hashPassword } from "../lib/auth/password";
 
 test.skip(process.env.SOCCER_LOCAL_DATA_TEST !== "1", "Run only against an explicitly selected local database");
@@ -134,13 +135,20 @@ test("real local data: modules, writes, permissions and session renewal", async 
 
     const match = await api<{ id: string }>("POST", "/api/v1/matches", {
       homeTeamId: created.team1, awayTeamId: created.team2, fieldId: created.field,
-      matchday: 99, date: "2030-01-01T00:00:00.000Z", time: "12:00",
+      refereeId: created.referee, matchday: 99, date: "2030-01-01T00:00:00.000Z", time: "12:00",
     });
     expect(match.status).toBe(201);
     created.match = match.body!.data!.id;
     expect((await api("PATCH", `/api/v1/matches/${created.match}`, {
       homeTeamId: created.team2, awayTeamId: created.team1,
     })).status).toBe(200);
+    await db.query("UPDATE matches SET date = CURRENT_DATE - interval '1 day' WHERE id = $1", [created.match]);
+    const score = await api<{ homeGoals: number; awayGoals: number; resultLocked: boolean }>(
+      "PATCH", `/api/v1/matches/${created.match}/result`, { homeGoals: 2, awayGoals: 1 }
+    );
+    expect(score.status).toBe(200);
+    expect(score.body?.data).toMatchObject({ homeGoals: 2, awayGoals: 1, resultLocked: true });
+    expect((await api<Array<unknown>>("GET", `/api/v1/matches/${created.match}/evidence`)).body?.data).toHaveLength(0);
 
     const reason = `E2E motivo ${suffix}`;
     const config = await api<{ id: string }>("POST", "/api/v1/card-reason-configs", {
@@ -173,10 +181,15 @@ test("real local data: modules, writes, permissions and session renewal", async 
     await expect(page.getByRole("alertdialog", { name: "Tu sesión venció" })).toBeHidden({ timeout: 60_000 });
     expect((await api("GET", "/api/v1/users")).status).toBe(200);
 
-    expect((await api("POST", "/api/v1/auth/logout", {})).status).toBe(200);
+    await page.getByRole("button", { name: "Cerrar sesión" }).click();
+    await expect(page.getByRole("heading", { name: "¿Cerrar sesión?" })).toBeVisible();
+    const logoutResponse = page.waitForResponse((response) => response.url().endsWith("/api/v1/auth/logout"));
+    await page.getByRole("button", { name: "Cerrar sesión" }).last().click();
+    expect((await logoutResponse).status()).toBe(200);
+    await expect(page).toHaveURL(/\/login$/, { timeout: 30_000 });
+    await expect(page.getByRole("alertdialog", { name: "Tu sesión venció" })).toHaveCount(0);
     expect((await api("POST", "/api/v1/auth/refresh", {})).status).toBe(401);
     expect((await api("GET", "/api/v1/users")).status).toBe(401);
-    await page.goto("/login");
     expect((await api("POST", "/api/v1/auth/login", {
       username: `${username}_ref`, password,
     })).status).toBe(200);
@@ -185,6 +198,33 @@ test("real local data: modules, writes, permissions and session renewal", async 
       name: "No autorizado", folioPrefix: "Z99",
     })).status).toBe(403);
     expect((await api("GET", `/api/v1/users/${created.user}/photo`)).status).toBe(403);
+    const photo = `data:image/png;base64,${(await sharp({
+      create: { width: 8, height: 8, channels: 3, background: "#ffffff" },
+    }).png().toBuffer()).toString("base64")}`;
+    const evidence = await api<{ id: string }>("POST", `/api/v1/matches/${created.match}/evidence`, {
+      slot: "front", photo,
+    });
+    expect(evidence.status).toBe(201);
+    created.evidence = evidence.body!.data!.id;
+    expect((await api("POST", `/api/v1/matches/${created.match}/evidence`, { slot: "front", photo })).status).toBe(201);
+    expect((await api("DELETE", `/api/v1/matches/${created.match}/evidence/${created.evidence}`)).status).toBe(204);
+    delete created.evidence;
+
+    const refereeCard = await api<{ id: string }>("POST", "/api/v1/cards", {
+      playerId: created.player, matchId: created.match,
+      type: "red", detail: reason, matchesSuspended: 1,
+    });
+    expect(refereeCard.status).toBe(201);
+    created.refCard = refereeCard.body!.data!.id;
+    const refereeSanctions = await api<Array<{ id: string }>>("GET", `/api/v1/sanctions?cardId=${created.refCard}`);
+    created.refSanction = refereeSanctions.body!.data![0].id;
+    expect((await api("PATCH", `/api/v1/cards/${created.refCard}`, {
+      playerId: created.player, type: "red", detail: reason, matchesSuspended: 2,
+    })).status).toBe(200);
+    expect((await api("PATCH", `/api/v1/cards/${created.refCard}`, { paid: true })).status).toBe(403);
+    expect((await api("DELETE", `/api/v1/cards/${created.refCard}`)).status).toBe(204);
+    delete created.refSanction;
+    delete created.refCard;
     await page.goto("/admin/settings");
     await expect(page).toHaveURL(/\/admin\/my-matches$/);
     await page.goto("/admin/players");
@@ -193,6 +233,7 @@ test("real local data: modules, writes, permissions and session renewal", async 
     try {
       await db.query("BEGIN");
       for (const [table, id] of [
+        ["match_evidence", created.evidence], ["sanctions", created.refSanction], ["cards", created.refCard],
         ["sanctions", created.sanction], ["cards", created.card], ["matches", created.match],
         ["players", created.player], ["teams", created.team1], ["teams", created.team2], ["teams", created.team3],
         ["fields", created.field], ["card_reason_configs", created.reason],

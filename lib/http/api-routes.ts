@@ -27,6 +27,7 @@ export const API_ROUTES = {
     latestMatchday: "/api/v1/matches/latest-matchday",
     byId: (id: string) => `/api/v1/matches/${id}`,
     result: (id: string) => `/api/v1/matches/${id}/result`,
+    archive: (id: string) => `/api/v1/matches/${id}/archive`,
     evidence: (id: string) => `/api/v1/matches/${id}/evidence`,
     evidenceById: (id: string, evidenceId: string) => `/api/v1/matches/${id}/evidence/${evidenceId}`,
     evidencePhoto: (id: string, evidenceId: string) => `/api/v1/matches/${id}/evidence/${evidenceId}/photo`,

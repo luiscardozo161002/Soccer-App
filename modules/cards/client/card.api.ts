@@ -8,6 +8,7 @@ import type {
   CreateCardInput,
   CreateCardReasonConfigInput,
   MatchCard,
+  UpdateCardDetailsInput,
   UpdateCardReasonConfigInput,
 } from "../card.types";
 
@@ -41,6 +42,9 @@ export const cardApi = {
   },
   create(input: CreateCardInput) {
     return post<ItemResponse<MatchCard>, CreateCardInput>(API_ROUTES.cards.list, input);
+  },
+  updateDetails({ id, ...input }: UpdateCardDetailsInput & { id: string }) {
+    return patch<ItemResponse<MatchCard>, UpdateCardDetailsInput>(API_ROUTES.cards.byId(id), input);
   },
   remove(id: string) {
     return remove<void>(API_ROUTES.cards.byId(id));

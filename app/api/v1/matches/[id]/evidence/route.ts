@@ -22,6 +22,6 @@ export const POST = withErrorHandling(async (req: NextRequest, { params }) => {
   const session = await getSession(req);
   assertEvidenceAccess(session, match);
   const dto = uploadMatchEvidenceSchema.parse(await req.json());
-  const evidence = await matchEvidenceService.upload(id, dto, session.sub, session.role === "admin");
+  const evidence = await matchEvidenceService.upload(id, dto, session.sub);
   return ok(evidence, { status: 201, message: "Evidence uploaded" });
 });

@@ -108,12 +108,22 @@ describe("player folios", () => {
     });
   });
 
-  it("allows a player to keep their own folio", async () => {
+  it("allows a player to keep their own folio without recomputing it", async () => {
     mocks.findPlayer.mockResolvedValue({ id: "player-1", teamId, registrationNumber: "TIG-007" });
-    mocks.findByFolio.mockResolvedValue({ id: "player-1" });
 
-    await expect(playerService.update("player-1", { folioNumber: "007" })).resolves.toMatchObject({
-      registrationNumber: "TIG-007",
-    });
+    const result = await playerService.update("player-1", { folioNumber: "007" });
+
+    expect(result).not.toHaveProperty("registrationNumber");
+    expect(mocks.findByFolio).not.toHaveBeenCalled();
+  });
+
+  it("does not require the team's folio prefix to save unrelated fields", async () => {
+    mocks.findPlayer.mockResolvedValue({ id: "player-1", teamId, registrationNumber: "TIG-007" });
+    mocks.findTeam.mockResolvedValue({ id: teamId, name: "Tigres", folioPrefix: null });
+
+    await expect(playerService.update("player-1", { name: "Nuevo nombre" })).resolves.not.toHaveProperty(
+      "registrationNumber"
+    );
+    expect(mocks.findTeam).not.toHaveBeenCalled();
   });
 });

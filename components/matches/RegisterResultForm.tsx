@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, X, Trash2 } from "lucide-react";
+import { Plus, X, Trash2, Pencil } from "lucide-react";
 import { useRegisterResult } from "@/modules/matches/hooks/useMatches";
-import { useCards, useCreateCard, useDeleteCard, useCardReasonConfigs, type CardType } from "@/modules/cards/hooks/useCards";
+import { useCards, useCreateCard, useDeleteCard, useUpdateCardDetails, useCardReasonConfigs, type CardType, type MatchCard } from "@/modules/cards/hooks/useCards";
 import { useAllActiveSanctions, activeSanctionsByPlayer, sanctionMatchesRemaining } from "@/modules/sanctions/hooks/useSanctions";
 import { usePlayers } from "@/modules/players/hooks/usePlayers";
-import { useMatchEvidence } from "@/modules/matches/hooks/useMatchEvidence";
 import { ApiError } from "@/lib/errors";
 import { onlyDigits } from "@/lib/utils/forms";
 import { Modal } from "@/components/ui/modal";
@@ -33,11 +32,11 @@ export interface RegisterResultInitialValues {
   forfeitReason: string | null;
 }
 
-function CardForm({ match, onAdded, onSavingChange }: { match: RegisterResultMatch; onAdded: () => void; onSavingChange: (saving: boolean) => void }) {
-  const [teamId, setTeamId] = useState(match.homeTeamId);
-  const [playerId, setPlayerId] = useState("");
-  const [type, setType] = useState<CardType>("yellow");
-  const [matchesSuspended, setMatchesSuspended] = useState("3");
+function CardForm({ match, initialCard, onAdded, onSavingChange }: { match: RegisterResultMatch; initialCard?: MatchCard; onAdded: () => void; onSavingChange: (saving: boolean) => void }) {
+  const [teamId, setTeamId] = useState(initialCard?.player.team.id ?? match.homeTeamId);
+  const [playerId, setPlayerId] = useState(initialCard?.playerId ?? "");
+  const [type, setType] = useState<CardType>(initialCard?.type ?? "yellow");
+  const [matchesSuspended, setMatchesSuspended] = useState(String(initialCard?.sanction?.matchesSuspended ?? 3));
 
   const { data: playersData } = usePlayers({ teamId });
   const players = playersData?.data ?? [];
@@ -47,10 +46,11 @@ function CardForm({ match, onAdded, onSavingChange }: { match: RegisterResultMat
 
   const { data: reasonConfigsData } = useCardReasonConfigs({ cardType: type, active: true });
   const reasonConfigs = reasonConfigsData?.data ?? [];
-  const [reason, setReason] = useState<string>("");
+  const [reason, setReason] = useState<string>(initialCard?.detail ?? "");
   const selectedConfig = reasonConfigs.find((r) => r.reason === reason);
 
   const createCard = useCreateCard();
+  const updateCard = useUpdateCardDetails();
 
   const submit = () => {
     if (!playerId) {
@@ -67,26 +67,21 @@ function CardForm({ match, onAdded, onSavingChange }: { match: RegisterResultMat
       return;
     }
     onSavingChange(true);
-    createCard.mutate(
-      {
-        playerId,
-        matchId: match.id,
-        type,
-        detail: reason,
-        matchesSuspended: type === "red" ? suspendedMatches : undefined,
+    const details = { playerId, type, detail: reason, matchesSuspended: type === "red" ? suspendedMatches : undefined };
+    const callbacks = {
+      onSettled: () => onSavingChange(false),
+      onSuccess: () => {
+        toast.success(initialCard ? "Tarjeta actualizada" : "Tarjeta registrada");
+        onAdded();
       },
-      {
-        onSettled: () => onSavingChange(false),
-        onSuccess: () => {
-          toast.success("Tarjeta registrada");
-          setPlayerId("");
-          setReason("");
-          onAdded();
-        },
-        onError: (error) =>
-          toast.error(error instanceof ApiError ? error.message : "No se pudo registrar la tarjeta"),
-      }
-    );
+      onError: (error: Error) =>
+        toast.error(error instanceof ApiError ? error.message : "No se pudo guardar la tarjeta"),
+    };
+    if (initialCard) {
+      updateCard.mutate({ id: initialCard.id, ...details }, callbacks);
+    } else {
+      createCard.mutate({ matchId: match.id, ...details }, callbacks);
+    }
   };
 
   return (
@@ -185,8 +180,8 @@ function CardForm({ match, onAdded, onSavingChange }: { match: RegisterResultMat
         </Field>
       )}
 
-      <Button type="button" variant="secondary" onClick={submit} disabled={createCard.isPending}>
-        {createCard.isPending ? "Guardando..." : "Agregar tarjeta"}
+      <Button type="button" variant="secondary" onClick={submit} disabled={createCard.isPending || updateCard.isPending}>
+        {createCard.isPending || updateCard.isPending ? "Guardando..." : initialCard ? "Guardar tarjeta" : "Agregar tarjeta"}
       </Button>
     </div>
   );
@@ -196,10 +191,12 @@ export function RegisterResultForm({
   match,
   onDone,
   initialResult,
+  scoreReadOnly = false,
 }: {
   match: RegisterResultMatch;
   onDone: () => void;
   initialResult?: RegisterResultInitialValues;
+  scoreReadOnly?: boolean;
 }) {
   const isEditing = !!initialResult;
   const [homeGoals, setHomeGoals] = useState(String(initialResult?.homeGoals ?? 0));
@@ -210,15 +207,13 @@ export function RegisterResultForm({
   );
   const [forfeitReason, setForfeitReason] = useState(initialResult?.forfeitReason ?? "");
   const [showCardForm, setShowCardForm] = useState(false);
+  const [editingCard, setEditingCard] = useState<MatchCard | null>(null);
   const [cardSaving, setCardSaving] = useState(false);
 
   const registerResult = useRegisterResult();
   const { data: cardsData } = useCards(match.id);
   const cards = cardsData?.data ?? [];
   const deleteCard = useDeleteCard();
-  const { data: evidenceData } = useMatchEvidence(match.id);
-
-  const hasEvidence = (evidenceData?.data.length ?? 0) >= 2;
   const { confirm, dialog } = useConfirm();
 
   const { data: playersData } = usePlayers();
@@ -252,15 +247,11 @@ export function RegisterResultForm({
       toast.error("Indica el motivo por el que se ganó por default");
       return;
     }
-    if (!hasEvidence) {
-      toast.error("Sube el anverso y el reverso de la cédula arbitral antes de guardar el resultado");
-      return;
-    }
     const ok = await confirm({
       title: isEditing ? "¿Corregir el resultado?" : "¿Guardar el resultado?",
       description: isEditing
         ? "Este partido ya estaba confirmado. Verifica que la corrección sea la correcta antes de continuar."
-        : "Una vez guardado, el marcador, las tarjetas y las sanciones de este partido ya no se podrán editar. Verifica que todo esté correcto antes de continuar.",
+        : "El marcador quedará confirmado. La cédula arbitral y las tarjetas se podrán agregar o corregir después.",
       confirmLabel: isEditing ? "Guardar corrección" : "Guardar resultado",
       tone: "primary",
     });
@@ -295,19 +286,19 @@ export function RegisterResultForm({
       <Modal
         open
         onClose={onDone}
-        title={isEditing ? "Editar resultado" : "Registrar resultado"}
+        title={scoreReadOnly ? "Cédula y tarjetas" : isEditing ? "Editar resultado" : "Registrar resultado"}
         description={`${match.homeTeamName} vs ${match.awayTeamName} · Jornada ${match.matchday}`}
       >
         <div className="flex flex-col gap-5">
           <label className="flex items-center gap-2 text-sm font-semibold text-ink">
-            <input type="checkbox" checked={forfeit} onChange={(e) => toggleForfeit(e.target.checked)} />
+            <input type="checkbox" checked={forfeit} disabled={scoreReadOnly} onChange={(e) => toggleForfeit(e.target.checked)} />
             Ganado por default
           </label>
 
           {forfeit && (
             <>
               <Field label="¿Quién ganó?">
-                <Select value={forfeitWinner} onChange={(e) => changeForfeitWinner(e.target.value as "home" | "away")}>
+                <Select value={forfeitWinner} disabled={scoreReadOnly} onChange={(e) => changeForfeitWinner(e.target.value as "home" | "away")}>
                   <option value="home">{match.homeTeamName}</option>
                   <option value="away">{match.awayTeamName}</option>
                 </Select>
@@ -315,6 +306,7 @@ export function RegisterResultForm({
               <Field label="Motivo del default">
                 <input
                   value={forfeitReason}
+                  disabled={scoreReadOnly}
                   onChange={(e) => setForfeitReason(e.target.value)}
                   placeholder="Ej. el equipo visitante no se presentó"
                   maxLength={300}
@@ -333,6 +325,7 @@ export function RegisterResultForm({
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={homeGoals}
+                  disabled={scoreReadOnly}
                   onChange={(e) => setHomeGoals(onlyDigits(e.target.value))}
                   className="w-16 rounded-xl border border-border bg-surface px-2 py-2 text-center text-lg font-bold text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
                 />
@@ -345,6 +338,7 @@ export function RegisterResultForm({
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={awayGoals}
+                  disabled={scoreReadOnly}
                   onChange={(e) => setAwayGoals(onlyDigits(e.target.value))}
                   className="w-16 rounded-xl border border-border bg-surface px-2 py-2 text-center text-lg font-bold text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
                 />
@@ -357,17 +351,15 @@ export function RegisterResultForm({
           <div className="flex flex-col gap-3 border-t border-border pt-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-bold text-ink">Tarjetas</p>
-              {!isEditing && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowCardForm((v) => !v)}
-                  aria-label={showCardForm ? "Cerrar formulario de tarjeta" : "Agregar tarjeta"}
-                >
-                  {showCardForm ? <X size={16} /> : <Plus size={16} />}
-                </Button>
-              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => { setEditingCard(null); setShowCardForm((v) => !v); }}
+                aria-label={showCardForm ? "Cerrar formulario de tarjeta" : "Agregar tarjeta"}
+              >
+                {showCardForm ? <X size={16} /> : <Plus size={16} />}
+              </Button>
             </div>
 
             {cards.length > 0 && (
@@ -385,40 +377,49 @@ export function RegisterResultForm({
                       <span className="font-semibold text-ink">{playersById[card.playerId] ?? "Jugador"}</span>
                       {card.detail && <span className="text-muted">— {card.detail}</span>}
                     </span>
-                    {!isEditing && (
+                    <span className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setShowCardForm(false); setEditingCard(card); }}
+                        aria-label={`Editar tarjeta de ${playersById[card.playerId] ?? "jugador"}`}
+                        className="text-muted hover:text-primary"
+                      >
+                        <Pencil size={14} />
+                      </button>
                       <button
                         type="button"
                         onClick={() => deleteCard.mutate(card.id, {
+                          onSuccess: () => { if (editingCard?.id === card.id) setEditingCard(null); },
                           onError: (error) => toast.error(error instanceof ApiError ? error.message : "No se pudo eliminar la tarjeta"),
                         })}
                         aria-label="Eliminar tarjeta"
-                        className="shrink-0 text-muted hover:text-red-600"
+                        className="text-muted hover:text-red-600"
                       >
                         <Trash2 size={14} />
                       </button>
-                    )}
+                    </span>
                   </li>
                 ))}
               </ul>
             )}
 
-            {!isEditing && showCardForm && (
+            {showCardForm && (
               <CardForm match={match} onAdded={() => setShowCardForm(false)} onSavingChange={setCardSaving} />
+            )}
+            {editingCard && (
+              <CardForm key={editingCard.id} match={match} initialCard={editingCard} onAdded={() => setEditingCard(null)} onSavingChange={setCardSaving} />
             )}
           </div>
 
           <div className="flex justify-end gap-2 border-t border-border pt-4">
             <Button type="button" variant="ghost" onClick={onDone}>
-              Cancelar
+              {scoreReadOnly ? "Cerrar" : "Cancelar"}
             </Button>
-            <Button
-              type="button"
-              onClick={submit}
-              disabled={registerResult.isPending || cardSaving || deleteCard.isPending || !hasEvidence}
-              title={!hasEvidence ? "Sube el anverso y el reverso de la cédula arbitral primero" : undefined}
-            >
-              {registerResult.isPending ? "Guardando..." : isEditing ? "Guardar corrección" : "Guardar resultado"}
-            </Button>
+            {!scoreReadOnly && (
+              <Button type="button" onClick={submit} disabled={registerResult.isPending || cardSaving || deleteCard.isPending}>
+                {registerResult.isPending ? "Guardando..." : isEditing ? "Guardar corrección" : "Guardar resultado"}
+              </Button>
+            )}
           </div>
         </div>
       </Modal>

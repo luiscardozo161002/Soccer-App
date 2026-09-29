@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/errors";
 const session = vi.hoisted(() => ({
   requestSessionRenewal: vi.fn(),
   redirectToLogin: vi.fn(),
+  isLoggingOut: vi.fn(() => false),
 }));
 
 vi.mock("@/lib/auth/client-session", () => session);
@@ -48,6 +49,15 @@ describe("HTTP session renewal", () => {
       new Response(JSON.stringify({ error: { code: "FORBIDDEN" } }), { status: 403 })
     ));
     await expect(http("/api/v1/users")).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
+    expect(session.requestSessionRenewal).not.toHaveBeenCalled();
+  });
+
+  it("does not renew a 401 that happens while logging out", async () => {
+    session.isLoggingOut.mockReturnValue(true);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: "UNAUTHORIZED" } }), { status: 401 })
+    ));
+    await expect(http("/api/v1/auth/me")).rejects.toBeInstanceOf(ApiError);
     expect(session.requestSessionRenewal).not.toHaveBeenCalled();
   });
 });

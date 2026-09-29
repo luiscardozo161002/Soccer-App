@@ -68,11 +68,15 @@ function EditPlayerModalContent({
     handleSubmit,
     reset,
     setValue,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, dirtyFields },
   } = useForm<PlayerForm>({
     resolver: zodResolver(playerSchema),
     defaultValues: originalValues,
   });
+  // The folio depends on the team's prefix only when the team or the folio
+  // digits themselves change — editing unrelated fields (photo, name, birth
+  // date) on a player whose team has no prefix yet must still be saveable.
+  const folioRelevantChange = !!dirtyFields.teamId || !!dirtyFields.folioNumber;
   const selectedTeamId = useWatch({ control, name: "teamId" });
   const selectedTeam = teams.find((team) => team.id === selectedTeamId);
   const selectedCategory =
@@ -191,7 +195,10 @@ function EditPlayerModalContent({
         />
         <EditFormFooter
           isEditing={isEditing}
-          isDirty={(isDirty || photoRemoved) && !!selectedTeam?.folioPrefix && selectedTeam.category === selectedCategory}
+          isDirty={
+            (isDirty || photoRemoved) &&
+            (!folioRelevantChange || (!!selectedTeam?.folioPrefix && selectedTeam.category === selectedCategory))
+          }
           submitting={updatePlayer.isPending}
           onEdit={() => setIsEditing(true)}
           onCancel={handleCancel}

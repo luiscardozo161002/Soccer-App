@@ -128,6 +128,10 @@ model Match {
   statusReason String?   @map("status_reason")
   resultLocked Boolean   @default(false) @map("result_locked")
   status     MatchStatus @default(scheduled)
+  // Hides the match from the day-to-day admin matches list without deleting
+  // it — history, standings and sanctions still read it normally. Only
+  // meaningful once resultLocked is true (see matchService.archive).
+  archived   Boolean     @default(false)
   // Set only when an admin corrects an already-confirmed result — stays
   // null for a match's first (normal) registration. See matchService.registerResult.
   resultEditedAt   DateTime? @map("result_edited_at")
@@ -144,7 +148,7 @@ model Match {
   sanctionMatches SanctionMatch[]
 
   @@index([refereeId])
-  @@index([seasonId, status, matchday, date])
+  @@index([seasonId, status, archived, matchday, date])
   @@index([homeTeamId])
   @@index([awayTeamId])
   @@index([fieldId, date, time, matchday])
@@ -156,7 +160,7 @@ enum MatchEvidenceSlot {
   back
 }
 
-// Foto de la cédula arbitral subida al registrar el resultado (anverso y
+// Foto de la cédula arbitral, que puede subirse después del marcador (anverso y
 // reverso) — exactamente un registro por (match, slot); volver a subir a un
 // slot reemplaza la foto anterior en vez de acumular ("retake"). fecha_carga
 // (createdAt) es deliberadamente distinta de Match.date (fecha del partido)

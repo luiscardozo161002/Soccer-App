@@ -40,3 +40,19 @@ export async function optimizeImageFromDataUrl(dataUrl: string): Promise<Optimiz
     throw new ApiError(422, "INVALID_IMAGE", "No se pudo procesar el archivo como imagen");
   }
 }
+
+export interface ImageFieldUpdate {
+  bytes: Uint8Array<ArrayBuffer> | null;
+  type: string | null;
+  updatedAt: Date;
+}
+
+// Shared by every service that stores an optimized photo/logo (players, teams,
+// users, site settings): `undefined` means "field not present in the DTO, leave
+// as-is", `null` means "clear it", a data URL means "optimize and store it".
+export async function resolveImageUpdate(dataUrl: string | null | undefined): Promise<ImageFieldUpdate | undefined> {
+  if (dataUrl === undefined) return undefined;
+  if (dataUrl === null) return { bytes: null, type: null, updatedAt: new Date() };
+  const { buffer, type } = await optimizeImageFromDataUrl(dataUrl);
+  return { bytes: Uint8Array.from(buffer), type, updatedAt: new Date() };
+}

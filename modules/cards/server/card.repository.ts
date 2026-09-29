@@ -2,6 +2,7 @@ import type { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
 import type { CreateCardDto, ListCardsQuery, UpdateCardDto } from "../card.schema";
+import type { UpdateCardDetailsDto } from "../card.schema";
 
 const withDetails = {
   player: { select: { id: true, name: true, team: { select: { id: true, name: true, category: true } } } },
@@ -11,10 +12,12 @@ const withDetails = {
       matchday: true,
       date: true,
       resultLocked: true,
+      refereeId: true,
       homeTeam: { select: { id: true, name: true } },
       awayTeam: { select: { id: true, name: true } },
     },
   },
+  sanction: { select: { matchesSuspended: true } },
 } as const;
 
 function buildWhere({ playerId, matchId, type, paid, category, search }: Omit<ListCardsQuery, "page" | "pageSize">) {
@@ -100,6 +103,42 @@ export const cardRepository = {
     return data.paid === undefined
       ? prisma.card.update({ where: { id }, data, include: withDetails })
       : updatePayment(id, data.paid);
+  },
+  updateDetails(id: string, data: UpdateCardDetailsDto & { amount: Prisma.Decimal; matchday: number }) {
+    const { matchesSuspended, matchday, ...cardData } = data;
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.card.findUnique({
+        where: { id },
+        select: { paid: true, sanction: { select: { id: true, _count: { select: { appliedMatches: true } } } } },
+      });
+      if (!existing) throw new ApiError(404, "CARD_NOT_FOUND", "No existe esa tarjeta");
+      if (existing.paid) throw new ApiError(409, "CARD_ALREADY_PAID", "No se puede corregir una tarjeta pagada");
+      if (existing.sanction?._count.appliedMatches) {
+        throw new ApiError(409, "SANCTION_ALREADY_APPLIED", "No se puede corregir una tarjeta cuya suspensión ya se aplicó");
+      }
+      await tx.card.update({ where: { id }, data: cardData });
+      if (matchesSuspended !== undefined) {
+        await tx.sanction.upsert({
+          where: { cardId: id },
+          create: {
+            cardId: id,
+            matchdayStart: matchday + 1,
+            matchdayEnd: matchday + matchesSuspended,
+            matchesSuspended,
+          },
+          update: {
+            matchdayStart: matchday + 1,
+            matchdayEnd: matchday + matchesSuspended,
+            matchesSuspended,
+            fulfilled: false,
+            waivedByPayment: false,
+          },
+        });
+      } else if (existing.sanction) {
+        await tx.sanction.delete({ where: { cardId: id } });
+      }
+      return tx.card.findUniqueOrThrow({ where: { id }, include: withDetails });
+    });
   },
   pay(id: string) {
     return updatePayment(id, true);

@@ -1,5 +1,5 @@
 import type { CreateCardReasonConfigDto, UpdateCardReasonConfigDto } from "./card-reason-config.schema";
-import type { CreateCardDto } from "./card.schema";
+import type { CreateCardDto, UpdateCardDetailsDto } from "./card.schema";
 import type { LeagueCategoryValue } from "@/lib/constants/league-categories";
 
 export type CardType = "yellow" | "red";
@@ -13,6 +13,7 @@ export interface MatchCard {
   detail: string | null;
   recordedAt: string;
   paid: boolean;
+  sanction: { matchesSuspended: number } | null;
   player: { id: string; name: string; team: { id: string; name: string; category: string } };
   match: {
     id: string;
@@ -52,5 +53,6 @@ export interface CardReasonConfigFilters {
 }
 
 export type CreateCardInput = CreateCardDto;
+export type UpdateCardDetailsInput = UpdateCardDetailsDto;
 export type CreateCardReasonConfigInput = CreateCardReasonConfigDto;
 export type UpdateCardReasonConfigInput = UpdateCardReasonConfigDto;

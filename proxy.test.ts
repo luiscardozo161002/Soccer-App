@@ -83,6 +83,15 @@ describe("admin page authorization", () => {
 });
 
 describe("settings API authorization", () => {
+  it("allows a referee to create, edit and delete match cards, but not change other data", async () => {
+    mocks.getSession.mockResolvedValue({ sub: "ref-1", role: "arbitro" });
+    expect((await proxy(request("/api/v1/cards", { method: "POST" }))).status).toBe(200);
+    expect((await proxy(request("/api/v1/cards/card-1", { method: "DELETE" }))).status).toBe(200);
+    expect((await proxy(request("/api/v1/cards/card-1", { method: "PATCH" }))).status).toBe(200);
+    expect((await proxy(request("/api/v1/cards/reasons", { method: "POST" }))).status).toBe(403);
+    expect((await proxy(request("/api/v1/cards/card-1/pay", { method: "POST" }))).status).toBe(403);
+  });
+
   it("rejects a referee's write", async () => {
     mocks.getSession.mockResolvedValue({ sub: "ref-1", role: "arbitro" });
     const response = await proxy(request("/api/v1/settings", { method: "PATCH" }));

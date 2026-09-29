@@ -187,4 +187,23 @@ export const matchService = {
     }
     await matchRepository.delete(id);
   },
+
+  async archive(id: string, archived: boolean) {
+    const match = await getMatchById(id);
+    if (archived) {
+      if (!match.resultLocked) {
+        throw new ApiError(
+          409,
+          "MATCH_RESULT_NOT_CONFIRMED",
+          "Solo se pueden archivar partidos con resultado confirmado"
+        );
+      }
+      if (match.archived) {
+        throw new ApiError(409, "MATCH_ALREADY_ARCHIVED", "Este partido ya está archivado");
+      }
+    } else if (!match.archived) {
+      throw new ApiError(409, "MATCH_NOT_ARCHIVED", "Este partido no está archivado");
+    }
+    return matchRepository.archive(id, archived);
+  },
 };

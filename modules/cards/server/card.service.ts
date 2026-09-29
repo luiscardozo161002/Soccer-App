@@ -1,7 +1,7 @@
 import { ApiError, notFoundError } from "@/lib/errors";
 import { matchRepository } from "@/modules/matches/server/match.repository";
 import { playerRepository } from "@/modules/players/server/player.repository";
-import type { CreateCardDto, ListCardsQuery, UpdateCardDto } from "../card.schema";
+import type { CreateCardDto, ListCardsQuery, UpdateCardDetailsDto, UpdateCardDto } from "../card.schema";
 import { cardReasonConfigRepository } from "./card-reason-config.repository";
 import { cardRepository } from "./card.repository";
 
@@ -24,9 +24,6 @@ export const cardService = {
     ]);
     if (!player) throw notFoundError("PLAYER_NOT_FOUND", "el jugador", dto.playerId);
     if (!match) throw notFoundError("MATCH_NOT_FOUND", "el partido", dto.matchId);
-    if (match.resultLocked) {
-      throw new ApiError(409, "MATCH_RESULT_LOCKED", "No se pueden agregar tarjetas a un partido confirmado");
-    }
     if (player.teamId !== match.homeTeamId && player.teamId !== match.awayTeamId) {
       throw new ApiError(409, "PLAYER_NOT_IN_MATCH", "El equipo del jugador no es ninguno de los dos que juegan este partido");
     }
@@ -40,16 +37,28 @@ export const cardService = {
     await getCardById(id);
     return cardRepository.update(id, dto);
   },
+  async updateDetails(id: string, dto: UpdateCardDetailsDto) {
+    const card = await getCardById(id);
+    const [player, reasonConfig] = await Promise.all([
+      playerRepository.findById(dto.playerId),
+      cardReasonConfigRepository.findActiveByTypeAndReason(dto.type, dto.detail),
+    ]);
+    if (!player) throw notFoundError("PLAYER_NOT_FOUND", "el jugador", dto.playerId);
+    if (player.teamId !== card.match.homeTeam.id && player.teamId !== card.match.awayTeam.id) {
+      throw new ApiError(409, "PLAYER_NOT_IN_MATCH", "El equipo del jugador no es ninguno de los dos que juegan este partido");
+    }
+    if (!reasonConfig) {
+      throw new ApiError(422, "CARD_REASON_NOT_CONFIGURED", "Ese motivo no está configurado (o no está activo) para este tipo de tarjeta");
+    }
+    return cardRepository.updateDetails(id, { ...dto, amount: reasonConfig.amount, matchday: card.match.matchday });
+  },
   async payFine(id: string) {
     const card = await getCardById(id);
     if (card.paid) throw new ApiError(409, "CARD_ALREADY_PAID", "Esta tarjeta ya fue pagada");
     return cardRepository.pay(id);
   },
   async remove(id: string) {
-    const card = await getCardById(id);
-    if (card.match.resultLocked) {
-      throw new ApiError(409, "MATCH_RESULT_LOCKED", "No se pueden eliminar tarjetas de un partido confirmado");
-    }
+    await getCardById(id);
     await cardRepository.delete(id);
   },
 };

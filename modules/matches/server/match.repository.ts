@@ -23,12 +23,13 @@ export function mapMatch<Category, T extends { homeTeam: { category: Category } 
   };
 }
 
-function buildWhere({ matchday, teamId, status, seasonId, category, refereeId }: ListMatchesQuery) {
+function buildWhere({ matchday, teamId, status, seasonId, category, refereeId, archived }: ListMatchesQuery) {
   return {
     matchday,
     status,
     seasonId,
     refereeId,
+    archived: archived ?? false,
     ...(teamId ? { OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }] } : {}),
     ...(category ? { homeTeam: { category } } : {}),
   } satisfies Prisma.MatchWhereInput;
@@ -142,6 +143,11 @@ export const matchRepository = {
       },
       { isolationLevel: "Serializable" }
     );
+  },
+
+  async archive(id: string, archived: boolean) {
+    const match = await prisma.match.update({ where: { id }, data: { archived }, include: includeCategory });
+    return mapMatch(match);
   },
 
   delete(id: string) {

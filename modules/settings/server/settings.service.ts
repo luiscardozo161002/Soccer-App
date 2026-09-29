@@ -1,4 +1,4 @@
-import { optimizeImageFromDataUrl } from "@/lib/utils/images";
+import { resolveImageUpdate } from "@/lib/utils/images";
 import type { UpdateSettingsDto } from "../settings.schema";
 import { settingsRepository, type SettingsWriteData } from "./settings.repository";
 
@@ -19,15 +19,11 @@ export const settingsService = {
       backgroundColor: dto.backgroundColor,
       locale: dto.locale,
     };
-    if (dto.logo === null) {
-      data.logo = null;
-      data.logoType = null;
-      data.logoUpdatedAt = null;
-    } else if (dto.logo) {
-      const { buffer, type } = await optimizeImageFromDataUrl(dto.logo);
-      data.logo = Uint8Array.from(buffer);
-      data.logoType = type;
-      data.logoUpdatedAt = new Date();
+    const logoUpdate = await resolveImageUpdate(dto.logo);
+    if (logoUpdate) {
+      data.logo = logoUpdate.bytes;
+      data.logoType = logoUpdate.type;
+      data.logoUpdatedAt = logoUpdate.updatedAt;
     }
     return settingsRepository.update(data);
   },

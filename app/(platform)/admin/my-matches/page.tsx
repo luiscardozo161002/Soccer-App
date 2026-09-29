@@ -29,6 +29,7 @@ function canRegisterResult(match: Match) {
 
 export default function MyMatchesPage() {
   const [registeringMatch, setRegisteringMatch] = useState<Match | null>(null);
+  const [editingReportMatch, setEditingReportMatch] = useState<Match | null>(null);
   const [viewingEvidenceMatch, setViewingEvidenceMatch] = useState<Match | null>(null);
   const { data, isLoading, isError } = useMatches({ pageSize: 100 });
   const matches = data?.data ?? [];
@@ -102,6 +103,9 @@ export default function MyMatchesPage() {
                     )}
                     {match.resultLocked && (
                       <>
+                        <Button variant="secondary" onClick={() => setEditingReportMatch(match)}>
+                          Cédula y tarjetas
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -113,10 +117,10 @@ export default function MyMatchesPage() {
                         </Button>
                         <span
                           className="flex items-center gap-1 rounded-full bg-primary-light px-2.5 py-1 text-[10px] font-bold uppercase text-primary"
-                          title="Resultado confirmado: ya no se puede editar"
+                          title="Marcador confirmado; cédula y tarjetas editables"
                         >
                           <Lock size={12} />
-                          Confirmado
+                          Marcador confirmado
                         </span>
                       </>
                     )}
@@ -139,6 +143,26 @@ export default function MyMatchesPage() {
             awayTeamName: teamsById[registeringMatch.awayTeamId] ?? "Visitante",
           }}
           onDone={() => setRegisteringMatch(null)}
+        />
+      )}
+      {editingReportMatch && (
+        <RegisterResultForm
+          match={{
+            id: editingReportMatch.id,
+            matchday: editingReportMatch.matchday,
+            homeTeamId: editingReportMatch.homeTeamId,
+            awayTeamId: editingReportMatch.awayTeamId,
+            homeTeamName: teamsById[editingReportMatch.homeTeamId] ?? "Local",
+            awayTeamName: teamsById[editingReportMatch.awayTeamId] ?? "Visitante",
+          }}
+          initialResult={{
+            homeGoals: editingReportMatch.homeGoals ?? 0,
+            awayGoals: editingReportMatch.awayGoals ?? 0,
+            forfeit: editingReportMatch.forfeit,
+            forfeitReason: editingReportMatch.forfeitReason,
+          }}
+          scoreReadOnly
+          onDone={() => setEditingReportMatch(null)}
         />
       )}
       <MatchEvidenceViewerModal

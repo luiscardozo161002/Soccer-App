@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/query-keys";
+import { markLoggingOut, clearLoggingOut } from "@/lib/auth/client-session";
 import { authApi } from "../client/auth.api";
 import type { ForgotPasswordInput, LoginInput, ResetPasswordInput } from "../auth.types";
 
@@ -18,7 +19,12 @@ export function useLogin() {
 
 export function useLogout() {
   const queryClient = useQueryClient();
-  return useMutation({ mutationFn: authApi.logout, onSuccess: () => queryClient.removeQueries({ queryKey: queryKeys.auth.all }) });
+  return useMutation({
+    mutationFn: authApi.logout,
+    onMutate: () => markLoggingOut(),
+    onSuccess: () => queryClient.removeQueries({ queryKey: queryKeys.auth.all }),
+    onError: () => clearLoggingOut(),
+  });
 }
 
 export function useForgotPassword() {

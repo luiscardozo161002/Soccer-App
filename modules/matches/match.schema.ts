@@ -43,6 +43,11 @@ export const updateMatchSchema = z.object({
 });
 export type UpdateMatchDto = z.infer<typeof updateMatchSchema>;
 
+export const archiveMatchSchema = z.object({
+  archived: z.boolean(),
+});
+export type ArchiveMatchDto = z.infer<typeof archiveMatchSchema>;
+
 export const registerResultSchema = z.object({
   homeGoals: z.number().int().min(0),
   awayGoals: z.number().int().min(0),
@@ -60,5 +65,6 @@ export const listMatchesQuerySchema = z.object({
   seasonId: z.string().uuid().optional(),
   category: z.enum(leagueCategoryValues).optional(),
   refereeId: z.string().uuid().optional(),
+  archived: z.enum(["true", "false"]).transform((value) => value === "true").optional(),
 });
 export type ListMatchesQuery = z.infer<typeof listMatchesQuerySchema>;
