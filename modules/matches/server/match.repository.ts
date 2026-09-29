@@ -41,7 +41,7 @@ export const matchRepository = {
       where: buildWhere(query),
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize,
-      orderBy: [{ status: "asc" }, { matchday: "asc" }, { date: "asc" }],
+      orderBy: [{ homeTeam: { category: "asc" } }, { date: "asc" }, { matchday: "asc" }, { time: "asc" }],
       include: includeCategory,
     });
 
