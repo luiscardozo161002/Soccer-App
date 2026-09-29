@@ -127,11 +127,17 @@ sitio (nombre, logo, colores) que se haya cargado desde el panel **no está en n
 pierde para siempre con la base de datos — conviene respaldarla (`pg_dump`) antes de borrarla si ya
 hay datos reales de ese tipo.
 
+`predev` también corre `db:backfill-folio-prefixes` (ver [Scripts](#scripts)) justo después de las
+migraciones — es idempotente, así que cualquier equipo que se haya creado sin `folioPrefix` (ej.
+cargado directo a la base, sin pasar por el panel) se autocorrige en el siguiente arranque, sin
+tener que acordarte de correrlo a mano. En producción pasa lo mismo vía `preDeployCommand` en
+`railway.json`, en cada deploy.
+
 ## Scripts
 
 | Script | Qué hace |
 |---|---|
-| `pnpm dev` | Aplica migraciones pendientes (`predev`) y levanta el servidor de desarrollo |
+| `pnpm dev` | Aplica migraciones pendientes y el backfill de folios (`predev`) y levanta el servidor de desarrollo |
 | `pnpm build` | Build de producción |
 | `pnpm start` | Sirve el build de producción |
 | `pnpm lint` | ESLint |
@@ -141,6 +147,7 @@ hay datos reales de ese tipo.
 | `pnpm ci` | Ejecuta `verify` y el build de producción |
 | `pnpm db:bootstrap-admin` | Crea el usuario admin con contraseña fija — no idempotente, solo correr una vez por base |
 | `pnpm db:seed-clausura-caliope` | Ejemplo de seed idempotente real (equipos/canchas/temporada de un torneo específico) |
+| `pnpm db:backfill-folio-prefixes` | Asigna un prefijo de folio a los equipos que no tengan uno — idempotente, ya corre solo en cada `pnpm dev`/deploy (ver nota arriba); correrlo a mano solo sirve para ver el log de qué se asignó |
 
 `GET /api/health` comprueba la disponibilidad de PostgreSQL y responde `503` cuando la aplicación
 no está lista. Los route handlers instrumentados emiten logs JSON e incluyen `x-request-id` en la

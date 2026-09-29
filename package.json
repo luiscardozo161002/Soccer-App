@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "prisma migrate deploy",
+    "predev": "prisma migrate deploy && tsx prisma/seeds/backfill-team-folio-prefixes.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

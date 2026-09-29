@@ -11,15 +11,25 @@ export const SEASON: SeasonSeed = {
 };
 
 export async function seedSeason(prisma: PrismaClient) {
-  const existing = await prisma.season.findFirst({ where: { name: SEASON.name } });
-  if (existing) {
-    return { season: existing, created: false };
+  // Whatever season is currently active — regardless of its name — is the
+  // one the league is actually running. Never archive/replace it just
+  // because it doesn't literally match SEASON.name; that would silently
+  // swap out real tournament data on any re-run against an environment
+  // that already has its own active season.
+  const activeSeason = await prisma.season.findFirst({ where: { status: "active" } });
+  if (activeSeason) {
+    return { season: activeSeason, created: false };
   }
 
-  await prisma.season.updateMany({
-    where: { status: "active" },
-    data: { status: "archived", endDate: new Date() },
-  });
+  const existingByName = await prisma.season.findFirst({ where: { name: SEASON.name } });
+  if (existingByName) {
+    const season = await prisma.season.update({
+      where: { id: existingByName.id },
+      data: { status: "active", endDate: null },
+    });
+    return { season, created: false };
+  }
+
   const season = await prisma.season.create({ data: { name: SEASON.name, status: "active" } });
   return { season, created: true };
 }
