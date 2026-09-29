@@ -30,9 +30,12 @@ describe("refresh endpoint", () => {
 
   it("rotates the cookie and returns a new access session", async () => {
     mocks.rotate.mockResolvedValue({ accessToken: "new-access", refreshToken: "new-refresh" });
+    // Origin must match APP_URL (http://localhost:3000 in .env/.env.example and
+    // in CI), not just the request's own host — otherwise this only ever
+    // exercises the "no APP_URL set" fallback branch instead of the real check.
     const response = await POST(new NextRequest("http://localhost/api/v1/auth/refresh", {
       method: "POST",
-      headers: { origin: "http://localhost", cookie: "session_refresh=old" },
+      headers: { origin: "http://localhost:3000", cookie: "session_refresh=old" },
     }), context);
 
     expect(response.status).toBe(200);
